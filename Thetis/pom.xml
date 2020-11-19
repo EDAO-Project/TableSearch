@@ -6,7 +6,7 @@
 
   <groupId>dk.aau.cs.daisy.edao</groupId>
   <artifactId>Thetis</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>0.1</version>
 
   <name>Thetis</name>
   <url>https://edao.eu/</url>
@@ -89,7 +89,7 @@
           <artifactId>maven-assembly-plugin</artifactId>
           <version>3.2.0</version>
           <configuration>
-            <finalName>${project.artifactId}</finalName>
+            <finalName>${project.artifactId}.${project.version}</finalName>
             <archive>
               <manifest>
                 <mainClass>dk.aau.cs.daisy.edao.App</mainClass>

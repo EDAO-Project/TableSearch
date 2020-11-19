@@ -56,7 +56,7 @@ public class Neo4j implements AutoCloseable {
             String greeting = session.readTransaction(tx -> {
                 Result result = tx.run("MATCH (a:Resource) " +
                         "RETURN a.uri LIMIT 10");
-                return result.single().get(0).asString();
+                return result.list().get(0).toString();
             });
             System.out.println(greeting);
         }

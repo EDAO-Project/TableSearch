@@ -1,6 +1,8 @@
 package dk.aau.cs.daisy.edao.commands;
 
 import dk.aau.cs.daisy.edao.connector.Neo4j;
+import org.neo4j.driver.exceptions.AuthenticationException;
+import org.neo4j.driver.exceptions.ServiceUnavailableException;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -114,6 +116,12 @@ public class IndexTables extends Command {
         try {
             Neo4j connector = new Neo4j(this.configFile);
             connector.testConnection();
+        } catch(AuthenticationException ex){
+            System.err.println( "Could not Login to Neo4j Server (user or password do not match)");
+            System.err.println(ex.getMessage());
+        }catch (ServiceUnavailableException ex){
+            System.err.println( "Could not connect to Neo4j Server");
+            System.err.println(ex.getMessage());
         } catch (FileNotFoundException ex){
             System.err.println( "Configuration file for Neo4j connector not found");
             System.err.println(ex.getMessage());
