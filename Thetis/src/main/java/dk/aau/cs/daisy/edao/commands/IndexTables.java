@@ -52,7 +52,7 @@ public class IndexTables extends Command {
                     String.format("Invalid value '%s' for option '--config': " +
                             "the path should point to a file not to a directory.", value));
         }
-        tableDir = value;
+        configFile = value;
     }
 
 
