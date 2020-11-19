@@ -92,4 +92,9 @@ public class IndexTables extends Command {
     }
 
 
+    public boolean parseTable(String id){
+        return true;
+    }
+
+
 }
