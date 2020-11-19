@@ -29,11 +29,16 @@ Semantically Augmented Table Search
 ### KG
 
 The reference KG is DBpedia.
-Enter the `data/kg/dbpedia` folder and download the files with the command 
 
-```bash
- ./download-dbpedia.sh dbpedia_files.txt 
-```
+1. Enter the `data/kg/dbpedia` folder and download the files with the command 
+
+   ```bash
+   ./download-dbpedia.sh dbpedia_files.txt 
+   ```
+
+2. Load the data into a database: Let's try Neo4j
+
+   https://gist.github.com/kuzeko/7ce71c6088c866b0639c50cf9504869a
 
 
 ### Tables
@@ -58,7 +63,25 @@ The Table datasets consist of:
   wget -P data/tables/wikitables http://websail-fe.cs.northwestern.edu/TabEL/tableMentions.json.gz
   ```
   
-2. Run preprocessing script for indexing
+2. Run preprocessing script for extracting tables
+
+   ```bash
+   mkdir -p data/tables/wikitables/files
+   cd data/tables/wikitables
+   python ./extract-tables.py -i ./tables.json.gz -o ./files
+   python ./extract-table-mentions.py -i ./tableMentions.json.gz -o ./files 
+   ```
+   
+
+3. Run preprocessing script for indexing
+
+   ```bash
+   
+   docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-alpine
+   cd /src
+   mvn package
+   java -jar Thetis.1.0.jar  --command index  --type wikitables --tables  data/tables/wikitables --output data/index/wikitables
+   ```
 
 
 #### Tough Tables
