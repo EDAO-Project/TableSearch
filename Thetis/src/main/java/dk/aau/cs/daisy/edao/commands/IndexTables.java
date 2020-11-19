@@ -14,8 +14,18 @@ public class IndexTables extends Command {
      * java -jar Thetis.1.0.jar  index  --type wikitables --tables  data/tables/wikitables --output data/index/wikitables
      */
     public enum TableType {
-        WIKI, // WikiTables
-        TT; // Tough Tables
+        WIKI("wikitables"),
+        TT("toughtables");
+
+        private final String name;
+        TableType(String name){
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return this.name;
+        }
     }
 
 
@@ -75,7 +85,8 @@ public class IndexTables extends Command {
     public Integer call() {
         System.out.println("IndexTables command run: not implemented");
 
-
+        System.out.println("Input Directory: " + this.tableDir.getAbsolutePath() );
+        System.out.println("Output Directory: " + this.outputDir.getAbsolutePath() );
 
         return 23;
     }
