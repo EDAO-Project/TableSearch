@@ -77,10 +77,10 @@ The Table datasets consist of:
 
    ```bash
    
-   docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-alpine
+   docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
    cd /src
    mvn package
-   java -jar Thetis.1.0.jar  --command index  --type wikitables --tables  data/tables/wikitables --output data/index/wikitables
+   java -jar target/Thetis.jar  index " --table-type wikitables --table-dir  /data/tables/wikitables --output-dir /data/index/wikitables
    ```
 
 
