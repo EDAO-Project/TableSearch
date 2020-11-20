@@ -34,7 +34,7 @@ def existing_file_path(path):
             f"'{target}' is not a valid file path")
 
 
-def export(filename, output_folder, min_rows, max_rows, min_cols, keep_numeric=True):
+def export(filename, output_folder, min_rows, max_rows, min_cols, keep_numeric=True, verbose=False):
     reader = gzip.open(filename, 'rt')
 
     print("Read file")
@@ -111,14 +111,17 @@ def export(filename, output_folder, min_rows, max_rows, min_cols, keep_numeric=T
                 })
             _to_export['rows'].append(_row)
 
-        with open(output_folder / 'table-{}.json'.format(table['_id']), 'w') as outfile:
+        _table_file = output_folder / 'table-{}.json'.format(table['_id'])
+        with open(_table_file, 'w') as outfile:
+            if verbose:
+                print("Saving to {}".format(_table_file))
+
             json.dump(_to_export, outfile)
 
     # AVG/STD/Median/Max lines
     # Num Tables >1 NumericColum
     # Num Table == 1 Header
     # AVG/STD/Median/Max num columns
-    #
 
     print("[Lines] MAX: {} ".format(np.max(num_lines)),
           "AVG: {:.3f} ".format(np.average(num_lines)),
@@ -159,6 +162,8 @@ def main():
     parser.add_argument('-o', '--output', help='output directory',
                         metavar='DIR', type=dir_path, default='./files')
 
+    parser.add_argument('-v', '--verbose', action="store_true", default=False)
+
     args = parser.parse_args()
 
     min_rows = args.min_rows
@@ -173,7 +178,7 @@ def main():
         print(f"Creating directory {output_folder}")
         output_folder.mkdir(parents=True, exist_ok=True)
 
-    num_tables = export(args.tables, output_folder, 50, 100, 3)
+    num_tables = export(args.tables, output_folder, 50, 100, 3, args.verbose)
     print("Exported {} tables".format(num_tables))
 
 
