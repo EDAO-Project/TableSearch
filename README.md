@@ -68,6 +68,10 @@ The Table datasets consist of:
    ```bash
    mkdir -p data/tables/wikitables/files
    cd data/tables/wikitables
+   python3 -m venv .virtualenv
+   source .virtualenv/bin/activate
+   pip install -r requirements.txt
+   python extract-tables.py -t tables.json.gz --min-rows 50 --max-rows 0 --min-cols 3 -o files/ 
    python ./extract-tables.py -i ./tables.json.gz -o ./files
    python ./extract-table-mentions.py -i ./tableMentions.json.gz -o ./files 
    ```
