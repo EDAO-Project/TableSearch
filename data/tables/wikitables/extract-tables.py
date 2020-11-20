@@ -111,7 +111,7 @@ def export(filename, output_folder, min_rows, max_rows, min_cols, keep_numeric=T
                 })
             _to_export['rows'].append(_row)
 
-        with open(output_folder / '/table-{}.json'.format(table['_id']), 'w') as outfile:
+        with open(output_folder / 'table-{}.json'.format(table['_id']), 'w') as outfile:
             json.dump(_to_export, outfile)
 
     # AVG/STD/Median/Max lines
@@ -120,24 +120,24 @@ def export(filename, output_folder, min_rows, max_rows, min_cols, keep_numeric=T
     # AVG/STD/Median/Max num columns
     #
 
-    print("[Lines] MAX: ", np.max(num_lines),
-          "AVG: ", np.average(num_lines),
-          "STD: ", np.std(num_lines),
-          "MED: ", np.median(num_lines))
+    print("[Lines] MAX: {} ".format(np.max(num_lines)),
+          "AVG: {:.3f} ".format(np.average(num_lines)),
+          "STD: {:.3f} ".format(np.std(num_lines)),
+          "MED: {:.3f} ".format(np.median(num_lines)))
 
-    print("[Cols] MAX: ", np.max(num_columns),
-          "AVG: ", np.average(num_columns),
-          "STD: ", np.std(num_columns),
-          "MED: ", np.median(num_columns))
+    print("[Cols] MAX: {} ".format(np.max(num_columns)),
+          "AVG: {:.3f} ".format(np.average(num_columns)),
+          "STD: {:.3f} ".format(np.std(num_columns)),
+          "MED: {:.3f} ".format(np.median(num_columns)))
 
-    print("[Numeric] MAX: ", np.max(num_numeric_columns),
-          "AVG: ", np.average(num_numeric_columns),
-          "STD: ", np.std(num_numeric_columns),
-          "MED: ", np.median(num_numeric_columns))
+    print("[Numeric] MAX: {} ".format(np.max(num_numeric_columns)),
+          "AVG: {:.3f} ".format(np.average(num_numeric_columns)),
+          "STD: {:.3f} ".format(np.std(num_numeric_columns)),
+          "MED: {:.3f} ".format(np.median(num_numeric_columns)))
 
-    print("Total With Numeric: ", with_numeric,
-          "Total with 1 Header: ", with_1header,
-          "To export: ", num_to_keep)
+    print("Total With Numeric: {} ".format(with_numeric),
+          "Total with 1 Header: {} ".format(with_1header),
+          "To export: {} ".format(num_to_keep))
 
     return num_to_keep
 
@@ -179,7 +179,9 @@ def main():
 
 if __name__ == "__main__":
     """
-    command line: python read_wiki_tables.py <filename tables> <min_rows> <max_rows> <outputfile>
+    usage: extract-tables.py [-h] -t FILE [--min-rows MIN_R] [--max-rows MAX_R]
+                         [--min-cols MIN_C] [-o DIR]
+                         
     When min_rows > max_rows, we select tables *only* bigger than min_rows
     """
 
