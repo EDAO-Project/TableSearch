@@ -212,7 +212,7 @@ public class IndexTables extends Command {
             return false;
         }
 
-        if(table == null) {
+        if(table == null || table._id  == null || table.body == null) {
             System.err.println("Failed to parse '"+path.toString()+"'");
             return  false;
         }
