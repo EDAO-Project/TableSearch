@@ -213,7 +213,7 @@ public class IndexTables extends Command {
         }
 
         if(table == null) {
-            System.err.println("Failed to parse '"+path.toString()+"'";);
+            System.err.println("Failed to parse '"+path.toString()+"'");
             return  false;
         }
 
