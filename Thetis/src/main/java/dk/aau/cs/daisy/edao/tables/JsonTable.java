@@ -20,7 +20,7 @@ public class JsonTable {
 
     }
 
-    public JsonTable(String _id, int numCols, int numDataRows, String pgTitle, String pgId, String tableCaption, List<TableCell> header, List<List<TableCell>> body) {
+    public JsonTable(String _id, int numCols, int numDataRows, String pgTitle, int pgId, String tableCaption, List<TableCell> header, List<List<TableCell>> body) {
         this._id = _id;
         this.numCols = numCols;
         this.numDataRows = numDataRows;
@@ -45,7 +45,7 @@ public class JsonTable {
     }
 
 
-    public void setPgId(String pgId) {
+    public void setPgId(int pgId) {
         this.pgId = pgId;
     }
 
@@ -72,7 +72,7 @@ public class JsonTable {
 
     public static class TableCell {
 
-        public TableCell(){};
+        public TableCell(){}
 
         public TableCell(String text, boolean isNumeric, List<String> links) {
             this.text = text;
