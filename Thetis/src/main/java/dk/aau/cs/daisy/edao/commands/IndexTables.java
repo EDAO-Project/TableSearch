@@ -130,7 +130,7 @@ public class IndexTables extends Command {
 
     @Override
     public Integer call() {
-        System.out.println("IndexTables command run: not implemented");
+        System.out.println("IndexTables command run: not fully implemented");
 
         System.out.println("Input Directory: " + this.tableDir.getAbsolutePath() );
         System.out.println("Output Directory: " + this.outputDir.getAbsolutePath() );
@@ -162,8 +162,11 @@ public class IndexTables extends Command {
                 System.out.println("Starting index of '"+TableType.WIKI.getName()+"'");
                 parsedTables = this.indexWikiTables();
                 System.out.printf("Indexed %d tables%n", parsedTables );
+                break;
+
         }
 
+        System.out.println("Done.");
 
         return 23;
     }
@@ -176,7 +179,7 @@ public class IndexTables extends Command {
 
         // Open table directory
         // Iterate each table
-        // Extract table + colum + row coordinates -> link to wikipedia
+        // Extract table + column + row coordinates -> link to wikipedia
         // Query neo4j (in batch??) to get the matches
         // Save information on a file for now
 
