@@ -16,7 +16,7 @@ public class IndexTablesTest extends TestCase {
         table._id = "test1";
         table.numCols =3;
         table.numDataRows = 4;
-        table.pgId = "t4";
+        table.pgId = 4;
         table.pgTitle = "Test title";
         // table.tableCaption = "Test Caption"; // test with null
 

@@ -9,7 +9,7 @@ public class JsonTable {
     public int numCols;
     public int numDataRows;
     public String pgTitle;
-    public String pgId;
+    public int pgId;
     public String tableCaption;
 
     public List<TableCell> header;
