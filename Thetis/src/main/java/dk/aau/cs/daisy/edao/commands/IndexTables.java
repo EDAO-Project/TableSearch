@@ -187,7 +187,7 @@ public class IndexTables extends Command {
         try {
             parsedTables = Files.find(this.tableDir.toPath(),
                     Integer.MAX_VALUE,
-                    (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.endsWith(".json"))
+                    (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"))
                     .map(filePath -> this.parseTable(filePath)).filter(res -> res).count();
         } catch (IOException e) {
             e.printStackTrace();
