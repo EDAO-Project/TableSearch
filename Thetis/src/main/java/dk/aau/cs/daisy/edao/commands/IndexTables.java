@@ -1,13 +1,31 @@
 package dk.aau.cs.daisy.edao.commands;
 
-import dk.aau.cs.daisy.edao.connector.Neo4j;
-import org.neo4j.driver.exceptions.AuthenticationException;
-import org.neo4j.driver.exceptions.ServiceUnavailableException;
+import java.io.File;
+import java.io.FileReader;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Files;
+import java.io.IOException;
+import java.io.FileNotFoundException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.hash.BloomFilter;
+import com.google.common.hash.Funnels;
+import com.google.gson.Gson;
+import dk.aau.cs.daisy.edao.structures.Pair;
+import dk.aau.cs.daisy.edao.tables.JsonTable;
 import picocli.CommandLine;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import com.google.gson.stream.JsonReader;
+
+import org.neo4j.driver.exceptions.AuthenticationException;
+import org.neo4j.driver.exceptions.ServiceUnavailableException;
+
+
+import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
+
 
 @picocli.CommandLine.Command(name = "index", description = "creates the index for the specified set of tables")
 public class IndexTables extends Command {
@@ -25,6 +43,10 @@ public class IndexTables extends Command {
         private final String name;
         TableType(String name){
             this.name = name;
+        }
+
+        public final String getName(){
+            return this.name;
         }
 
         @Override
@@ -104,7 +126,7 @@ public class IndexTables extends Command {
 
 
 
-
+    private Neo4jEndpoint connector;
 
     @Override
     public Integer call() {
@@ -114,7 +136,7 @@ public class IndexTables extends Command {
         System.out.println("Output Directory: " + this.outputDir.getAbsolutePath() );
 
         try {
-            Neo4j connector = new Neo4j(this.configFile);
+            this.connector = new Neo4jEndpoint(this.configFile);
             connector.testConnection();
         } catch(AuthenticationException ex){
             System.err.println( "Could not Login to Neo4j Server (user or password do not match)");
@@ -130,11 +152,84 @@ public class IndexTables extends Command {
             System.err.println(ex.getMessage());
         }
 
+
+        long parsedTables;
+        switch (this.tableType){
+            case TT:
+                System.err.println( "Indexing of '"+TableType.TT.getName() + "' is not supported yet!" );
+                break;
+            case WIKI:
+                System.out.println("Starting index of '"+TableType.WIKI.getName()+"'");
+                parsedTables = this.indexWikiTables();
+                System.out.printf("Indexed %d tables%n", parsedTables );
+        }
+
+
         return 23;
     }
 
+    private final BloomFilter<String> filter = BloomFilter.create(
+            Funnels.stringFunnel(Charset.defaultCharset()),
+            500000,
+            0.01);
+    public long indexWikiTables(){
 
-    public boolean parseTable(String id){
+        // Open table directory
+        // Iterate each table
+        // Extract table + colum + row coordinates -> link to wikipedia
+        // Query neo4j (in batch??) to get the matches
+        // Save information on a file for now
+
+        long parsedTables;
+        try {
+            parsedTables = Files.find(this.tableDir.toPath(),
+                    Integer.MAX_VALUE,
+                    (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.endsWith(".json"))
+                    .map(filePath -> this.parseTable(filePath)).filter(res -> res).count();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return -1;
+        }
+
+        System.out.printf("Found an approximate total of %d of unique entity mentions%n", this.filter.approximateElementCount() );
+
+        return parsedTables;
+
+
+    }
+
+
+    public boolean parseTable(Path path) {
+        JsonTable table;
+        try {
+            JsonReader reader = new JsonReader(new FileReader(path.toFile()));
+            table = new Gson().fromJson(reader, JsonTable.class);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+
+        Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
+        int rowId = 0;
+        for(List<JsonTable.TableCell> row : table.body){
+            int collId =0;
+            for(JsonTable.TableCell cell : row ){
+                if(!cell.links.isEmpty()){
+                    //List<Pair<String,String>> matchedUris = connector.searchLinks(cell.links);
+                    List<String> matchedUris = connector.searchLinks(cell.links);
+                    for(String em : matchedUris){
+                        this.filter.put(em);
+                    }
+                    entityMatches.put(new Pair<>(rowId, collId), matchedUris);
+                }
+                collId+=1;
+            }
+            rowId+=1;
+        }
+
+        System.out.printf("Found a total of %d entity matches%n", entityMatches.size());
+
         return true;
     }
 
