@@ -9,7 +9,7 @@ import java.util.Collections;
 
 public class IndexTablesTest extends TestCase {
 
-    public void parseTable() {
+    public void testParseTable() {
 
         JsonTable table = new JsonTable();
 
