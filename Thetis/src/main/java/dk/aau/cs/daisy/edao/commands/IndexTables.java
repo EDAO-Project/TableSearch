@@ -216,6 +216,11 @@ public class IndexTables extends Command {
 
         if(table == null || table._id  == null || table.body == null) {
             System.err.println("Failed to parse '"+path.toString()+"'");
+            try {
+                System.err.println(Files.readString(path));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             return  false;
         }
 

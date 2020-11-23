@@ -18,7 +18,7 @@ public class IndexTablesTest extends TestCase {
         table.numDataRows = 4;
         table.pgId = "t4";
         table.pgTitle = "Test title";
-        table.tableCaption = "Test Caption";
+        // table.tableCaption = "Test Caption"; // test with null
 
         table.header = new ArrayList<>();
 
