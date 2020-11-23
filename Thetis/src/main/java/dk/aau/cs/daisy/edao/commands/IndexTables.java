@@ -14,6 +14,7 @@ import java.util.Map;
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import picocli.CommandLine;
@@ -204,9 +205,10 @@ public class IndexTables extends Command {
 
     public boolean parseTable(Path path) {
         JsonTable table;
+        Gson gson = new GsonBuilder().serializeNulls().create();
         try {
             JsonReader reader = new JsonReader(new FileReader(path.toFile()));
-            table = new Gson().fromJson(reader, JsonTable.class);
+            table = gson.fromJson(reader, JsonTable.class);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
             return false;
