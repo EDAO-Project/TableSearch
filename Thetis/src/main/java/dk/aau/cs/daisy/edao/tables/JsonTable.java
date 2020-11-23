@@ -1,6 +1,7 @@
 package dk.aau.cs.daisy.edao.tables;
 
 import java.util.List;
+import java.util.Objects;
 
 public class JsonTable {
 
@@ -68,6 +69,7 @@ public class JsonTable {
 
 
 
+
     public static class TableCell {
 
         public TableCell(){};
@@ -81,6 +83,21 @@ public class JsonTable {
         public String text;
         public boolean isNumeric;
         public List<String> links;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            TableCell tableCell = (TableCell) o;
+            return isNumeric == tableCell.isNumeric &&
+                    Objects.equals(text, tableCell.text) &&
+                    Objects.equals(links, tableCell.links);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(text, isNumeric, links);
+        }
     }
 
 
