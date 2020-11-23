@@ -188,7 +188,7 @@ public class IndexTables extends Command {
             parsedTables = Files.find(this.tableDir.toPath(),
                     Integer.MAX_VALUE,
                     (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"))
-                    .map(filePath -> this.parseTable(filePath)).filter(res -> res).count();
+                    .map(filePath -> this.parseTable(filePath.toAbsolutePath())).filter(res -> res).count();
         } catch (IOException e) {
             e.printStackTrace();
             return -1;
@@ -212,6 +212,12 @@ public class IndexTables extends Command {
             return false;
         }
 
+        if(table == null) {
+            System.err.println("Failed to parse '"+path.toString()+"'";);
+            return  false;
+        }
+
+        System.out.println("Table: "+ table._id );
 
         Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
         int rowId = 0;

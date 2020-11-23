@@ -50,12 +50,12 @@ public class Neo4jEndpoint implements AutoCloseable {
 
     public void testConnection() {
         try (Session session = driver.session()) {
-            String greeting = session.readTransaction(tx -> {
+            Long numNodes = session.readTransaction(tx -> {
                 Result result = tx.run("MATCH (a:Resource) " +
-                        "RETURN a.uri LIMIT 10");
-                return result.list().get(0).toString();
+                        "RETURN COUNT(a) as count");
+                return result.single().get("count").asLong();
             });
-            System.out.println(greeting);
+            System.out.printf("Connection established. Nodes: %d ", numNodes);
         }
     }
 
