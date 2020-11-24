@@ -47,7 +47,7 @@ public class IndexTablesTest extends TestCase {
 
         String jsonString = encoder.toJson(table);
 
-        System.out.println("String serialized as:\n"+jsonString);
+        //System.out.println("String serialized as:\n"+jsonString);
 
         encoder = new Gson();
         try (FileWriter writer = new FileWriter("/tmp/test.json")) {
@@ -55,11 +55,7 @@ public class IndexTablesTest extends TestCase {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        try {
-            System.out.println("File serialized as:\n"+Files.readString(new File("/tmp/test.json").toPath()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
 
 
         JsonTable decoded = null;
