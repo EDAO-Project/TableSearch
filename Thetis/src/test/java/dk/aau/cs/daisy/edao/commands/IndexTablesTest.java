@@ -46,7 +46,7 @@ public class IndexTablesTest extends TestCase {
 
         String jsonString = encoder.toJson(table);
 
-        System.out.println("String serialized as:\n"jsonString);
+        System.out.println("String serialized as:\n"+jsonString);
 
         encoder = new Gson();
         try {
