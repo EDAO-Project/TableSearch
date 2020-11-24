@@ -1,10 +1,13 @@
 package dk.aau.cs.daisy.edao.commands;
 
 import com.google.gson.Gson;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import junit.framework.TestCase;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -49,12 +52,20 @@ public class IndexTablesTest extends TestCase {
             e.printStackTrace();
         }
 
+
         JsonTable decoded = null;
-        try {
-            decoded = encoder.fromJson(new FileReader("/tmp/test.json"), JsonTable.class);
+        TypeAdapter<JsonTable> strictGsonObjectAdapter =
+                new Gson().getAdapter(JsonTable.class);
+        try (JsonReader reader = new JsonReader(new FileReader(new File("/tmp/test.json")))) {
+            decoded = strictGsonObjectAdapter.read(reader);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+
         }
+
+
 
         assertEquals(table._id , decoded._id);
         assertEquals(decoded.header.size(), table.numCols);
