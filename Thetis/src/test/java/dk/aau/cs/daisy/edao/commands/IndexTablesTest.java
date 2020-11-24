@@ -26,9 +26,13 @@ public class IndexTablesTest extends TestCase {
             table.header.add(new JsonTable.TableCell("head"+i, false, Collections.EMPTY_LIST));
         }
 
+        table.body = new ArrayList<>();
+
         for (int j = 0; j < table.numDataRows; j++){
+            ArrayList<JsonTable.TableCell> row = new ArrayList<>();
+            table.body.add(row);
             for(int i =0; i<table.numCols; i++){
-                table.header.add(new JsonTable.TableCell("cell"+i+"_"+j, false, Collections.EMPTY_LIST));
+                row.add(new JsonTable.TableCell("cell"+i+"_"+j, false, Collections.EMPTY_LIST));
             }
         }
 
@@ -40,8 +44,9 @@ public class IndexTablesTest extends TestCase {
         JsonTable decoded = encoder.fromJson(jsonString, JsonTable.class);
 
         assertEquals(table._id , decoded._id);
+        assertEquals(decoded.header.size(), table.numCols);
         assertEquals(table.header, decoded.header);
-        assertEquals(decoded.body.size(), 4);
+        assertEquals(decoded.body.size(), table.numDataRows);
         assertEquals(table.body, decoded.body);
 
 
