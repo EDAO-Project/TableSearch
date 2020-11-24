@@ -10,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 import com.google.common.hash.BloomFilter;
@@ -200,13 +201,15 @@ public class IndexTables extends Command {
             return -1;
         }
 
-        System.out.printf("Found an approximate total of %d of unique entity mentions%n", this.filter.approximateElementCount() );
+        System.out.printf("Found an approximate total of %d of unique entity mentions across %d cells %n", this.filter.approximateElementCount(), this.cellsWithLinks );
 
         return parsedTables;
 
 
     }
 
+
+    private int cellsWithLinks = 0;
 
     public boolean parseTable(Path path) {
         JsonTable table;
@@ -234,7 +237,7 @@ public class IndexTables extends Command {
             return  false;
         }
 
-        System.out.println("Table: "+ table._id );
+        //System.out.println("Table: "+ table._id );
 
         Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
         int rowId = 0;
@@ -242,19 +245,24 @@ public class IndexTables extends Command {
             int collId =0;
             for(JsonTable.TableCell cell : row ){
                 if(!cell.links.isEmpty()){
-                    //List<Pair<String,String>> matchedUris = connector.searchLinks(cell.links);
-                    List<String> matchedUris = connector.searchLinks(cell.links);
-                    for(String em : matchedUris){
-                        this.filter.put(em);
+                    if(!cell.links.isEmpty()) {
+                        cellsWithLinks+=1;
+                        //List<Pair<String,String>> matchedUris = connector.searchLinks(cell.links);
+                        List<String> matchedUris = connector.searchLinks(cell.links.stream().map(link -> link.replace("http://www.", "http://en.")).collect(Collectors.toUnmodifiableList()));
+                        if (!matchedUris.isEmpty()) {
+                            for (String em : matchedUris) {
+                                this.filter.put(em);
+                            }
+                            entityMatches.put(new Pair<>(rowId, collId), matchedUris);
+                        }
                     }
-                    entityMatches.put(new Pair<>(rowId, collId), matchedUris);
                 }
                 collId+=1;
             }
             rowId+=1;
         }
 
-        System.out.printf("Found a total of %d entity matches%n", entityMatches.size());
+        //System.out.printf("Found a total of %d entity matches%n", entityMatches.size());
 
         return true;
     }

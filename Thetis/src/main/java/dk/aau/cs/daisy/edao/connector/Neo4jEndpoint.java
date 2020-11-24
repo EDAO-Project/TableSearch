@@ -59,7 +59,7 @@ public class Neo4jEndpoint implements AutoCloseable {
         }
     }
 
-    public List<String> searchLinks(List<String> links) {
+    public List<String> searchLinks(Iterable<String> links) {
 
 
         Map<String, Object> params = new HashMap<>();
@@ -72,6 +72,7 @@ public class Neo4jEndpoint implements AutoCloseable {
                 Result result = tx.run("MATCH (a:Resource) -[l:ns57__isPrimaryTopicOf]-> (b:Resource)" + "\n"
                         + "WHERE b.uri in $linkList" + "\n"
                         + "RETURN a.uri as mention", params);
+
                 for (Record r : result.list()) {
                     entityUris.add(r.get("mention").asString());
                 }
