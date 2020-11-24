@@ -44,12 +44,14 @@ public class IndexTablesTest extends TestCase {
 
         Gson encoder = new Gson();
 
-        //String jsonString = encoder.toJson(table);
+        String jsonString = encoder.toJson(table);
 
-        //System.out.println(jsonString);
+        System.out.println("String serialized as:\n"jsonString);
+
+        encoder = new Gson();
         try {
             encoder.toJson(table, new FileWriter("/tmp/test.json"));
-            System.out.println("Serialized as:\n"+Files.readString(new File("/tmp/test.json").toPath()));
+            System.out.println("File serialized as:\n"+Files.readString(new File("/tmp/test.json").toPath()));
         } catch (IOException e) {
             e.printStackTrace();
         }
