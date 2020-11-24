@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import junit.framework.TestCase;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -39,16 +40,29 @@ public class IndexTablesTest extends TestCase {
 
         Gson encoder = new Gson();
 
-        String jsonString = encoder.toJson(table);
-        System.out.println(jsonString);
+        //String jsonString = encoder.toJson(table);
 
-        JsonTable decoded = encoder.fromJson(jsonString, JsonTable.class);
+        //System.out.println(jsonString);
+        try {
+            encoder.toJson(table, new FileWriter("/tmp/test.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        JsonTable decoded = null;
+        try {
+            decoded = encoder.fromJson(new FileReader("/tmp/test.json"), JsonTable.class);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
 
         assertEquals(table._id , decoded._id);
         assertEquals(decoded.header.size(), table.numCols);
         assertEquals(table.header, decoded.header);
         assertEquals(decoded.body.size(), table.numDataRows);
         assertEquals(table.body, decoded.body);
+
+        new File("/tmp/test.json").delete();
 
 
     }
