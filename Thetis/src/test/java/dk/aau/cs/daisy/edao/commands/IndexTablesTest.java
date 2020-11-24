@@ -35,11 +35,13 @@ public class IndexTablesTest extends TestCase {
         Gson encoder = new Gson();
 
         String jsonString = encoder.toJson(table);
+        System.out.println(jsonString);
 
         JsonTable decoded = encoder.fromJson(jsonString, JsonTable.class);
 
         assertEquals(table._id , decoded._id);
         assertEquals(table.header, decoded.header);
+        assertEquals(decoded.body.size(), 4);
         assertEquals(table.body, decoded.body);
 
 

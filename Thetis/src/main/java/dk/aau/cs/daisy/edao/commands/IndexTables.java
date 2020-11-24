@@ -11,15 +11,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.stream.JsonReader;
+
+
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
-import picocli.CommandLine;
 
-import com.google.gson.stream.JsonReader;
+import picocli.CommandLine;
 
 import org.neo4j.driver.exceptions.AuthenticationException;
 import org.neo4j.driver.exceptions.ServiceUnavailableException;
