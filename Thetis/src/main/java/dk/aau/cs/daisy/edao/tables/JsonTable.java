@@ -15,7 +15,7 @@ public class JsonTable {
     public String pgTitle;
     public String tableCaption;
 
-    public List<TableCell> header;
+    public List<TableCell> headers;
     public List<List<TableCell>> body;
 
     public JsonTable(){
@@ -33,7 +33,7 @@ public class JsonTable {
         this.pgTitle = pgTitle;
         this.tableCaption = tableCaption;
 
-        this.header = header;
+        this.headers = header;
         this.body = body;
     }
 
@@ -67,7 +67,7 @@ public class JsonTable {
 
 
     public void setHeader(List<TableCell> header) {
-        this.header = header;
+        this.headers = header;
     }
 
     public void setBody(List<List<TableCell>> body) {

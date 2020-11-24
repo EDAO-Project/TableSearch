@@ -10,6 +10,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 
 public class IndexTablesTest extends TestCase {
@@ -21,15 +22,15 @@ public class IndexTablesTest extends TestCase {
         table._id = "test1";
         table.numCols =3;
         table.numDataRows = 4;
-        table.pgId = 4;
+        table.pgId = 13856394;
         table.pgTitle = "Test title";
         table.numNumericCols = 0;
         // table.tableCaption = "Test Caption"; // test with null
 
-        table.header = new ArrayList<>();
+        table.headers = new ArrayList<>();
 
         for(int i =0; i<table.numCols; i++){
-            table.header.add(new JsonTable.TableCell("head"+i, false, Collections.EMPTY_LIST));
+            table.headers.add(new JsonTable.TableCell("head"+i, false, Collections.EMPTY_LIST));
         }
 
         table.body = new ArrayList<>();
@@ -38,7 +39,7 @@ public class IndexTablesTest extends TestCase {
             ArrayList<JsonTable.TableCell> row = new ArrayList<>();
             table.body.add(row);
             for(int i =0; i<table.numCols; i++){
-                row.add(new JsonTable.TableCell("cell"+i+"_"+j, false, Collections.EMPTY_LIST));
+                row.add(new JsonTable.TableCell("cell"+i+"_"+j, false, Arrays.asList("http://www.wikipedia.org/wiki/Gerd_Langholen"+i)));
             }
         }
 
@@ -76,8 +77,8 @@ public class IndexTablesTest extends TestCase {
 
 
         assertEquals(table._id , decoded._id);
-        assertEquals(decoded.header.size(), table.numCols);
-        assertEquals(table.header, decoded.header);
+        assertEquals(decoded.headers.size(), table.numCols);
+        assertEquals(table.headers, decoded.headers);
         assertEquals(decoded.body.size(), table.numDataRows);
         assertEquals(table.body, decoded.body);
 
