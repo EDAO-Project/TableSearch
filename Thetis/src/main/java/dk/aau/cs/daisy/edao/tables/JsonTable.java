@@ -6,27 +6,33 @@ import java.util.Objects;
 public class JsonTable {
 
     public String _id;
+    public int pgId;
+
     public int numCols;
     public int numDataRows;
+    public int numNumericCols;
+
     public String pgTitle;
-    public int pgId;
     public String tableCaption;
 
     public List<TableCell> header;
-
     public List<List<TableCell>> body;
 
     public JsonTable(){
 
     }
 
-    public JsonTable(String _id, int numCols, int numDataRows, String pgTitle, int pgId, String tableCaption, List<TableCell> header, List<List<TableCell>> body) {
+    public JsonTable(String _id, int numCols, int numDataRows, int numNumericCols, String pgTitle, int pgId, String tableCaption, List<TableCell> header, List<List<TableCell>> body) {
         this._id = _id;
+        this.pgId = pgId;
+
         this.numCols = numCols;
         this.numDataRows = numDataRows;
+        this.numNumericCols = numNumericCols;
+
         this.pgTitle = pgTitle;
-        this.pgId = pgId;
         this.tableCaption = tableCaption;
+
         this.header = header;
         this.body = body;
     }
