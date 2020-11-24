@@ -16,13 +16,13 @@ public class JsonTable {
     public String tableCaption;
 
     public List<TableCell> headers;
-    public List<List<TableCell>> body;
+    public List<List<TableCell>> rows;
 
     public JsonTable(){
 
     }
 
-    public JsonTable(String _id, int numCols, int numDataRows, int numNumericCols, String pgTitle, int pgId, String tableCaption, List<TableCell> header, List<List<TableCell>> body) {
+    public JsonTable(String _id, int numCols, int numDataRows, int numNumericCols, String pgTitle, int pgId, String tableCaption, List<TableCell> header, List<List<TableCell>> rows) {
         this._id = _id;
         this.pgId = pgId;
 
@@ -34,7 +34,7 @@ public class JsonTable {
         this.tableCaption = tableCaption;
 
         this.headers = header;
-        this.body = body;
+        this.rows = rows;
     }
 
     public void set_id(String _id) {
@@ -71,7 +71,7 @@ public class JsonTable {
     }
 
     public void setBody(List<List<TableCell>> body) {
-        this.body = body;
+        this.rows = rows;
     }
 
 

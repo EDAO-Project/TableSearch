@@ -224,7 +224,7 @@ public class IndexTables extends Command {
             return false;
         }
 
-        if(table == null || table._id  == null || table.body == null) {
+        if(table == null || table._id  == null || table.rows == null) {
             System.err.println("Failed to parse '"+path.toString()+"'");
             try {
                 System.err.println(Files.readString(path));
@@ -238,7 +238,7 @@ public class IndexTables extends Command {
 
         Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
         int rowId = 0;
-        for(List<JsonTable.TableCell> row : table.body){
+        for(List<JsonTable.TableCell> row : table.rows){
             int collId =0;
             for(JsonTable.TableCell cell : row ){
                 if(!cell.links.isEmpty()){

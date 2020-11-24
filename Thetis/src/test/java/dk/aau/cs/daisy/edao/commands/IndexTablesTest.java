@@ -33,11 +33,11 @@ public class IndexTablesTest extends TestCase {
             table.headers.add(new JsonTable.TableCell("head"+i, false, Collections.EMPTY_LIST));
         }
 
-        table.body = new ArrayList<>();
+        table.rows = new ArrayList<>();
 
         for (int j = 0; j < table.numDataRows; j++){
             ArrayList<JsonTable.TableCell> row = new ArrayList<>();
-            table.body.add(row);
+            table.rows.add(row);
             for(int i =0; i<table.numCols; i++){
                 row.add(new JsonTable.TableCell("cell"+i+"_"+j, false, Arrays.asList("http://www.wikipedia.org/wiki/Gerd_Langholen"+i)));
             }
@@ -79,8 +79,8 @@ public class IndexTablesTest extends TestCase {
         assertEquals(table._id , decoded._id);
         assertEquals(decoded.headers.size(), table.numCols);
         assertEquals(table.headers, decoded.headers);
-        assertEquals(decoded.body.size(), table.numDataRows);
-        assertEquals(table.body, decoded.body);
+        assertEquals(decoded.rows.size(), table.numDataRows);
+        assertEquals(table.rows, decoded.rows);
 
         new File("/tmp/test.json").delete();
 
