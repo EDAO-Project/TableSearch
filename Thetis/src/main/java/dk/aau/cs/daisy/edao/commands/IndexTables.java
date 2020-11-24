@@ -210,8 +210,9 @@ public class IndexTables extends Command {
     public boolean parseTable(Path path) {
         JsonTable table;
         Gson gson = new GsonBuilder().serializeNulls().create();
+
         try {
-            JsonReader reader = new JsonReader(new FileReader(path.toFile()));
+            FileReader reader = new FileReader(path.toFile());
             table = gson.fromJson(reader, JsonTable.class);
         } catch (FileNotFoundException e) {
             e.printStackTrace();

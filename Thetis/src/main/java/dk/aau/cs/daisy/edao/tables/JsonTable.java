@@ -41,20 +41,21 @@ public class JsonTable {
         this._id = _id;
     }
 
+    public void setPgId(int pgId) {
+        this.pgId = pgId;
+    }
+
     public void setNumCols(int numCols) {
         this.numCols = numCols;
     }
-
 
     public void setNumDataRows(int numDataRows) {
         this.numDataRows = numDataRows;
     }
 
-
-    public void setPgId(int pgId) {
-        this.pgId = pgId;
+    public void setNumNumericCols(int numNumericCols) {
+        this.numNumericCols = numNumericCols;
     }
-
 
     public void setPgTitle(String pgTitle) {
         this.pgTitle = pgTitle;
