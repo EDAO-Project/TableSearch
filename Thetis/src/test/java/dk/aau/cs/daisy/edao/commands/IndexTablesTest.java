@@ -7,6 +7,7 @@ import dk.aau.cs.daisy.edao.tables.JsonTable;
 import junit.framework.TestCase;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,6 +49,7 @@ public class IndexTablesTest extends TestCase {
         //System.out.println(jsonString);
         try {
             encoder.toJson(table, new FileWriter("/tmp/test.json"));
+            System.out.println("Serialized as:\n"+Files.readString(new File("/tmp/test.json").toPath()));
         } catch (IOException e) {
             e.printStackTrace();
         }
