@@ -62,17 +62,17 @@ public class Neo4jEndpoint implements AutoCloseable {
     public List<String> searchLinks(List<String> links) {
 
 
-        Map<String,Object> params = new HashMap<>();
+        Map<String, Object> params = new HashMap<>();
 
-        params.put("linkList",  links);
+        params.put("linkList", links);
 
         try (Session session = driver.session()) {
             return session.readTransaction(tx -> {
                 List<String> entityUris = new ArrayList<>();
-                Result result = tx.run("MATCH (a:Resource) -[l:ns57__isPrimaryTopicOf]-> (b:Resource)"
-                        + "WHERE b.uri in $linkList"
+                Result result = tx.run("MATCH (a:Resource) -[l:ns57__isPrimaryTopicOf]-> (b:Resource)" + "\n"
+                        + "WHERE b.uri in $linkList" + "\n"
                         + "RETURN a.uri as mention", params);
-                for(Record r : result.list()){
+                for (Record r : result.list()) {
                     entityUris.add(r.get("mention").asString());
                 }
                 return entityUris;
@@ -82,11 +82,11 @@ public class Neo4jEndpoint implements AutoCloseable {
 
     }
 
-    public List<Pair<String,String>> searchLinkMentions(List<String> links) {
+    public List<Pair<String, String>> searchLinkMentions(List<String> links) {
 
-        Map<String,Object> params = new HashMap<>();
+        Map<String, Object> params = new HashMap<>();
 
-        params.put("linkList",  links);
+        params.put("linkList", links);
 
         try (Session session = driver.session()) {
             return session.readTransaction(tx -> {
@@ -94,13 +94,12 @@ public class Neo4jEndpoint implements AutoCloseable {
                 Result result = tx.run("MATCH (a:Resource) -[l:ns57__isPrimaryTopicOf]-> (b:Resource)"
                         + "WHERE b.uri in $linkList"
                         + "RETURN a.uri as uri1, b.uri as uri2", params);
-                for(Record r : result.list()){
+                for (Record r : result.list()) {
                     entityUris.add(new Pair<>(r.get("uri1").asString(), r.get("uri2").asString()));
                 }
                 return entityUris;
             });
         }
-
 
 
     }
