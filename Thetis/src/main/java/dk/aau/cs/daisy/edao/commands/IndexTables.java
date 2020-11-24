@@ -17,6 +17,7 @@ import com.google.common.hash.Funnels;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 
 
@@ -211,10 +212,14 @@ public class IndexTables extends Command {
         JsonTable table;
         Gson gson = new GsonBuilder().serializeNulls().create();
 
-        try {
-            FileReader reader = new FileReader(path.toFile());
-            table = gson.fromJson(reader, JsonTable.class);
+        TypeAdapter<JsonTable> strictGsonObjectAdapter =
+                new Gson().getAdapter(JsonTable.class);
+        try (JsonReader reader = new JsonReader(new FileReader(path.toFile()))) {
+            table = strictGsonObjectAdapter.read(reader);
         } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return false;
+        } catch (IOException e) {
             e.printStackTrace();
             return false;
         }
