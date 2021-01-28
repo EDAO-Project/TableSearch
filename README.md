@@ -56,12 +56,12 @@ The Table datasets consist of:
 
 1.  Download from the official link
 
-  ```bash
-  mkdir -p data/tables/wikitables
-  
-  wget -P data/tables/wikitables http://websail-fe.cs.northwestern.edu/TabEL/tables.json.gz
-  wget -P data/tables/wikitables http://websail-fe.cs.northwestern.edu/TabEL/tableMentions.json.gz
-  ```
+   ```bash
+   mkdir -p data/tables/wikitables
+   
+   wget -P data/tables/wikitables http://websail-fe.cs.northwestern.edu/TabEL/tables.json.gz
+   wget -P data/tables/wikitables http://websail-fe.cs.northwestern.edu/TabEL/tableMentions.json.gz
+   ```
   
 2. Run preprocessing script for extracting tables
 
@@ -72,8 +72,9 @@ The Table datasets consist of:
    source .virtualenv/bin/activate
    pip install -r requirements.txt
    python extract-tables.py -t tables.json.gz --min-rows 50 --max-rows 0 --min-cols 3 -o files/ 
-   python ./extract-tables.py -i ./tables.json.gz -o ./files
-   python ./extract-table-mentions.py -i ./tableMentions.json.gz -o ./files 
+
+   # This below does not work yet, ignore
+   # python ./extract-table-mentions.py -i ./tableMentions.json.gz -o ./files 
    ```
    
 
@@ -84,6 +85,8 @@ The Table datasets consist of:
    docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
    cd /src
    mvn package
+   
+   # From inside docker
    java -jar target/Thetis.jar  index " --table-type wikitables --table-dir  /data/tables/wikitables --output-dir /data/index/wikitables
    ```
 
