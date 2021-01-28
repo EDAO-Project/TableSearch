@@ -88,7 +88,7 @@ The Table datasets consist of:
    mvn package
    
    # From inside docker
-   java -jar target/Thetis.jar  index " --table-type wikitables --table-dir  /data/tables/wikitables --output-dir /data/index/wikitables
+   java -jar target/Thetis.jar  index --table-type wikitables --table-dir  /data/tables/wikitables --output-dir /data/index/wikitables
    ```
 
 
