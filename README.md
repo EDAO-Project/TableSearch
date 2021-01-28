@@ -7,13 +7,13 @@ Semantically Augmented Table Search
 
 ### Outline
 
-1- Input: Set of tables & and a KG
+1. Input: Set of tables & and a KG
 
-2- Preprocessing: 
+2. Preprocessing: 
     
    Take tables and output an index that has <tableId, rowId, cellId, uriToEntity>
 
-3- On-Line:
+3. On-Line:
     
    Take input a set of entity tuples:
    
@@ -55,7 +55,7 @@ The Table datasets consist of:
 
 > Bhagavatula, C. S., Noraset, T., & Downey, D. (2015, October). TabEL: entity linking in web tables. In International Semantic Web Conference (pp. 425-441). Springer, Cham.
 
-1.  Download from the official link
+1. Download from the official link
 
    ```bash
    mkdir -p data/tables/wikitables
