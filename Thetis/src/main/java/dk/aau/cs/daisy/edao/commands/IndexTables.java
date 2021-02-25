@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 import java.io.IOException;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,7 @@ public class IndexTables extends Command {
     CommandLine.Model.CommandSpec spec; // injected by picocli
 
     /**
-     * java -jar Thetis.1.0.jar  index --config ./config.properties --type wikitables --tables  data/tables/wikitables --output data/index/wikitables
+     * java -jar Thetis.1.0.jar  index --config ./config.properties --table-type wikitables --table-dir  data/tables/wikitables --output-dir data/index/wikitables
      */
     public enum TableType {
         WIKI("wikitables"),
@@ -131,6 +132,8 @@ public class IndexTables extends Command {
         outputDir = value;
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
     private Neo4jEndpoint connector;
@@ -178,15 +181,24 @@ public class IndexTables extends Command {
         return 23;
     }
 
+
     private final BloomFilter<String> filter = BloomFilter.create(
             Funnels.stringFunnel(Charset.defaultCharset()),
-            500000,
+            5_000_000,
             0.01);
+
+    private final Map<String, String> wikipediaLinkToEntity = new HashMap<>(100000); // https://en.wikipedia.org/wiki/Yellow_Yeiyah -> http://dbpedia.org/resource/Yellow_Yeiyah
+    private final Map<String, List<String>> entityTypes = new HashMap<>(); //  http://dbpedia.org/resource/Yellow_Yeiyah -> [http://dbpedia.org/ontology/Swimmer, http://dbpedia.org/ontology/Person,  http://dbpedia.org/ontology/Athlete]
+
+    private int cellsWithLinks = 0;
+
+
+
     public long indexWikiTables(){
 
         // Open table directory
-        // Iterate each table
-        // Extract table + column + row coordinates -> link to wikipedia
+        // Iterate each table (each table is a JSON file)
+        // Extract table + column + row coordinates -> link to wikipedia page
         // Query neo4j (in batch??) to get the matches
         // Save information on a file for now
 
@@ -201,7 +213,7 @@ public class IndexTables extends Command {
             return -1;
         }
 
-        System.out.printf("Found an approximate total of %d of unique entity mentions across %d cells %n", this.filter.approximateElementCount(), this.cellsWithLinks );
+        System.out.printf("Found an approximate total of %d  unique entity mentions across %d cells %n", this.filter.approximateElementCount(), this.cellsWithLinks );
 
         return parsedTables;
 
@@ -209,12 +221,19 @@ public class IndexTables extends Command {
     }
 
 
-    private int cellsWithLinks = 0;
-
+    /**
+     *
+     * @param path to a single Json file for a wikipedia table
+     * @return true if parsing was successful
+     */
     public boolean parseTable(Path path) {
+
+
+        // Initialization
         JsonTable table;
         Gson gson = new GsonBuilder().serializeNulls().create();
 
+        // Tries to parse the JSON file, it fails if file not found or JSON is not well formatted
         TypeAdapter<JsonTable> strictGsonObjectAdapter =
                 new Gson().getAdapter(JsonTable.class);
         try (JsonReader reader = new JsonReader(new FileReader(path.toFile()))) {
@@ -227,6 +246,8 @@ public class IndexTables extends Command {
             return false;
         }
 
+
+        // We check if all the required json attributes are set
         if(table == null || table._id  == null || table.rows == null) {
             System.err.println("Failed to parse '"+path.toString()+"'");
             try {
@@ -239,24 +260,46 @@ public class IndexTables extends Command {
 
         //System.out.println("Table: "+ table._id );
 
+        // Maps RowNumber, ColumnNumber -> Wikipedia links contained in it
         Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
+
+
         int rowId = 0;
         for(List<JsonTable.TableCell> row : table.rows){
             int collId =0;
             for(JsonTable.TableCell cell : row ){
-                if(!cell.links.isEmpty()){
-                    if(!cell.links.isEmpty()) {
-                        cellsWithLinks+=1;
-                        //List<Pair<String,String>> matchedUris = connector.searchLinks(cell.links);
-                        List<String> matchedUris = connector.searchLinks(cell.links.stream().map(link -> link.replace("http://www.", "http://en.")).collect(Collectors.toUnmodifiableList()));
-                        if (!matchedUris.isEmpty()) {
-                            for (String em : matchedUris) {
-                                this.filter.put(em);
+                if(!cell.links.isEmpty()) {
+                    cellsWithLinks+=1;
+                    //List<Pair<String,String>> matchedUris = connector.searchLinks(cell.links);
+                    List<String> matchedUris = new ArrayList<>();
+                    for(String link : cell.links){
+                        if(wikipediaLinkToEntity.containsKey(link)){ //Check if we had already searched for it
+                            matchedUris.add(wikipediaLinkToEntity.get(link));
+                        } else { // Query the Neo4j DB
+
+                            List<String> tempLinks = connector.searchLink(link.replace("http://www.", "http://en.");
+                            if(!tempLinks.isEmpty()){
+                                matchedUris.add(tempLinks.get(0));
+                                wikipediaLinkToEntity.put(link, tempLinks.get(0));
                             }
-                            entityMatches.put(new Pair<>(rowId, collId), matchedUris);
+
+                            //TODO: Retrieve the types of the entity and save them, in entityTypes
+                            // connector.searchTypes
+
                         }
                     }
+                    if (!matchedUris.isEmpty()) {
+                        for (String em : matchedUris) {
+                            this.filter.put(em);
+                        }
+
+                        entityMatches.put(new Pair<>(rowId, collId), matchedUris);
+
+                        /// We need also the inverse mapping, from entity to the table + cells
+                    }
+
                 }
+
                 collId+=1;
             }
             rowId+=1;

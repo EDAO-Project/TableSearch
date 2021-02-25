@@ -7,5 +7,22 @@ public class SearchTables extends Command {
     public Integer call() {
         System.out.println("SearchTables command run: not implemented");
         return 1;
+
+
+        /**
+         *
+         * comman in input takes a list of dbpedia entities  http://dbpedia.org/resource/Federica_pellegrini http://dbpedia.org/resource/Italy
+         *
+         * For each table /// for each table retrived with PPR
+         *      for each row in table
+         *          for each entity in query -> compute best cell match  http://dbpedia.org/resource/Federica_pellegrini -> entity in cell 4, http://dbpedia.org/resource/Italy -> entity in cell 2
+         *
+         *
+         *
+         *
+         */
+
+
+
     }
 }

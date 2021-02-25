@@ -6,7 +6,9 @@ import org.neo4j.driver.*;
 import java.io.*;
 import java.util.*;
 
-
+/**
+ * Connects and query the KG in Neo4j
+ */
 public class Neo4jEndpoint implements AutoCloseable {
     private final Driver driver;
     private final String dbUri;
@@ -59,6 +61,12 @@ public class Neo4jEndpoint implements AutoCloseable {
         }
     }
 
+
+    /**
+     *
+     * @param links a list of wikipedia links [https://en.wikipedia.org/wiki/Yellow_Yeiyah, ...]
+     * @return a list of mapped dbpedia links [http://dbpedia.org/resource/Yellow_Yeiyah, ...]
+     */
     public List<String> searchLinks(Iterable<String> links) {
 
 
@@ -82,6 +90,37 @@ public class Neo4jEndpoint implements AutoCloseable {
 
 
     }
+
+    /**
+     *
+     * @param link a specific wikipedia link
+     * @return a list of possible entity matches
+     */
+    public List<String> searchLink(String link) {
+
+
+        Map<String, Object> params = new HashMap<>();
+
+        params.put("link", link);
+
+        try (Session session = driver.session()) {
+            return session.readTransaction(tx -> {
+                List<String> entityUris = new ArrayList<>();
+                Result result = tx.run("MATCH (a:Resource) -[l:ns57__isPrimaryTopicOf]-> (b:Resource)" + "\n"
+                        + "WHERE b.uri in $link" + "\n"
+                        + "RETURN a.uri as mention", params);
+
+                for (Record r : result.list()) {
+                    entityUris.add(r.get("mention").asString());
+                }
+                return entityUris;
+            });
+        }
+
+
+    }
+
+
 
     public List<Pair<String, String>> searchLinkMentions(List<String> links) {
 
