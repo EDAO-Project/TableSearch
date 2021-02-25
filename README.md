@@ -7,19 +7,20 @@ Semantically Augmented Table Search
 
 ### Outline
 
-1- Input: Set of tables & and a KG
+1. Input: Set of tables & and a KG
 
-2- Preprocessing: 
+2. Preprocessing: 
     
-    Take tables and output an index that has <tableId, rowId, cellId, uriToEntity>
+   Take tables and output an index that has <tableId, rowId, cellId, uriToEntity>
 
-3- On-Line:
+3. On-Line:
     
-    Take input a set of entity tuples:
+   Take input a set of entity tuples:
+   
         <Entity1, Entity2>
         <Entity3, Entity4>
 
-    Return a set of ranked tables
+   Return a set of ranked tables
         T1, T2, T3 --> ranked based on relevance score
 
 
@@ -54,14 +55,14 @@ The Table datasets consist of:
 
 > Bhagavatula, C. S., Noraset, T., & Downey, D. (2015, October). TabEL: entity linking in web tables. In International Semantic Web Conference (pp. 425-441). Springer, Cham.
 
-1.  Download from the official link
+1. Download from the official link
 
-  ```bash
-  mkdir -p data/tables/wikitables
-  
-  wget -P data/tables/wikitables http://websail-fe.cs.northwestern.edu/TabEL/tables.json.gz
-  wget -P data/tables/wikitables http://websail-fe.cs.northwestern.edu/TabEL/tableMentions.json.gz
-  ```
+   ```bash
+   mkdir -p data/tables/wikitables
+   
+   wget -P data/tables/wikitables http://websail-fe.cs.northwestern.edu/TabEL/tables.json.gz
+   wget -P data/tables/wikitables http://websail-fe.cs.northwestern.edu/TabEL/tableMentions.json.gz
+   ```
   
 2. Run preprocessing script for extracting tables
 
@@ -72,8 +73,9 @@ The Table datasets consist of:
    source .virtualenv/bin/activate
    pip install -r requirements.txt
    python extract-tables.py -t tables.json.gz --min-rows 50 --max-rows 0 --min-cols 3 -o files/ 
-   python ./extract-tables.py -i ./tables.json.gz -o ./files
-   python ./extract-table-mentions.py -i ./tableMentions.json.gz -o ./files 
+
+   # This below does not work yet, ignore
+   # python ./extract-table-mentions.py -i ./tableMentions.json.gz -o ./files 
    ```
    
 
@@ -84,7 +86,9 @@ The Table datasets consist of:
    docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
    cd /src
    mvn package
-   java -jar target/Thetis.jar  index " --table-type wikitables --table-dir  /data/tables/wikitables --output-dir /data/index/wikitables
+   
+   # From inside docker
+   java -jar target/Thetis.jar  index --table-type wikitables --table-dir  /data/tables/wikitables --output-dir /data/index/wikitables
    ```
 
 
