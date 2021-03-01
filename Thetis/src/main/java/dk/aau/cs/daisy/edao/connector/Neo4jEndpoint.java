@@ -14,6 +14,7 @@ public class Neo4jEndpoint implements AutoCloseable {
     private final String dbUri;
     private final String dbUser;
     private final String dbPassword;
+    private final String isPrimaryTopicOf_rel_type_name;
 
     public Neo4jEndpoint(final String pathToConfigurationFile) throws IOException {
         this(new File(pathToConfigurationFile));
@@ -34,6 +35,7 @@ public class Neo4jEndpoint implements AutoCloseable {
         this.dbUser = prop.getProperty("neo4j.user", "neo4j");
         this.dbPassword = prop.getProperty("neo4j.password", "admin");
         this.driver = GraphDatabase.driver(dbUri, AuthTokens.basic(dbUser, dbPassword));
+        this.isPrimaryTopicOf_rel_type_name = this.get_isPrimaryTopicOf_rel_type_name();
     }
 
 
@@ -42,6 +44,7 @@ public class Neo4jEndpoint implements AutoCloseable {
         this.dbUser = user;
         this.dbPassword = password;
         this.driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password));
+        this.isPrimaryTopicOf_rel_type_name = this.get_isPrimaryTopicOf_rel_type_name();
     }
 
 
@@ -58,6 +61,28 @@ public class Neo4jEndpoint implements AutoCloseable {
                 return result.single().get("count").asLong();
             });
             System.out.printf("Connection established. Nodes: %d ", numNodes);
+        }
+    }
+
+    /**
+     * @param none
+     * @return a string with the name of the link corresponding to the isPrimaryTopicOf in the knowledgebase.
+     * Return a null string if it is not found
+     */
+    public String get_isPrimaryTopicOf_rel_type_name() {
+        try (Session session = driver.session()) {
+            return session.readTransaction(tx -> {
+                // Get list of all relationship types (i.e. all link names)
+                Result rel_types = tx.run("CALL db.relationshipTypes() YIELD relationshipType RETURN relationshipType");
+                String isPrimaryTopicOf_link_name = null;
+                for (Record r : rel_types.list()) {
+                    String rel_type = r.get("relationshipType").asString();
+                    if (rel_type.contains("isPrimaryTopicOf")) {
+                        isPrimaryTopicOf_link_name = rel_type;
+                    }
+                }
+                return isPrimaryTopicOf_link_name;
+            });
         }
     }
 
@@ -98,16 +123,16 @@ public class Neo4jEndpoint implements AutoCloseable {
      */
     public List<String> searchLink(String link) {
 
-
         Map<String, Object> params = new HashMap<>();
-
         params.put("link", link);
 
         try (Session session = driver.session()) {
             return session.readTransaction(tx -> {
                 List<String> entityUris = new ArrayList<>();
-                Result result = tx.run("MATCH (a:Resource) -[l:ns57__isPrimaryTopicOf]-> (b:Resource)" + "\n"
-                        + "WHERE b.uri in $link" + "\n"
+
+                // Get all entity uri given a wikipedia link
+                Result result = tx.run("MATCH (a:Resource) -[l:"+this.isPrimaryTopicOf_rel_type_name+"]-> (b:Resource)" + "\n"
+                        + "WHERE b.uri in [$link]" + "\n"
                         + "RETURN a.uri as mention", params);
 
                 for (Record r : result.list()) {
@@ -116,8 +141,6 @@ public class Neo4jEndpoint implements AutoCloseable {
                 return entityUris;
             });
         }
-
-
     }
 
 

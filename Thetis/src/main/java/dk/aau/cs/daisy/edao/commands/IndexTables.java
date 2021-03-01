@@ -265,6 +265,7 @@ public class IndexTables extends Command {
 
 
         int rowId = 0;
+        // Loop over every cell in a table
         for(List<JsonTable.TableCell> row : table.rows){
             int collId =0;
             for(JsonTable.TableCell cell : row ){
@@ -275,14 +276,14 @@ public class IndexTables extends Command {
                     for(String link : cell.links){
                         if(wikipediaLinkToEntity.containsKey(link)){ //Check if we had already searched for it
                             matchedUris.add(wikipediaLinkToEntity.get(link));
-                        } else { // Query the Neo4j DB
-
-                            List<String> tempLinks = connector.searchLink(link.replace("http://www.", "http://en.");
+                        } 
+                        else { 
+                            // Query the Neo4j DB to find the entitity corresponding to a wikilink from a cell value
+                            List<String> tempLinks = connector.searchLink(link.replace("http://www.", "http://en."));
                             if(!tempLinks.isEmpty()){
                                 matchedUris.add(tempLinks.get(0));
                                 wikipediaLinkToEntity.put(link, tempLinks.get(0));
                             }
-
                             //TODO: Retrieve the types of the entity and save them, in entityTypes
                             // connector.searchTypes
 
@@ -297,7 +298,12 @@ public class IndexTables extends Command {
 
                         /// We need also the inverse mapping, from entity to the table + cells
                     }
-
+                    
+                    // System.out.println("Cell: " + cell.text + " matches to the following uris:");
+                    // for(String uri : matchedUris) {
+                    //     System.out.println(uri);
+                    // }
+                    // System.out.print("\n");
                 }
 
                 collId+=1;
