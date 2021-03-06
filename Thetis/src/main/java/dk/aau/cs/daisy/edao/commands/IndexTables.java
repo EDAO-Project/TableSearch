@@ -187,8 +187,14 @@ public class IndexTables extends Command {
             5_000_000,
             0.01);
 
-    private final Map<String, String> wikipediaLinkToEntity = new HashMap<>(100000); // https://en.wikipedia.org/wiki/Yellow_Yeiyah -> http://dbpedia.org/resource/Yellow_Yeiyah
-    private final Map<String, List<String>> entityTypes = new HashMap<>(); //  http://dbpedia.org/resource/Yellow_Yeiyah -> [http://dbpedia.org/ontology/Swimmer, http://dbpedia.org/ontology/Person,  http://dbpedia.org/ontology/Athlete]
+    // Map a wikipedia uri to a dbpedia uri (e.g. https://en.wikipedia.org/wiki/Yellow_Yeiyah -> http://dbpedia.org/resource/Yellow_Yeiyah)
+    private final Map<String, String> wikipediaLinkToEntity = new HashMap<>(100000);
+
+    // Map a dbpedia uri to its list of rdf__types (e.g. http://dbpedia.org/resource/Yellow_Yeiyah -> [http://dbpedia.org/ontology/Swimmer, http://dbpedia.org/ontology/Person,  http://dbpedia.org/ontology/Athlete])
+    private final Map<String, List<String>> entityTypes = new HashMap<>();
+
+    // Inverted index that maps each entity uri (i.e. dbpedia uri) to a map of filenames which in turn map to a list of [rowId, colId] pairs twhere the entity is found
+    private final Map<String, Map<String, List<Pair<Integer, Integer>>>> entityInvertedIndex = new HashMap<>();
 
     private int cellsWithLinks = 0;
 
@@ -258,7 +264,9 @@ public class IndexTables extends Command {
             return  false;
         }
 
-        //System.out.println("Table: "+ table._id );
+        // System.out.println("Table: "+ table._id );
+
+        String filename = path.getFileName().toString();
 
         // Maps RowNumber, ColumnNumber -> Wikipedia links contained in it
         Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
@@ -280,14 +288,34 @@ public class IndexTables extends Command {
                         else { 
                             // Query the Neo4j DB to find the entitity corresponding to a wikilink from a cell value
                             List<String> tempLinks = connector.searchLink(link.replace("http://www.", "http://en."));
-                            if(!tempLinks.isEmpty()){
-                                matchedUris.add(tempLinks.get(0));
-                                wikipediaLinkToEntity.put(link, tempLinks.get(0));
-                            }
-                            //TODO: Retrieve the types of the entity and save them, in entityTypes
-                            // connector.searchTypes
+                            if(!tempLinks.isEmpty()) {
+                                // Currently only select a single dbpedia entity (i.e. the first one) for each wikilink
+                                String entity = tempLinks.get(0);
+                                matchedUris.add(entity);
+                                wikipediaLinkToEntity.put(link, entity);
 
+                                // Retrieve a list of rdf__types of the entity and save them, in entityTypes map
+                                List<String> entity_types_uris = connector.searchTypes(entity);
+                                entityTypes.put(entity, entity_types_uris); 
+                            }
                         }
+
+                        // Each wikilink is mapped to an entity (i.e. a dbpedia entry) in wikipediaLinkToEntity so we can update the entityInvertedIndex for each cell we visit
+                        if(wikipediaLinkToEntity.containsKey(link)) {
+                            String entity = wikipediaLinkToEntity.get(link);
+                            System.out.println("Entity: " + entity);
+                            Pair<Integer, Integer> cur_pair = new Pair<>(rowId, collId);
+
+                            if (entityInvertedIndex.containsKey(entity)) {
+
+                            }
+                            else {
+                                List<Pair<Integer, Integer>> list_of_cell_locs = new ArrayList<>();
+                                list_of_cell_locs.add(cur_pair);
+                                entityInvertedIndex.put(entity, new HashMap(){{put(filename, list_of_cell_locs);}});
+                            }
+                        }
+
                     }
                     if (!matchedUris.isEmpty()) {
                         for (String em : matchedUris) {

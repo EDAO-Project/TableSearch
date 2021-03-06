@@ -143,6 +143,33 @@ public class Neo4jEndpoint implements AutoCloseable {
         }
     }
 
+    /**
+     *
+     * @param link a specific entity (i.e. a dbpedia link)
+     * @return the list of rdf__type uris corresonding to the 
+     */
+    public List<String> searchTypes(String entity) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("entity", entity);
+
+        try (Session session = driver.session()) {
+            return session.readTransaction(tx -> {
+                List<String> entity_types = new ArrayList<>();
+
+                // Get all entity uri given a wikipedia link
+                Result result = tx.run("MATCH (a:Resource) -[l:rdf__type]-> (b:Resource)" + "\n"
+                        + "WHERE a.uri in [$entity]" + "\n"
+                        + "RETURN b.uri as mention", params);
+
+                for (Record r : result.list()) {
+                    entity_types.add(r.get("mention").asString());
+                }
+
+                return entity_types;
+            });
+        }
+
+    }
 
 
     public List<Pair<String, String>> searchLinkMentions(List<String> links) {
