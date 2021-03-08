@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -196,9 +197,17 @@ public class IndexTables extends Command {
     // Map a dbpedia uri to its list of rdf__types (e.g. http://dbpedia.org/resource/Yellow_Yeiyah -> [http://dbpedia.org/ontology/Swimmer, http://dbpedia.org/ontology/Person,  http://dbpedia.org/ontology/Athlete])
     private final Map<String, List<String>> entityTypes = new HashMap<>();
 
-    // Inverted index that maps each entity uri (i.e. dbpedia uri) to a map of filenames which in turn map to a list of [rowId, colId] pairs twhere the entity is found
+    // Inverted index that maps each entity uri (i.e. dbpedia uri) to a map of filenames which in turn map to a list of [rowId, colId] pairs where the entity is found
     // e.g. entityInvertedIndex.get('http://dbpedia.org/resource/Yellow_Yeiyah') = {'table-316-3.json': [2,10], [3,10], ...}
     private final Map<String, Map<String, List<Pair<Integer, Integer>>>> entityInvertedIndex = new HashMap<>();
+
+    // Map an entity (i.e. dbpedia uri) to the list of filenames it is found.  
+    // e.g. entityToFilename.get("http://dbpedia.org/resource/Yellow_Yeiyah") = [table-316-3.json, ...]
+    private final Map<String, List<String>> entityToFilename = new HashMap<>();
+
+    // Map an entity in a filename (the key is the entity_URI + "__" + filename) to the list of [rowId, colID] where the entity is found
+    // e.g. entityInFilenameToTableLocations.get("http://dbpedia.org/resource/Yellow_Yeiyah__table-316-3.json") = [[0,2], [2,2], ...]
+    private final Map<String, List<List<Integer>>> entityInFilenameToTableLocations = new HashMap<>();
 
     private int cellsWithLinks = 0;
 
@@ -214,11 +223,6 @@ public class IndexTables extends Command {
         long parsedTables = 0;
         // Parse all tables in the specified directory
         try {
-            // parsedTables = Files.find(this.tableDir.toPath(),
-            //         Integer.MAX_VALUE,
-            //         (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"))
-            //         .map(filePath -> this.parseTable(filePath.toAbsolutePath())).filter(res -> res).count();
-
             // Get a list of all the files from the specified directory
             Stream<Path> file_stream = Files.find(this.tableDir.toPath(),
                 Integer.MAX_VALUE,
@@ -226,8 +230,9 @@ public class IndexTables extends Command {
             List<Path> file_paths_list = file_stream.collect(Collectors.toList());
             System.out.println("There are " + file_paths_list.size() + " files to be processed.");
 
+            long startTime = System.nanoTime();    
             // Parse each file (TODO: Maybe parallelise this process? How can the global variables be shared?)
-            for (int i=0; i < 10; i++) {
+            for (int i=0; i < file_paths_list.size(); i++) {
                 if (this.parseTable(file_paths_list.get(i).toAbsolutePath())) {
                     parsedTables += 1;
                 }
@@ -236,6 +241,8 @@ public class IndexTables extends Command {
                 }
             }
             System.out.println("A total of " + parsedTables + " tables were parsed.");
+            long elapsedTime = System.nanoTime() - startTime;
+            System.out.println("Elapsed time: " + elapsedTime/(1e9) + " seconds\n");
             
         } catch (IOException e) {
             e.printStackTrace();
@@ -244,7 +251,7 @@ public class IndexTables extends Command {
 
         // Save the produced hashmaps to disk
         if (this.saveData()) {
-            System.out.println("Successfully serialized all hashmaps!");
+            System.out.println("Successfully serialized all hashmaps!\n");
         }
 
         System.out.printf("Found an approximate total of %d  unique entity mentions across %d cells %n", this.filter.approximateElementCount(), this.cellsWithLinks );
@@ -325,29 +332,45 @@ public class IndexTables extends Command {
                             }
                         }
 
-                        // Each wikilink is mapped to an entity (i.e. a dbpedia entry) in wikipediaLinkToEntity so we can update the entityInvertedIndex for each cell we visit
+                        // Each wikilink is mapped to an entity (i.e. a dbpedia entry) in wikipediaLinkToEntity so we can update the entityToFilename and entityInFilenameToTableLocations for each cell we visit
                         if(wikipediaLinkToEntity.containsKey(link)) {
                             String entity = wikipediaLinkToEntity.get(link);
                             Pair<Integer, Integer> cur_pair = new Pair<>(rowId, collId);
+                            List<Integer> tableLocation = Arrays.asList(rowId, collId);
 
-                            if (entityInvertedIndex.containsKey(entity)) {
-                                // Check if `filename` is a key in the hashmap returned from entityInvertedIndex.get(entity)
-                                if (entityInvertedIndex.get(entity).containsKey(filename)) {
-                                    // Append the cur_pair in the existing list
-                                    entityInvertedIndex.get(entity).get(filename).add(cur_pair);
+                            if (entityToFilename.containsKey(entity)) {
+                                // Check if `entity__filename` is a key in entityInFilenameToTableLocations
+                                if (entityInFilenameToTableLocations.containsKey(entity + "__" + filename)) {
+                                    // Append the tableLocation in the entityInFilenameToTableLocations
+                                    entityInFilenameToTableLocations.get(entity + "__" + filename).add(tableLocation);
                                 }
                                 else {
-                                    // `filename` not a key in the hashmap so add it and assign it to a new list that includes the cur_pair
-                                    List<Pair<Integer, Integer>> list_of_cell_locs = new ArrayList<>();
-                                    list_of_cell_locs.add(cur_pair);
-                                    entityInvertedIndex.get(entity).put(filename, list_of_cell_locs);
+                                    // entityToFilename.get(entity) does not map to filename so add it and update entityInFilenameToTableLocations
+                                    entityToFilename.get(entity).add(filename);
+
+                                    // Update the entityInFilenameToTableLocations
+                                    List<List<Integer>> tableLocationsList = new ArrayList<>();
+                                    tableLocationsList.add(tableLocation);
+                                    entityInFilenameToTableLocations.put(entity + "__" + filename, tableLocationsList);
                                 }
                             }
                             else {
-                                // First time entity is a key in the entityInvertedIndex
-                                List<Pair<Integer, Integer>> list_of_cell_locs = new ArrayList<>();
-                                list_of_cell_locs.add(cur_pair);
-                                entityInvertedIndex.put(entity, new HashMap(){{put(filename, list_of_cell_locs);}});
+                                // First time entity is a key in entityToFilename
+
+                                // Add entity to the entityToFilename and the current filename 
+                                List<String> filenameList = new ArrayList<>();
+                                filenameList.add(filename);
+                                // Arrays.asList(filename);
+                                entityToFilename.put(entity, filenameList);
+
+                                // Update the entityInFilenameToTableLocations
+                                List<List<Integer>> tableLocationsList = new ArrayList<>();
+                                tableLocationsList.add(tableLocation);
+                                entityInFilenameToTableLocations.put(entity + "__" + filename, tableLocationsList);
+
+                                // List<Pair<Integer, Integer>> list_of_cell_locs = new ArrayList<>();
+                                // list_of_cell_locs.add(cur_pair);
+                                // entityInvertedIndex.put(entity, new HashMap(){{put(filename, list_of_cell_locs);}});
                             }
                         }
 
@@ -361,12 +384,6 @@ public class IndexTables extends Command {
 
                         /// We need also the inverse mapping, from entity to the table + cells
                     }
-                    
-                    // System.out.println("Cell: " + cell.text + " matches to the following uris:");
-                    // for(String uri : matchedUris) {
-                    //     System.out.println(uri);
-                    // }
-                    // System.out.print("\n");
                 }
 
                 collId+=1;
@@ -381,7 +398,7 @@ public class IndexTables extends Command {
 
 
     /**
-     * Seriealize data
+     * Seriealize all global hashmaps
      */
     public boolean saveData() {
         // Serialize the hash maps
@@ -400,42 +417,50 @@ public class IndexTables extends Command {
             fileOut.close();
             System.out.println("Serialized entityTypes hashmap");
 
-            fileOut = new FileOutputStream("/entityInvertedIndex.ser");
+            fileOut = new FileOutputStream("/entityToFilename.ser");
             out = new ObjectOutputStream(fileOut);
-            out.writeObject(entityInvertedIndex);
+            out.writeObject(entityToFilename);
             out.close();
             fileOut.close();
-            System.out.println("Serialized entityInvertedIndex hashmap");
+            System.out.println("Serialized entityToFilename hashmap");
+
+            fileOut = new FileOutputStream("/entityInFilenameToTableLocations.ser");
+            out = new ObjectOutputStream(fileOut);
+            out.writeObject(entityInFilenameToTableLocations);
+            out.close();
+            fileOut.close();
+            System.out.println("Serialized entityInFilenameToTableLocations hashmap");
 
             return true;
-        } catch (IOException i) {
+
+        } 
+        catch (IOException i) {
             i.printStackTrace();
             return false;
         }
         
         // //De-serialization Code:
-
         // try {
-        //     FileInputStream fileIn = new FileInputStream("/wikipediaLinkToEntity.ser");
+        //     FileInputStream fileIn = new FileInputStream("/entityInFilenameToTableLocations.ser");
         //     ObjectInputStream in = new ObjectInputStream(fileIn);
-        //     Map<String, String> test = new HashMap<>();
+        //     Map<String, List<List<Integer>>> test = new HashMap<>();
         //     test = (HashMap) in.readObject();
         //     in.close();
         //     fileIn.close();
 
         //     System.out.println("Loading serealized data");
         //     for (String key : test.keySet()) {
-        //         String val = test.get(key);
+        //         List<List<Integer>> val = test.get(key);
         //         System.out.println(key + " : " + val);
         //     }
         // } catch (IOException i) {
         //     i.printStackTrace();
-        //     return -1;
+        //     return false;
         // }
         // catch(ClassNotFoundException c) {
         //     System.out.println("Class not found");
         //     c.printStackTrace();
-        //     return -1;
+        //     return false;
         // }
     }
 }
