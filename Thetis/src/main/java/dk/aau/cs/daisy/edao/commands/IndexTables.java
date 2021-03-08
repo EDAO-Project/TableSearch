@@ -2,6 +2,7 @@ package dk.aau.cs.daisy.edao.commands;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Files;
@@ -12,6 +13,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javafx.util.Pair;
 
 
 import com.google.common.hash.BloomFilter;
@@ -23,7 +26,7 @@ import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 
 
-import dk.aau.cs.daisy.edao.structures.Pair;
+// import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 
 import picocli.CommandLine;
@@ -194,10 +197,10 @@ public class IndexTables extends Command {
     private final Map<String, List<String>> entityTypes = new HashMap<>();
 
     // Inverted index that maps each entity uri (i.e. dbpedia uri) to a map of filenames which in turn map to a list of [rowId, colId] pairs twhere the entity is found
+    // e.g. entityInvertedIndex.get('http://dbpedia.org/resource/Yellow_Yeiyah') = {'table-316-3.json': [2,10], [3,10], ...}
     private final Map<String, Map<String, List<Pair<Integer, Integer>>>> entityInvertedIndex = new HashMap<>();
 
     private int cellsWithLinks = 0;
-
 
 
     public long indexWikiTables(){
@@ -208,22 +211,45 @@ public class IndexTables extends Command {
         // Query neo4j (in batch??) to get the matches
         // Save information on a file for now
 
-        long parsedTables;
+        long parsedTables = 0;
+        // Parse all tables in the specified directory
         try {
-            parsedTables = Files.find(this.tableDir.toPath(),
-                    Integer.MAX_VALUE,
-                    (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"))
-                    .map(filePath -> this.parseTable(filePath.toAbsolutePath())).filter(res -> res).count();
+            // parsedTables = Files.find(this.tableDir.toPath(),
+            //         Integer.MAX_VALUE,
+            //         (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"))
+            //         .map(filePath -> this.parseTable(filePath.toAbsolutePath())).filter(res -> res).count();
+
+            // Get a list of all the files from the specified directory
+            Stream<Path> file_stream = Files.find(this.tableDir.toPath(),
+                Integer.MAX_VALUE,
+                (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
+            List<Path> file_paths_list = file_stream.collect(Collectors.toList());
+            System.out.println("There are " + file_paths_list.size() + " files to be processed.");
+
+            // Parse each file (TODO: Maybe parallelise this process? How can the global variables be shared?)
+            for (int i=0; i < 10; i++) {
+                if (this.parseTable(file_paths_list.get(i).toAbsolutePath())) {
+                    parsedTables += 1;
+                }
+                if ((i % 100) == 0) {
+                    System.out.println("Processed " + i + "/" + file_paths_list.size() + " files...");
+                }
+            }
+            System.out.println("A total of " + parsedTables + " tables were parsed.");
+            
         } catch (IOException e) {
             e.printStackTrace();
             return -1;
         }
 
+        // Save the produced hashmaps to disk
+        if (this.saveData()) {
+            System.out.println("Successfully serialized all hashmaps!");
+        }
+
         System.out.printf("Found an approximate total of %d  unique entity mentions across %d cells %n", this.filter.approximateElementCount(), this.cellsWithLinks );
 
         return parsedTables;
-
-
     }
 
 
@@ -271,7 +297,6 @@ public class IndexTables extends Command {
         // Maps RowNumber, ColumnNumber -> Wikipedia links contained in it
         Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
 
-
         int rowId = 0;
         // Loop over every cell in a table
         for(List<JsonTable.TableCell> row : table.rows){
@@ -303,13 +328,23 @@ public class IndexTables extends Command {
                         // Each wikilink is mapped to an entity (i.e. a dbpedia entry) in wikipediaLinkToEntity so we can update the entityInvertedIndex for each cell we visit
                         if(wikipediaLinkToEntity.containsKey(link)) {
                             String entity = wikipediaLinkToEntity.get(link);
-                            System.out.println("Entity: " + entity);
                             Pair<Integer, Integer> cur_pair = new Pair<>(rowId, collId);
 
                             if (entityInvertedIndex.containsKey(entity)) {
-
+                                // Check if `filename` is a key in the hashmap returned from entityInvertedIndex.get(entity)
+                                if (entityInvertedIndex.get(entity).containsKey(filename)) {
+                                    // Append the cur_pair in the existing list
+                                    entityInvertedIndex.get(entity).get(filename).add(cur_pair);
+                                }
+                                else {
+                                    // `filename` not a key in the hashmap so add it and assign it to a new list that includes the cur_pair
+                                    List<Pair<Integer, Integer>> list_of_cell_locs = new ArrayList<>();
+                                    list_of_cell_locs.add(cur_pair);
+                                    entityInvertedIndex.get(entity).put(filename, list_of_cell_locs);
+                                }
                             }
                             else {
+                                // First time entity is a key in the entityInvertedIndex
                                 List<Pair<Integer, Integer>> list_of_cell_locs = new ArrayList<>();
                                 list_of_cell_locs.add(cur_pair);
                                 entityInvertedIndex.put(entity, new HashMap(){{put(filename, list_of_cell_locs);}});
@@ -345,4 +380,63 @@ public class IndexTables extends Command {
     }
 
 
+    /**
+     * Seriealize data
+     */
+    public boolean saveData() {
+        // Serialize the hash maps
+        try {
+            FileOutputStream fileOut = new FileOutputStream("/wikipediaLinkToEntity.ser");
+            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+            out.writeObject(wikipediaLinkToEntity);
+            out.close();
+            fileOut.close();
+            System.out.println("Serialized wikipediaLinkToEntity hashmap");
+
+            fileOut = new FileOutputStream("/entityTypes.ser");
+            out = new ObjectOutputStream(fileOut);
+            out.writeObject(entityTypes);
+            out.close();
+            fileOut.close();
+            System.out.println("Serialized entityTypes hashmap");
+
+            fileOut = new FileOutputStream("/entityInvertedIndex.ser");
+            out = new ObjectOutputStream(fileOut);
+            out.writeObject(entityInvertedIndex);
+            out.close();
+            fileOut.close();
+            System.out.println("Serialized entityInvertedIndex hashmap");
+
+            return true;
+        } catch (IOException i) {
+            i.printStackTrace();
+            return false;
+        }
+        
+        // //De-serialization Code:
+
+        // try {
+        //     FileInputStream fileIn = new FileInputStream("/wikipediaLinkToEntity.ser");
+        //     ObjectInputStream in = new ObjectInputStream(fileIn);
+        //     Map<String, String> test = new HashMap<>();
+        //     test = (HashMap) in.readObject();
+        //     in.close();
+        //     fileIn.close();
+
+        //     System.out.println("Loading serealized data");
+        //     for (String key : test.keySet()) {
+        //         String val = test.get(key);
+        //         System.out.println(key + " : " + val);
+        //     }
+        // } catch (IOException i) {
+        //     i.printStackTrace();
+        //     return -1;
+        // }
+        // catch(ClassNotFoundException c) {
+        //     System.out.println("Class not found");
+        //     c.printStackTrace();
+        //     return -1;
+        // }
+    }
 }
+
