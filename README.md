@@ -82,7 +82,6 @@ The Table datasets consist of:
 3. Run preprocessing script for indexing
 
    ```bash
-   
    docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
    cd /src
    mvn package
@@ -91,6 +90,10 @@ The Table datasets consist of:
    java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables --output-dir /data/index/wikitables
    ```
 
+4. Perform Search
+```
+java -jar target/Thetis.0.1.jar search
+```
 
 #### Tough Tables
 
