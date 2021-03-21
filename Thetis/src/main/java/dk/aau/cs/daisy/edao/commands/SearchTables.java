@@ -15,26 +15,74 @@ import java.util.*;
 import java.util.List;
 import java.util.Map;
 
+import picocli.CommandLine;
 
 @picocli.CommandLine.Command(name = "search", description = "searched the index for tables matching the input tuples")
 public class SearchTables extends Command {
+
+    //********************* Command Line Arguements *********************//
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec spec; // injected by picocli
     
-    /**
-     * Given a list of dbpedia entities (e.g. [http://dbpedia.org/resource/Federica_pellegrini http://dbpedia.org/resource/Italy])
-     * return the best matching tuples
-     * 
-     *
-     * For each table /// for each table retrived with PPR
-     *      for each row in table
-     *          for each entity in query -> compute best cell match  http://dbpedia.org/resource/Federica_pellegrini -> entity in cell 4, http://dbpedia.org/resource/Italy -> entity in cell 2
-     *
-     *
-     *
-     *
-     */
+    public enum SearchMode {
+        EXACT("exact"), ANALOGOUS("analogous");
+
+        private final String mode;
+        SearchMode(String mode){
+            this.mode = mode;
+        }
+
+        public final String getMode(){
+            return this.mode;
+        }
+
+        @Override
+        public String toString() {
+            return this.mode;
+        }
+    }
+
+
+    @CommandLine.Option(names = { "-sm", "--search-mode" }, description = "Must be one of {exact, analogous}", required = true)
+    private SearchMode searchMode = null;
+
+    private File hashmapDir = null;
+    @CommandLine.Option(names = { "-hd", "--hashmap-dir" }, paramLabel = "HASH_DIR", description = "Directory from which we load the hashmaps", required = true)
+    public void setHashMapDirectory(File value) {
+        if(!value.exists()){
+            throw new CommandLine.ParameterException(spec.commandLine(),
+                String.format("Invalid value '%s' for option '--hashmap-dir': " + "the directory does not exists.", value));
+        }
+
+        if (!value.isDirectory()) {
+            throw new CommandLine.ParameterException(spec.commandLine(),
+                    String.format("Invalid value '%s' for option '--hashmap-dir': " + "the path does not point to a directory.", value));
+        }
+
+        if (!value.canWrite()) {
+            throw new CommandLine.ParameterException(spec.commandLine(),
+                    String.format("Invalid value '%s' for option '--hashmap-dir': " + "the directory is not writable.", value));
+        }
+        hashmapDir = value;
+    }
+
+
     @Override
     public Integer call() {
+        switch (this.searchMode){
+            case EXACT:
+                System.out.println("Search mode: " + searchMode.EXACT.getMode());
+                break;
+            case ANALOGOUS:
+                System.out.println("Search mode: " + searchMode.ANALOGOUS.getMode());
+                System.err.println("Analogous search mode not yet implemented!");
+                System.exit(-1);
+                break;
+        }
+        System.out.println("Hashmap Directory: " + hashmapDir);
 
+
+        // TODO: Read off the queryEntities list from a json object that allows a set of tuples or a set of entities
         List<String> queryEntities = new ArrayList<>();
         queryEntities.add("http://dbpedia.org/resource/Federica_Pellegrini");
         queryEntities.add("http://dbpedia.org/resource/Italy");
@@ -50,7 +98,7 @@ public class SearchTables extends Command {
 
         // Perform De-Serialization of the indices
         long startTime = System.nanoTime();    
-        if (this.deserializeHashMaps(processedDataDirectory)) {
+        if (this.deserializeHashMaps(hashmapDir)) {
             System.out.println("Deserialization successful!\n");
             System.out.println("Elapsed time for deserialization: " + (System.nanoTime() - startTime)/(1e9) + " seconds\n");
         }
@@ -167,32 +215,32 @@ public class SearchTables extends Command {
     /**
      * Deserialize all hashmaps from a specified directory
      */
-    public boolean deserializeHashMaps(String path) {
+    public boolean deserializeHashMaps(File path) {
         System.out.println("Deserializing Hash Maps...");
         
         try {
-            FileInputStream fileIn = new FileInputStream(path+"wikipediaLinkToEntity.ser");
+            FileInputStream fileIn = new FileInputStream(path+"/wikipediaLinkToEntity.ser");
             ObjectInputStream in = new ObjectInputStream(fileIn);
             wikipediaLinkToEntity = (HashMap) in.readObject();
             in.close();
             fileIn.close();
             System.out.println("Deserialized wikipediaLinkToEntity");
 
-            fileIn = new FileInputStream(path+"entityTypes.ser");
+            fileIn = new FileInputStream(path+"/entityTypes.ser");
             in = new ObjectInputStream(fileIn);
             entityTypes = (HashMap) in.readObject();
             in.close();
             fileIn.close();
             System.out.println("Deserialized entityTypes");
 
-            fileIn = new FileInputStream(path+"entityToFilename.ser");
+            fileIn = new FileInputStream(path+"/entityToFilename.ser");
             in = new ObjectInputStream(fileIn);
             entityToFilename = (HashMap) in.readObject();
             in.close();
             fileIn.close();
             System.out.println("Deserialized entityToFilename");
 
-            fileIn = new FileInputStream(path+"entityInFilenameToTableLocations.ser");
+            fileIn = new FileInputStream(path+"/entityInFilenameToTableLocations.ser");
             in = new ObjectInputStream(fileIn);
             entityInFilenameToTableLocations = (HashMap) in.readObject();
             in.close();
