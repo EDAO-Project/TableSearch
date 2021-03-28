@@ -92,7 +92,7 @@ The Table datasets consist of:
 
 4. Perform Search
 ```
-java -jar target/Thetis.0.1.jar search --search-mode exact --hashmap-dir ../data/index/wikitables_small_index/
+java -jar target/Thetis.0.1.jar search --search-mode exact --hashmap-dir ../data/index/wikitables_small_index/ --query-file ../data/queries/query1.json
 ```
 
 #### Tough Tables

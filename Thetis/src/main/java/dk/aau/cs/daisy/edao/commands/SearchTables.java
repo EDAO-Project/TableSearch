@@ -15,6 +15,11 @@ import java.util.*;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+
 import picocli.CommandLine;
 
 @picocli.CommandLine.Command(name = "search", description = "searched the index for tables matching the input tuples")
@@ -59,42 +64,35 @@ public class SearchTables extends Command {
                     String.format("Invalid value '%s' for option '--hashmap-dir': " + "the path does not point to a directory.", value));
         }
 
-        if (!value.canWrite()) {
-            throw new CommandLine.ParameterException(spec.commandLine(),
-                    String.format("Invalid value '%s' for option '--hashmap-dir': " + "the directory is not writable.", value));
-        }
         hashmapDir = value;
+    }
+
+    private File queryFile = null;
+    @CommandLine.Option(names = { "-q", "--query-file" }, paramLabel = "QUERY", description = "Path to the query json file", required = true)
+    public void setQueryFile(File value) {
+        if(!value.exists()){
+            throw new CommandLine.ParameterException(spec.commandLine(),
+                String.format("Invalid value '%s' for option '--query-file': " + "the directory does not exists.", value));
+        }
+
+        if (!value.isFile()) {
+            throw new CommandLine.ParameterException(spec.commandLine(),
+                    String.format("Invalid value '%s' for option '--query-file': " + "the path does not point to a directory.", value));
+        }
+
+        queryFile = value;
     }
 
 
     @Override
     public Integer call() {
-        switch (this.searchMode){
-            case EXACT:
-                System.out.println("Search mode: " + searchMode.EXACT.getMode());
-                break;
-            case ANALOGOUS:
-                System.out.println("Search mode: " + searchMode.ANALOGOUS.getMode());
-                System.err.println("Analogous search mode not yet implemented!");
-                System.exit(-1);
-                break;
-        }
         System.out.println("Hashmap Directory: " + hashmapDir);
+        System.out.println("Query File: " + queryFile);
 
-
-        // TODO: Read off the queryEntities list from a json object that allows a set of tuples or a set of entities
-        List<String> queryEntities = new ArrayList<>();
-        queryEntities.add("http://dbpedia.org/resource/Federica_Pellegrini");
-        queryEntities.add("http://dbpedia.org/resource/Italy");
-        queryEntities.add("http://dbpedia.org/resource/United_States");
-        queryEntities.add("http://dbpedia.org/resource/Silvio_Berlusconi");
-        queryEntities.add("http://dbpedia.org/resource/Michael_Phelps");
-        queryEntities.add("http://dbpedia.org/resource/Gold_medal");
-
-        // Simple Query
-        // queryEntities.add("http://dbpedia.org/resource/Pennsylvania");
-        // queryEntities.add("http://dbpedia.org/resource/New_Kensington,_Pennsylvania");
-        // queryEntities.add("http://dbpedia.org/resource/Pennsylvania_College_of_Technology");
+        // Read off the queryEntities list from a json object
+        // TODO: Allow the query to be a set of tuples each with a list of entities
+        List<String> queryEntities = this.parseQuery(queryFile);
+        System.out.println("Query Entities: " + queryEntities);
 
         // Perform De-Serialization of the indices
         long startTime = System.nanoTime();    
@@ -119,15 +117,23 @@ public class SearchTables extends Command {
         //     System.out.println(ent + " : " + entityToFilename.get(ent));
         // }
 
-
-        // Perform exact match over the query entities
-        this.exactSearch(queryEntities);
+        // Perform search according to the `search-mode`
+        switch (this.searchMode){
+            case EXACT:
+                System.out.println("Search mode: " + searchMode.EXACT.getMode());
+                this.exactSearch(queryEntities);
+                break;
+            case ANALOGOUS:
+                System.out.println("Search mode: " + searchMode.ANALOGOUS.getMode());
+                System.err.println("Analogous search mode not yet implemented!");
+                System.exit(-1);
+                break;
+        }
 
         return 1;
     }
 
     //********************* Global Variables *********************//
-    String processedDataDirectory = "/data/index/wikitables/";
 
     // Map a wikipedia uri to a dbpedia uri (e.g. https://en.wikipedia.org/wiki/Yellow_Yeiyah -> http://dbpedia.org/resource/Yellow_Yeiyah)
     private Map<String, String> wikipediaLinkToEntity = new HashMap<>(100000);
@@ -212,6 +218,10 @@ public class SearchTables extends Command {
         }
     }
 
+    public void analogousSearch(List<String> queryEntities) {
+        
+    }
+
     /**
      * Deserialize all hashmaps from a specified directory
      */
@@ -259,4 +269,26 @@ public class SearchTables extends Command {
             return false;
         }
     }
+
+    public List<String> parseQuery(File path) {
+
+        List<String> queryEntities = new ArrayList<>();
+        try {
+            Gson gson = new Gson();
+            Reader reader = Files.newBufferedReader(path.toPath());
+    
+            // convert JSON file to array of entities
+            queryEntities = gson.fromJson(reader, List.class);
+            reader.close();    
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return queryEntities;
+    }
+
+
+
+
 }
