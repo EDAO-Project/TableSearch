@@ -8,17 +8,16 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 import java.io.IOException;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.*;
-import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
+
+import dk.aau.cs.daisy.edao.tables.JsonTable;
 
 import picocli.CommandLine;
 
@@ -47,9 +46,29 @@ public class SearchTables extends Command {
         }
     }
 
+    public enum QueryMode {
+        TUPLE("tuple"), ENTITY("entity");
+
+        private final String mode;
+        QueryMode(String mode){
+            this.mode = mode;
+        }
+
+        public final String getMode(){
+            return this.mode;
+        }
+
+        @Override
+        public String toString() {
+            return this.mode;
+        }
+    }
 
     @CommandLine.Option(names = { "-sm", "--search-mode" }, description = "Must be one of {exact, analogous}", required = true)
     private SearchMode searchMode = null;
+
+    @CommandLine.Option(names = { "-qm", "--query-mode" }, description = "Must be one of {tuple, entity}", required = true, defaultValue = "tuple")
+    private QueryMode queryMode = null;
 
     private File hashmapDir = null;
     @CommandLine.Option(names = { "-hd", "--hashmap-dir" }, paramLabel = "HASH_DIR", description = "Directory from which we load the hashmaps", required = true)
@@ -83,16 +102,33 @@ public class SearchTables extends Command {
         queryFile = value;
     }
 
+    private File tableDir = null;
+    @CommandLine.Option(names = { "-td", "--table-dir"}, paramLabel = "TABLE_DIR", description = "Directory containing tables", required = true)
+    public void setTableDirectory(File value) {
+
+        if(!value.exists()){
+            throw new CommandLine.ParameterException(spec.commandLine(),
+                    String.format("Invalid value '%s' for option '--table-dir': " + "the directory does not exists.", value));
+        }
+
+        if (!value.isDirectory()) {
+            throw new CommandLine.ParameterException(spec.commandLine(),
+                    String.format("Invalid value '%s' for option '--table-dir': " + "the path does not point to a directory.", value));
+        }
+        tableDir = value;
+    }
+
 
     @Override
     public Integer call() {
         System.out.println("Hashmap Directory: " + hashmapDir);
         System.out.println("Query File: " + queryFile);
+        System.out.println("Table Directory: " + tableDir);
 
         // Read off the queryEntities list from a json object
         // TODO: Allow the query to be a set of tuples each with a list of entities
-        List<String> queryEntities = this.parseQuery(queryFile);
-        System.out.println("Query Entities: " + queryEntities);
+        queryEntities = this.parseQuery(queryFile);
+        System.out.println("Query Entities: " + queryEntities + "\n");
 
         // Perform De-Serialization of the indices
         long startTime = System.nanoTime();    
@@ -106,12 +142,15 @@ public class SearchTables extends Command {
         }
 
         // Ensure that all queryEntities are searchable over the index
-        for (String entity : queryEntities) {
-            if (!entityToFilename.containsKey(entity)) {
-                System.out.println(entity + " does not map to any known entity in the constructed index");
-                return -1;
+        for (Integer i=0; i<queryEntities.size(); i++) {
+            for (String entity : queryEntities.get(i)) {
+                if (!entityToFilename.containsKey(entity)) {
+                    System.out.println(entity + " does not map to any known entity in the constructed index");
+                    return -1;
+                }
             }
         }
+
 
         // for (String ent : entityToFilename.keySet()) {
         //     System.out.println(ent + " : " + entityToFilename.get(ent));
@@ -120,13 +159,12 @@ public class SearchTables extends Command {
         // Perform search according to the `search-mode`
         switch (this.searchMode){
             case EXACT:
-                System.out.println("Search mode: " + searchMode.EXACT.getMode());
-                this.exactSearch(queryEntities);
+                System.out.println("Search mode: " + searchMode.getMode());
+                this.exactSearch();
                 break;
             case ANALOGOUS:
-                System.out.println("Search mode: " + searchMode.ANALOGOUS.getMode());
-                System.err.println("Analogous search mode not yet implemented!");
-                System.exit(-1);
+                System.out.println("Search mode: " + searchMode.getMode());
+                this.analogousSearch();
                 break;
         }
 
@@ -134,6 +172,9 @@ public class SearchTables extends Command {
     }
 
     //********************* Global Variables *********************//
+
+    // A doubly nested list of strings containing the entities for each tuple. If the query mode is entities the array is still doubly nested but there is only one row with the list of entities.
+    private List<List<String>> queryEntities = new ArrayList<>();
 
     // Map a wikipedia uri to a dbpedia uri (e.g. https://en.wikipedia.org/wiki/Yellow_Yeiyah -> http://dbpedia.org/resource/Yellow_Yeiyah)
     private Map<String, String> wikipediaLinkToEntity = new HashMap<>(100000);
@@ -149,27 +190,40 @@ public class SearchTables extends Command {
     // e.g. entityInFilenameToTableLocations.get("http://dbpedia.org/resource/Yellow_Yeiyah__table-316-3.json") = [[0,2], [2,2], ...]
     private Map<String, List<List<Integer>>> entityInFilenameToTableLocations = new HashMap<>();
 
-    public void exactSearch(List<String> queryEntities) {
+    // A triple nested map corresponding to a tablename, rowNumber and query tuple number and mapping to its maximal similarity vector 
+    private Map<String, Map<Integer, Map<Integer, List<Double>>>> similarityVectorMap = new HashMap<>();
 
-        for (String entity : queryEntities) {
-            if (entityToFilename.containsKey(entity)) {
-                System.out.println("There are " + entityToFilename.get(entity).size() + " files that contain the entity: " + entity);
-            }
-            else {
-                System.out.println(entity + " does not map to any known entity in the constructed index.");
+    // Maps each filename to its relevance score according to the query
+    private Map<String, Double> filenameToScore = new HashMap<>();
+
+    public void exactSearch() {
+
+        for (Integer i=0; i<queryEntities.size(); i++) {
+            for (String entity : queryEntities.get(i)) {
+                if (entityToFilename.containsKey(entity)) {
+                    System.out.println("There are " + entityToFilename.get(entity).size() + " files that contain the entity: " + entity);
+                }
+                else {
+                    System.out.println(entity + " does not map to any known entity in the constructed index.");
+                }
             }
         }
 
+        // Currently treat queryEntities as a set of entities not tuples
+        // TODO: Allow for tuple query functionality
+
+        List<String> queryEntitiesFlat = queryEntities.stream().flatMap(Collection::stream).collect(Collectors.toList());
+
         // Find exact tuple matches from the query
-        this.exactTupleMatches(queryEntities);
+        this.exactTupleMatches(queryEntitiesFlat);
 
         // Analyze all pairwise combinations of query entities
         System.out.println("\n2-entities analysis:");
-        for(int i = 0 ; i < queryEntities.size(); i++){
-            for(int j = i+1 ; j < queryEntities.size(); j++){
+        for(int i = 0 ; i < queryEntitiesFlat.size(); i++){
+            for(int j = i+1 ; j < queryEntitiesFlat.size(); j++){
                 List<String> queryEntitiesPair = new ArrayList<>();
-                queryEntitiesPair.add(queryEntities.get(i));
-                queryEntitiesPair.add(queryEntities.get(j));
+                queryEntitiesPair.add(queryEntitiesFlat.get(i));
+                queryEntitiesPair.add(queryEntitiesFlat.get(j));
                 System.out.println("\nPair: " + queryEntitiesPair);
                 this.exactTupleMatches(queryEntitiesPair);    
             }
@@ -218,8 +272,216 @@ public class SearchTables extends Command {
         }
     }
 
-    public void analogousSearch(List<String> queryEntities) {
-        
+    /**
+     * Given a list of entities, return a ranked list of table candidates
+     */
+    public int analogousSearch() {
+
+        // Loop over each table in the tables directory
+        long parsedTables = 0;
+        try {
+            // Get a list of all the files from the specified directory
+            Stream<Path> file_stream = Files.find(this.tableDir.toPath(), Integer.MAX_VALUE,
+                (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
+            List<Path> file_paths_list = file_stream.collect(Collectors.toList());
+            System.out.println("There are " + file_paths_list.size() + " files to be processed.");
+
+            long startTime = System.nanoTime();    
+            // Parse each file (TODO: Maybe parallelise this process? How can the global variables be shared?)
+            for (int i=0; i < file_paths_list.size(); i++) {
+                if (this.searchTable(file_paths_list.get(i).toAbsolutePath())) {
+                    parsedTables += 1;
+                }
+                if ((i % 100) == 0) {
+                    System.out.println("Processed " + i + "/" + file_paths_list.size() + " files...");
+                }
+            }
+            System.out.println("A total of " + parsedTables + " tables were parsed.");
+            long elapsedTime = System.nanoTime() - startTime;
+            System.out.println("Elapsed time: " + elapsedTime/(1e9) + " seconds\n");    
+        } 
+        catch (IOException e) {
+            e.printStackTrace();
+            return -1;
+        }
+
+        System.out.println("Successfully completed search over all tables!\n");
+
+        // Aggregate the results to extract a single score for each table
+        this.aggregateScores(20);
+
+        return 1;
+    }
+
+    public boolean searchTable(Path path) {
+        JsonTable table;
+
+        // Tries to parse the JSON file, it fails if file not found or JSON is not well formatted
+        TypeAdapter<JsonTable> strictGsonObjectAdapter = new Gson().getAdapter(JsonTable.class);
+        try (JsonReader reader = new JsonReader(new FileReader(path.toFile()))) {
+            table = strictGsonObjectAdapter.read(reader);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return false;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        // We check if all the required json attributes are set
+        if(table == null || table._id  == null || table.rows == null) {
+            System.err.println("Failed to parse '"+path.toString()+"'");
+            try {
+                System.err.println(Files.readString(path));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return false;
+        }
+
+        // System.out.println("Table: "+ table._id );
+        String filename = path.getFileName().toString();
+
+        Map<Integer, Map<Integer, List<Double>>> rowTupleIDVectorMap = new HashMap<>();
+
+        // Loop over each query entity. TODO: Treat this on a tuple by tuple basis
+        int rowId = 0;
+        // Loop over every cell in a table
+        for(List<JsonTable.TableCell> row : table.rows){
+            int collId =0;
+            List<String> rowEntities = new ArrayList<>();
+            for(JsonTable.TableCell cell : row ){
+                if(!cell.links.isEmpty()) {
+                    // A cell value may map to multiple entities. Currently use the first one
+                    // TODO: Consider all of them?
+                    for(String link : cell.links) {
+                        // Only consider links for which we have a known entity mapping
+                        if (wikipediaLinkToEntity.containsKey(link)) {
+                            rowEntities.add(wikipediaLinkToEntity.get(link));
+                            break;
+                        }
+                    }
+                }
+                collId+=1;
+            }
+
+            Map<Integer, List<Double>> tupleIDVectorMap = new HashMap<>(); 
+
+            // For each row and for each query tuple compute the maximal similarity vector
+            for (Integer tupleID=0; tupleID<queryEntities.size(); tupleID++) {
+                // Initialize the maximum vector for the current tuple, to a zero vector of size equal to the query tuple size.
+                List<Double> maximumTupleVector = new ArrayList<Double>(Collections.nCopies(queryEntities.get(tupleID).size(), 0.0));
+
+                for (Integer queryEntityID=0; queryEntityID<queryEntities.get(tupleID).size(); queryEntityID++) {
+                    String queryEntity = queryEntities.get(tupleID).get(queryEntityID);
+                    Double bestSimScore = 0.0;
+                    for (String rowEntity : rowEntities) {
+                        // Compute pairwise entity similarity between 'queryEntity' and 'rowEntity'
+                        Double simScore = this.entitySimilarityScore(queryEntity, rowEntity);
+                        if (simScore > bestSimScore) {
+                            bestSimScore = simScore;
+                        }
+                    }
+                    maximumTupleVector.set(queryEntityID, bestSimScore);
+                }
+                tupleIDVectorMap.put(tupleID, maximumTupleVector);
+            }
+            rowTupleIDVectorMap.put(rowId, tupleIDVectorMap);
+            rowId+=1;
+        }
+
+        similarityVectorMap.put(filename, rowTupleIDVectorMap);
+        return true;
+    }
+
+    /*
+     * The simialrity between two entities is the jaccard similarity of the entity types corresponding to the entities   
+     */
+    public double entitySimilarityScore(String ent1, String ent2) {
+        Set<String> entTypes1 = new HashSet<>();
+        Set<String> entTypes2 = new HashSet<>();
+        if (entityTypes.containsKey(ent1)) {
+            entTypes1 = new HashSet<String>(entityTypes.get(ent1));
+        }
+        if (entityTypes.containsKey(ent2)) {
+            entTypes2 = new HashSet<String>(entityTypes.get(ent2));
+        }
+
+        // Compute the Jaccard Similarity
+        Set<String> intersection = new HashSet<String>(entTypes1);
+        intersection.retainAll(entTypes2);
+
+        Set<String> union = new HashSet<String>(entTypes1);
+        union.addAll(entTypes2);
+
+        double jaccardScore = intersection.size() / union.size();
+
+        return jaccardScore;
+    }
+
+    /*
+     * Aggregate the scores across all tables and return the top-k tables with their respective scores
+     * 
+     * TODO: Allow for a weighted ranking function
+     */
+    public void aggregateScores(Integer k) {
+        System.out.println("Aggregating scores...");
+        long startTime = System.nanoTime();    
+        for (String filename : similarityVectorMap.keySet()) {
+            Double fileScore = 0.0;
+            for (Integer rowID : similarityVectorMap.get(filename).keySet()) {
+                Double rowScore = 0.0;
+                for (Integer tupleID : similarityVectorMap.get(filename).get(rowID).keySet()) {
+                    List<Double> tupleVector = similarityVectorMap.get(filename).get(rowID).get(tupleID);
+                    rowScore += (tupleVector.stream().mapToDouble(Double::doubleValue).sum()) / tupleVector.size();
+                }
+                rowScore /= similarityVectorMap.get(filename).get(rowID).size();
+                fileScore += rowScore;
+            }
+            fileScore /= similarityVectorMap.get(filename).size();
+            filenameToScore.put(filename, fileScore);
+        }
+        long elapsedTime = System.nanoTime() - startTime;
+        System.out.println("Elapsed time: " + elapsedTime/(1e9) + " seconds\n");  
+
+        // Sort the scores and return the top-k filenames
+        // ArrayList<String> sortedFilenames = new ArrayList<String>(filenameToScore.keySet());
+        // Collections.sort(sortedFilenames);
+
+        Map<String, Double> sortedFilenames = this.sortByValue(filenameToScore);
+
+        System.out.println("\nTop-" + k + " tables are:");
+        Integer i = 0;
+        for (Map.Entry<String, Double> en : sortedFilenames.entrySet()) {
+            System.out.println("filename = " + en.getKey() + ", score = " + en.getValue());
+            i += 1;
+            if (i > k) {
+                break;
+            }
+        }
+    }
+
+    // function to sort hashmap by values
+    public static Map<String, Double> sortByValue(Map<String, Double> hm)
+    {
+        // Create a list from elements of HashMap
+        List<Map.Entry<String, Double> > list = new LinkedList<Map.Entry<String, Double> >(hm.entrySet());
+  
+        // Sort the list
+        Collections.sort(list, new Comparator<Map.Entry<String, Double> >() {
+            public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
+                int i = (o1.getValue()).compareTo(o2.getValue());
+                if(i != 0) return -i;
+                return i;
+            }
+        });
+          
+        // put data from sorted list to hashmap 
+        Map<String, Double> temp = new LinkedHashMap<String, Double>();
+        for (Map.Entry<String, Double> aa : list) {
+            temp.put(aa.getKey(), aa.getValue());
+        }
+        return temp;
     }
 
     /**
@@ -270,9 +532,9 @@ public class SearchTables extends Command {
         }
     }
 
-    public List<String> parseQuery(File path) {
+    public List<List<String>> parseQuery(File path) {
 
-        List<String> queryEntities = new ArrayList<>();
+        List<List<String>> queryEntities = new ArrayList<>();
         try {
             Gson gson = new Gson();
             Reader reader = Files.newBufferedReader(path.toPath());
@@ -283,6 +545,17 @@ public class SearchTables extends Command {
         }
         catch (IOException e) {
             e.printStackTrace();
+        }
+
+        switch (this.queryMode){
+            case TUPLE:
+                System.out.println("Query mode: " + queryMode.getMode());
+                break;
+            case ENTITY:
+                System.out.println("Query mode: " + queryMode.getMode());
+                System.err.println("Entity Query mode is not supported yet!");
+                System.exit(-1);
+                break;
         }
 
         return queryEntities;
