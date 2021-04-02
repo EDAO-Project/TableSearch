@@ -11,12 +11,15 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javafx.util.Pair;
 
+import org.apache.commons.io.FilenameUtils;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
@@ -180,11 +183,14 @@ public class IndexTables extends Command {
 
         }
 
+        // Create a .ttl file to store the mappings of a tableID to the entities it is mapping to
+        System.out.println("Saving tableID->entities mappings into a .ttl file...");
+        this.createTTLFile(outputDir);
+
         System.out.println("Done.");
 
         return 23;
     }
-
 
     private final BloomFilter<String> filter = BloomFilter.create(
             Funnels.stringFunnel(Charset.defaultCharset()),
@@ -208,6 +214,10 @@ public class IndexTables extends Command {
     // Map an entity in a filename (the key is the entity_URI + "__" + filename) to the list of [rowId, colID] where the entity is found
     // e.g. entityInFilenameToTableLocations.get("http://dbpedia.org/resource/Yellow_Yeiyah__table-316-3.json") = [[0,2], [2,2], ...]
     private final Map<String, List<List<Integer>>> entityInFilenameToTableLocations = new HashMap<>();
+
+    // Map each tableID to a set of entities that its cell values map to. 
+    // e.g. table-316-8 -> [http://dbpedia.org/resource/Yellow_Yeiyah, http://dbpedia.org/resource/Michael_Phelps, ...]
+    private final Map<String, Set<String>> tableIDTOEntities = new HashMap<>();
 
     private int cellsWithLinks = 0;
 
@@ -304,6 +314,9 @@ public class IndexTables extends Command {
         // Maps RowNumber, ColumnNumber -> Wikipedia links contained in it
         Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
 
+        // The set of entities corresponding to this filename/table
+        Set<String> setOfEntities = new HashSet<>();
+
         int rowId = 0;
         // Loop over every cell in a table
         for(List<JsonTable.TableCell> row : table.rows){
@@ -313,7 +326,7 @@ public class IndexTables extends Command {
                     cellsWithLinks+=1;
                     //List<Pair<String,String>> matchedUris = connector.searchLinks(cell.links);
                     List<String> matchedUris = new ArrayList<>();
-                    for(String link : cell.links){
+                    for(String link : cell.links) {
                         if(wikipediaLinkToEntity.containsKey(link)){ //Check if we had already searched for it
                             matchedUris.add(wikipediaLinkToEntity.get(link));
                         } 
@@ -322,13 +335,14 @@ public class IndexTables extends Command {
                             List<String> tempLinks = connector.searchLink(link.replace("http://www.", "http://en."));
                             if(!tempLinks.isEmpty()) {
                                 // Currently only select a single dbpedia entity (i.e. the first one) for each wikilink
+                                // TODO: Maybe consider all possible entities for a given wikilink?
                                 String entity = tempLinks.get(0);
                                 matchedUris.add(entity);
                                 wikipediaLinkToEntity.put(link, entity);
 
                                 // Retrieve a list of rdf__types of the entity and save them, in entityTypes map
                                 List<String> entity_types_uris = connector.searchTypes(entity);
-                                entityTypes.put(entity, entity_types_uris); 
+                                entityTypes.put(entity, entity_types_uris);
                             }
                         }
 
@@ -374,10 +388,13 @@ public class IndexTables extends Command {
                             }
                         }
 
-                    }
+                    } // End of for links in cell loop 
                     if (!matchedUris.isEmpty()) {
-                        for (String em : matchedUris) {
-                            this.filter.put(em);
+                        for (String entity : matchedUris) {
+                            this.filter.put(entity);
+
+                            // Update the setOfEntities
+                            setOfEntities.add(entity);
                         }
 
                         entityMatches.put(new Pair<>(rowId, collId), matchedUris);
@@ -385,13 +402,14 @@ public class IndexTables extends Command {
                         /// We need also the inverse mapping, from entity to the table + cells
                     }
                 }
-
                 collId+=1;
-            }
+            } // End of for column in row loop
             rowId+=1;
-        }
+        } // End of for row in table loop
 
         //System.out.printf("Found a total of %d entity matches%n", entityMatches.size());
+
+        tableIDTOEntities.put(FilenameUtils.removeExtension(filename), setOfEntities);
 
         return true;
     }
@@ -438,30 +456,37 @@ public class IndexTables extends Command {
             i.printStackTrace();
             return false;
         }
-        
-        // //De-serialization Code:
-        // try {
-        //     FileInputStream fileIn = new FileInputStream("/entityInFilenameToTableLocations.ser");
-        //     ObjectInputStream in = new ObjectInputStream(fileIn);
-        //     Map<String, List<List<Integer>>> test = new HashMap<>();
-        //     test = (HashMap) in.readObject();
-        //     in.close();
-        //     fileIn.close();
-
-        //     System.out.println("Loading serealized data");
-        //     for (String key : test.keySet()) {
-        //         List<List<Integer>> val = test.get(key);
-        //         System.out.println(key + " : " + val);
-        //     }
-        // } catch (IOException i) {
-        //     i.printStackTrace();
-        //     return false;
-        // }
-        // catch(ClassNotFoundException c) {
-        //     System.out.println("Class not found");
-        //     c.printStackTrace();
-        //     return false;
-        // }
     }
-}
 
+    public void createTTLFile(File path) {
+        try {
+            File fout = new File(path+"/out.ttl");
+            FileOutputStream fos = new FileOutputStream(fout);
+         
+            OutputStreamWriter osw = new OutputStreamWriter(fos);
+         
+            for (String tableID : tableIDTOEntities.keySet()) {
+                for (String entity : tableIDTOEntities.get(tableID)) {
+                    osw.write(
+                        "<http://thetis.edao.eu/wikitables/"+tableID+"> " +
+                        "<https://www.w3.org/Submission/sioc-spec/#term_container_of> <" +
+                        entity + "> .\n"
+                    );
+                }
+            }
+            osw.close();
+        }
+        catch (IOException i) {
+            i.printStackTrace();
+        }
+    }
+
+
+
+
+
+
+
+
+
+}
