@@ -187,7 +187,10 @@ public class IndexTables extends Command {
         System.out.println("Saving tableID->entities mappings into a .ttl file...");
         this.createTTLFile(outputDir);
 
-        System.out.println("Done.");
+        System.out.println("Saving indexing statistics...");
+        this.saveStatistics(outputDir);
+
+        System.out.println("\n\nDONE\n\n");
 
         return 23;
     }
@@ -219,8 +222,15 @@ public class IndexTables extends Command {
     // e.g. table-316-8 -> [http://dbpedia.org/resource/Yellow_Yeiyah, http://dbpedia.org/resource/Michael_Phelps, ...]
     private final Map<String, Set<String>> tableIDTOEntities = new HashMap<>();
 
-    private int cellsWithLinks = 0;
+    // Specifies the frequency of how many entities map to a given wikilink in the dataset
+    // e.g. wikilinkToNumEntitiesFrequency.get(2) = 1000 means that there are 1000 wikilinks that map to exactly 2 entities (i.e. dbpedia links)
+    private final Map<Integer, Integer> wikilinkToNumEntitiesFrequency = new HashMap<>();
 
+    // Specifies the frequency of how many links map to a given cell value in the dataset
+    // e.g. cellToNumLinksFrequency.get(2) = 1000 means that there are 100 cells that have exactly to links 
+    private final Map<Integer, Integer> cellToNumLinksFrequency = new HashMap<>();
+
+    private int cellsWithLinks = 0;
 
     public long indexWikiTables(){
 
@@ -238,7 +248,7 @@ public class IndexTables extends Command {
                 Integer.MAX_VALUE,
                 (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
             List<Path> file_paths_list = file_stream.collect(Collectors.toList());
-            System.out.println("There are " + file_paths_list.size() + " files to be processed.");
+            System.out.println("\nThere are " + file_paths_list.size() + " files to be processed.");
 
             long startTime = System.nanoTime();    
             // Parse each file (TODO: Maybe parallelise this process? How can the global variables be shared?)
@@ -260,11 +270,11 @@ public class IndexTables extends Command {
         }
 
         // Save the produced hashmaps to disk
-        if (this.saveData()) {
+        if (this.saveData(outputDir)) {
             System.out.println("Successfully serialized all hashmaps!\n");
         }
 
-        System.out.printf("Found an approximate total of %d  unique entity mentions across %d cells %n", this.filter.approximateElementCount(), this.cellsWithLinks );
+        System.out.printf("Found an approximate total of %d  unique entity mentions across %d cells %n", this.filter.approximateElementCount(), this.cellsWithLinks);
 
         return parsedTables;
     }
@@ -324,6 +334,9 @@ public class IndexTables extends Command {
             for(JsonTable.TableCell cell : row ){
                 if(!cell.links.isEmpty()) {
                     cellsWithLinks+=1;
+                    // Update the cellToNumLinksFrequency
+                    cellToNumLinksFrequency.merge(cell.links.size(), 1, Integer::sum);
+
                     //List<Pair<String,String>> matchedUris = connector.searchLinks(cell.links);
                     List<String> matchedUris = new ArrayList<>();
                     for(String link : cell.links) {
@@ -339,6 +352,9 @@ public class IndexTables extends Command {
                                 String entity = tempLinks.get(0);
                                 matchedUris.add(entity);
                                 wikipediaLinkToEntity.put(link, entity);
+
+                                // Update the wikilinkToNumEntitiesFrequency map
+                                wikilinkToNumEntitiesFrequency.merge(tempLinks.size(), 1, Integer::sum);
 
                                 // Retrieve a list of rdf__types of the entity and save them, in entityTypes map
                                 List<String> entity_types_uris = connector.searchTypes(entity);
@@ -418,31 +434,31 @@ public class IndexTables extends Command {
     /**
      * Seriealize all global hashmaps
      */
-    public boolean saveData() {
+    public boolean saveData(File path) {
         // Serialize the hash maps
         try {
-            FileOutputStream fileOut = new FileOutputStream("/wikipediaLinkToEntity.ser");
+            FileOutputStream fileOut = new FileOutputStream(path+"/wikipediaLinkToEntity.ser");
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
             out.writeObject(wikipediaLinkToEntity);
             out.close();
             fileOut.close();
             System.out.println("Serialized wikipediaLinkToEntity hashmap");
 
-            fileOut = new FileOutputStream("/entityTypes.ser");
+            fileOut = new FileOutputStream(path+"/entityTypes.ser");
             out = new ObjectOutputStream(fileOut);
             out.writeObject(entityTypes);
             out.close();
             fileOut.close();
             System.out.println("Serialized entityTypes hashmap");
 
-            fileOut = new FileOutputStream("/entityToFilename.ser");
+            fileOut = new FileOutputStream(path+"/entityToFilename.ser");
             out = new ObjectOutputStream(fileOut);
             out.writeObject(entityToFilename);
             out.close();
             fileOut.close();
             System.out.println("Serialized entityToFilename hashmap");
 
-            fileOut = new FileOutputStream("/entityInFilenameToTableLocations.ser");
+            fileOut = new FileOutputStream(path+"/entityInFilenameToTableLocations.ser");
             out = new ObjectOutputStream(fileOut);
             out.writeObject(entityInFilenameToTableLocations);
             out.close();
@@ -460,7 +476,7 @@ public class IndexTables extends Command {
 
     public void createTTLFile(File path) {
         try {
-            File fout = new File(path+"/out.ttl");
+            File fout = new File(path+"/tableIDToEntities.ttl");
             FileOutputStream fos = new FileOutputStream(fout);
          
             OutputStreamWriter osw = new OutputStreamWriter(fos);
@@ -475,6 +491,27 @@ public class IndexTables extends Command {
                 }
             }
             osw.close();
+        }
+        catch (IOException i) {
+            i.printStackTrace();
+        }
+    }
+
+    public void saveStatistics(File path) {
+        File outputDir = new File(path+"/statistics/");
+        if (!outputDir.exists()){
+            outputDir.mkdir();
+        }
+
+        try {
+            Writer writer = new FileWriter(outputDir+"/wikilinkToNumEntitiesFrequency.json");
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            gson.toJson(wikilinkToNumEntitiesFrequency, writer);
+            writer.close();
+
+            writer = new FileWriter(outputDir+"/cellToNumLinksFrequency.json");
+            gson.toJson(cellToNumLinksFrequency, writer);
+            writer.close();
         }
         catch (IOException i) {
             i.printStackTrace();

@@ -87,12 +87,12 @@ The Table datasets consist of:
    mvn package
    
    # From inside docker
-   java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables --output-dir /data/index/wikitables
+   java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables/files/ --output-dir /data/index/wikitables/
    ```
 
 4. Perform Search
    ```bash
-   java -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/wikitables_small_index/ --query-file ../data/queries/query1.json --table-dir /data/tables/wikitables/files
+   java -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/small_test/ --query-file ../data/queries/query1.json --table-dir /data/tables/wikitables/files
    ```
 
 #### Tough Tables
