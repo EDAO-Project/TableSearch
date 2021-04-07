@@ -185,7 +185,7 @@ public class IndexTables extends Command {
 
         // Create a .ttl file to store the mappings of a tableID to the entities it is mapping to
         System.out.println("Saving tableID->entities mappings into a .ttl file...");
-        this.createTTLFile(outputDir);
+        this.createTTLFiles(outputDir);
 
         System.out.println("Saving indexing statistics...");
         this.saveStatistics(outputDir);
@@ -474,8 +474,9 @@ public class IndexTables extends Command {
         }
     }
 
-    public void createTTLFile(File path) {
+    public void createTTLFiles(File path) {
         try {
+            // Create tableIDToEntities.ttl file
             File fout = new File(path+"/tableIDToEntities.ttl");
             FileOutputStream fos = new FileOutputStream(fout);
          
@@ -485,10 +486,25 @@ public class IndexTables extends Command {
                 for (String entity : tableIDTOEntities.get(tableID)) {
                     osw.write(
                         "<http://thetis.edao.eu/wikitables/"+tableID+"> " +
-                        "<https://www.w3.org/Submission/sioc-spec/#term_container_of> <" +
+                        "<https://schema.org/mentions> <" +
                         entity + "> .\n"
                     );
                 }
+            }
+            osw.close();
+
+            // Create tableIDToTypes.ttl file
+            fout = new File(path+"/tableIDToTypes.ttl");
+            fos = new FileOutputStream(fout);
+         
+            osw = new OutputStreamWriter(fos);
+         
+            for (String tableID : tableIDTOEntities.keySet()) {
+                osw.write(
+                    "<http://thetis.edao.eu/wikitables/"+tableID+"> " +
+                    "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
+                    "<https://schema.org/Table> .\n"
+                );
             }
             osw.close();
         }
