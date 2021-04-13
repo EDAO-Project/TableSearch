@@ -18,6 +18,7 @@ import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 
 import dk.aau.cs.daisy.edao.tables.JsonTable;
+import dk.aau.cs.daisy.edao.utilities.utils;
 
 import picocli.CommandLine;
 
@@ -118,12 +119,19 @@ public class SearchTables extends Command {
         tableDir = value;
     }
 
+    private File outputDir = null;
+    @CommandLine.Option(names = { "-od", "--output-dir" }, paramLabel = "OUT_DIR", description = "Directory where to save the search results", required = true)
+    public void setOutputDirectory(File value) {
+        outputDir = value;
+    }
+
 
     @Override
     public Integer call() {
         System.out.println("Hashmap Directory: " + hashmapDir);
         System.out.println("Query File: " + queryFile);
         System.out.println("Table Directory: " + tableDir);
+        System.out.println("Output Directory: " + outputDir);
 
         // Read off the queryEntities list from a json object
         // TODO: Allow the query to be a set of tuples each with a list of entities
@@ -307,50 +315,38 @@ public class SearchTables extends Command {
 
         System.out.println("Successfully completed search over all tables!\n");
 
-        // Aggregate the results to extract a single score for each table
-        this.aggregateScores(20);
+        // Compute a relevance score for each file/table (higher score means more relevant)
+        this.getFilenameScores(20, "cosine");
+
+        this.saveFilenameScores(outputDir);
 
         return 1;
     }
 
+    /**
+     * Given a path to a table, update the similarityVectorMap for the current query with respect
+     * to each row and each query tuple in this table
+     */
     public boolean searchTable(Path path) {
-        JsonTable table;
-
-        // Tries to parse the JSON file, it fails if file not found or JSON is not well formatted
-        TypeAdapter<JsonTable> strictGsonObjectAdapter = new Gson().getAdapter(JsonTable.class);
-        try (JsonReader reader = new JsonReader(new FileReader(path.toFile()))) {
-            table = strictGsonObjectAdapter.read(reader);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            return false;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-
-        // We check if all the required json attributes are set
-        if(table == null || table._id  == null || table.rows == null) {
-            System.err.println("Failed to parse '"+path.toString()+"'");
-            try {
-                System.err.println(Files.readString(path));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        JsonTable table = utils.getTableFromPath(path);
+        // Check if the table is empty/erroneous
+        if (table.numDataRows == 0) {
             return false;
         }
 
         // System.out.println("Table: "+ table._id );
         String filename = path.getFileName().toString();
 
+        // Map each row number of the table each query tuple to its respective similarity vector
         Map<Integer, Map<Integer, List<Double>>> rowTupleIDVectorMap = new HashMap<>();
 
         // Loop over each query entity. TODO: Treat this on a tuple by tuple basis
         int rowId = 0;
         // Loop over every cell in a table
         for(List<JsonTable.TableCell> row : table.rows){
-            int collId =0;
+            int collId = 0;
             List<String> rowEntities = new ArrayList<>();
-            for(JsonTable.TableCell cell : row ){
+            for(JsonTable.TableCell cell : row){
                 if(!cell.links.isEmpty()) {
                     // A cell value may map to multiple entities. Currently use the first one
                     // TODO: Consider all of them?
@@ -419,40 +415,50 @@ public class SearchTables extends Command {
         return jaccardScore;
     }
 
+
+
     /*
-     * Aggregate the scores across all tables and return the top-k tables with their respective scores
+     * Compute a table score for each table and return the top-k tables with their respective scores
      * 
-     * TODO: Allow for a weighted ranking function
+     * @param vec_similarity_measure: Must be one of {"cosine", "euclidean"}
      */
-    public void aggregateScores(Integer k) {
-        System.out.println("Aggregating scores...");
-        long startTime = System.nanoTime();    
+    public void getFilenameScores(Integer k, String vec_similarity_measure) {
+        System.out.println("Computing scores for each table...");
+        long startTime = System.nanoTime();
+    
         for (String filename : similarityVectorMap.keySet()) {
-            Double fileScore = 0.0;
+            // List of all similarity vectors concerning the current filename 
+            List<List<Double>> vectorList = new ArrayList<>();
+
             for (Integer rowID : similarityVectorMap.get(filename).keySet()) {
-                Double rowScore = 0.0;
                 for (Integer tupleID : similarityVectorMap.get(filename).get(rowID).keySet()) {
-                    List<Double> tupleVector = similarityVectorMap.get(filename).get(rowID).get(tupleID);
-                    rowScore += (tupleVector.stream().mapToDouble(Double::doubleValue).sum()) / tupleVector.size();
+                    // TODO: Add custom tuple weighting. Some tuples may be prefered over others
+                    vectorList.add(similarityVectorMap.get(filename).get(rowID).get(tupleID));
                 }
-                rowScore /= similarityVectorMap.get(filename).get(rowID).size();
-                fileScore += rowScore;
             }
-            fileScore /= similarityVectorMap.get(filename).size();
+            // Compute the filescore by comparing the avgVector with the ideal identity vector
+            List<Double> avgVector = utils.getVectorAverage(vectorList);
+            List<Double> identityVector = new ArrayList<Double>(Collections.nCopies(avgVector.size(), 1.0));
+            Double fileScore = 0.0;
+            if (vec_similarity_measure == "cosine") {
+                fileScore = utils.cosineSimilarity(avgVector, identityVector);
+            }
+            else if (vec_similarity_measure == "euclidean") {
+                fileScore = utils.euclideanDistance(avgVector, identityVector);
+                // Convert euclidean distance to similarity, high similarity (i.e. close to 1) means euclidean distance is small
+                fileScore = 1 / (fileScore + 1);
+            }
             filenameToScore.put(filename, fileScore);
         }
         long elapsedTime = System.nanoTime() - startTime;
         System.out.println("Elapsed time: " + elapsedTime/(1e9) + " seconds\n");  
 
-        // Sort the scores and return the top-k filenames
-        // ArrayList<String> sortedFilenames = new ArrayList<String>(filenameToScore.keySet());
-        // Collections.sort(sortedFilenames);
-
-        Map<String, Double> sortedFilenames = this.sortByValue(filenameToScore);
+        // Sort the scores for each file and return the top-k filenames
+        filenameToScore = sortByValue(filenameToScore);
 
         System.out.println("\nTop-" + k + " tables are:");
         Integer i = 0;
-        for (Map.Entry<String, Double> en : sortedFilenames.entrySet()) {
+        for (Map.Entry<String, Double> en : filenameToScore.entrySet()) {
             System.out.println("filename = " + en.getKey() + ", score = " + en.getValue());
             i += 1;
             if (i > k) {
@@ -561,7 +567,22 @@ public class SearchTables extends Command {
         return queryEntities;
     }
 
+    public void saveFilenameScores(File outputDir) {
+        // File outputDir = new File(path+"/statistics/");
+        if (!outputDir.exists()){
+            outputDir.mkdir();
+        }
 
+        try {
+            Writer writer = new FileWriter(outputDir+"/filenameToScore.json");
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            gson.toJson(filenameToScore, writer);
+            writer.close();
+        }
+        catch (IOException i) {
+            i.printStackTrace();
+        }
+    }
 
 
 }
