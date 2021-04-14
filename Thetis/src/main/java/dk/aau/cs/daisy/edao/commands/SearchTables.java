@@ -204,6 +204,10 @@ public class SearchTables extends Command {
     // Maps each filename to its relevance score according to the query
     private Map<String, Double> filenameToScore = new HashMap<>();
 
+    // Maps each entity to its IDF score. The idf score of an entity is given by log(N/(1+n_t)) + 1 where N is the number of filenames/tables in the repository
+    // and n_t is the number of tables that contain the entity in question.
+    private Map<String, Double> entityToIDF = new HashMap<>();
+
     public void exactSearch() {
 
         for (Integer i=0; i<queryEntities.size(); i++) {
@@ -316,7 +320,7 @@ public class SearchTables extends Command {
         System.out.println("Successfully completed search over all tables!\n");
 
         // Compute a relevance score for each file/table (higher score means more relevant)
-        this.getFilenameScores(20, "cosine");
+        this.getFilenameScores(20, "euclidean");
 
         this.saveFilenameScores(outputDir);
 
@@ -423,7 +427,7 @@ public class SearchTables extends Command {
      * @param vec_similarity_measure: Must be one of {"cosine", "euclidean"}
      */
     public void getFilenameScores(Integer k, String vec_similarity_measure) {
-        System.out.println("Computing scores for each table...");
+        System.out.println("Computing scores for each table using " + vec_similarity_measure + " similarity...");
         long startTime = System.nanoTime();
     
         for (String filename : similarityVectorMap.keySet()) {
@@ -524,6 +528,13 @@ public class SearchTables extends Command {
             in.close();
             fileIn.close();
             System.out.println("Deserialized entityInFilenameToTableLocations");
+
+            fileIn = new FileInputStream(path+"/entityToIDF.ser");
+            in = new ObjectInputStream(fileIn);
+            entityToIDF = (HashMap) in.readObject();
+            in.close();
+            fileIn.close();
+            System.out.println("Deserialized entityToIDF");
 
             return true;
         } 

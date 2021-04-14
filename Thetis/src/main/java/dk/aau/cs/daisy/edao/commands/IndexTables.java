@@ -230,6 +230,10 @@ public class IndexTables extends Command {
     // e.g. cellToNumLinksFrequency.get(2) = 1000 means that there are 100 cells that have exactly to links 
     private final Map<Integer, Integer> cellToNumLinksFrequency = new HashMap<>();
 
+    // Maps each entity to its IDF score. The idf score of an entity is given by log(N/(1+n_t)) + 1 where N is the number of filenames/tables in the repository
+    // and n_t is the number of tables that contain the entity in question.
+    private final Map<String, Double> entityToIDF = new HashMap<>();
+
     private int cellsWithLinks = 0;
 
     public long indexWikiTables(){
@@ -267,6 +271,13 @@ public class IndexTables extends Command {
         } catch (IOException e) {
             e.printStackTrace();
             return -1;
+        }
+
+        // Compute the IDF scores for each entity in the repository
+        System.out.println("Computing IDF scores for each entity...\n");
+        for (String s : entityToFilename.keySet()) {
+            Double idfScore = Math.log10((double)parsedTables / (entityToFilename.get(s).size() + 1)) + 1;
+            entityToIDF.put(s, idfScore);
         }
 
         // Save the produced hashmaps to disk
@@ -464,6 +475,13 @@ public class IndexTables extends Command {
             out.close();
             fileOut.close();
             System.out.println("Serialized entityInFilenameToTableLocations hashmap");
+
+            fileOut = new FileOutputStream(path+"/entityToIDF.ser");
+            out = new ObjectOutputStream(fileOut);
+            out.writeObject(entityToIDF);
+            out.close();
+            fileOut.close();
+            System.out.println("Serialized entityToIDF hashmap");
 
             return true;
 
