@@ -431,27 +431,59 @@ public class SearchTables extends Command {
         long startTime = System.nanoTime();
     
         for (String filename : similarityVectorMap.keySet()) {
-            // List of all similarity vectors concerning the current filename 
-            List<List<Double>> vectorList = new ArrayList<>();
+            // Map each query tupleID List of all similarity vectors concerning the current filename 
+            Map<Integer, List<List<Double>>> tupleIDToListOfSimVectors = new HashMap<>();
 
+            // Loop over each row and query tuple to populate the `tupleIDToListOfSimVectors` HashMap
             for (Integer rowID : similarityVectorMap.get(filename).keySet()) {
                 for (Integer tupleID : similarityVectorMap.get(filename).get(rowID).keySet()) {
-                    // TODO: Add custom tuple weighting. Some tuples may be prefered over others
-                    vectorList.add(similarityVectorMap.get(filename).get(rowID).get(tupleID));
+                    List<Double> curSimVector = similarityVectorMap.get(filename).get(rowID).get(tupleID);
+                    if (!tupleIDToListOfSimVectors.containsKey(tupleID)) {
+                        List<List<Double>> ListOfSimVectors = new ArrayList<>();
+                        ListOfSimVectors.add(curSimVector);
+                        tupleIDToListOfSimVectors.put(tupleID, ListOfSimVectors);
+                    }
+                    else {
+                        tupleIDToListOfSimVectors.get(tupleID).add(curSimVector);
+                    }
                 }
             }
-            // Compute the filescore by comparing the avgVector with the ideal identity vector
-            List<Double> avgVector = utils.getVectorAverage(vectorList);
-            List<Double> identityVector = new ArrayList<Double>(Collections.nCopies(avgVector.size(), 1.0));
-            Double fileScore = 0.0;
-            if (vec_similarity_measure == "cosine") {
-                fileScore = utils.cosineSimilarity(avgVector, identityVector);
+            
+            // Compute the weighted vector (i.e. considers IDF scores of query entities) for each query tuple
+            Map<Integer, List<Double>> tupleIDToWeightVector = new HashMap<>();
+            for (Integer tupleID=0; tupleID < queryEntities.size(); tupleID++) {
+                List<Double> curTupleIDFScores = new ArrayList<>();
+                for (Integer i=0; i < queryEntities.get(tupleID).size(); i++) {
+                    curTupleIDFScores.add(entityToIDF.get(queryEntities.get(tupleID).get(i)));
+                }
+                tupleIDToWeightVector.put(tupleID, utils.normalizeVector(curTupleIDFScores));
             }
-            else if (vec_similarity_measure == "euclidean") {
-                fileScore = utils.euclideanDistance(avgVector, identityVector);
-                // Convert euclidean distance to similarity, high similarity (i.e. close to 1) means euclidean distance is small
-                fileScore = 1 / (fileScore + 1);
+            
+            // Compute a score for the current file with respect to each query tuple
+            // The score takes into account the weight vector associated with each tuple
+            Map<Integer, Double> tupleIDToScore = new HashMap<>();
+            for (Integer tupleID=0; tupleID < queryEntities.size(); tupleID++) {
+                List<Double> curTupleAvgVec = utils.hadamardProduct(utils.getAverageVector(tupleIDToListOfSimVectors.get(tupleID)), tupleIDToWeightVector.get(tupleID));
+                List<Double> identityVector = new ArrayList<Double>(Collections.nCopies(curTupleAvgVec.size(), 1.0));
+                identityVector = utils.hadamardProduct(identityVector, tupleIDToWeightVector.get(tupleID));
+                Double score = 0.0;
+
+                if (vec_similarity_measure == "cosine") {
+                    // Note: Cosine similarity doesn't make sense if we are operating in a vector similarity space
+                    score = utils.cosineSimilarity(curTupleAvgVec, identityVector);
+                }
+                else if (vec_similarity_measure == "euclidean") {
+                    score = utils.euclideanDistance(curTupleAvgVec, identityVector);
+                    // Convert euclidean distance to similarity, high similarity (i.e. close to 1) means euclidean distance is small
+                    score = 1 / (score + 1);
+                }
+                tupleIDToScore.put(tupleID, score);
             }
+
+            // TODO: Each tuple is weighted equality. Maybe add extra weighting per tuple when taking average?
+            // Get a single score for the current filename that is averaged across all query tuple scores
+            List<Double> tupleIDScores = new ArrayList<Double>(tupleIDToScore.values()); 
+            Double fileScore = utils.getAverageOfVector(tupleIDScores);
             filenameToScore.put(filename, fileScore);
         }
         long elapsedTime = System.nanoTime() - startTime;

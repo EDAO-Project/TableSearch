@@ -276,7 +276,7 @@ public class IndexTables extends Command {
         // Compute the IDF scores for each entity in the repository
         System.out.println("Computing IDF scores for each entity...\n");
         for (String s : entityToFilename.keySet()) {
-            Double idfScore = Math.log10((double)parsedTables / (entityToFilename.get(s).size() + 1)) + 1;
+            Double idfScore = Math.log10((double)parsedTables / (entityToFilename.get(s).size())) + 1;
             entityToIDF.put(s, idfScore);
         }
 

@@ -52,7 +52,7 @@ public class utils {
     /**
      * Returns the average vector given a list of vectors
      */
-    public static List<Double> getVectorAverage(List<List<Double>> vecList) {
+    public static List<Double> getAverageVector(List<List<Double>> vecList) {
         // Initialize the avgVec to a vector of zeroes
         List<Double> avgVec = new ArrayList<>();
         for (Integer i=0;i<vecList.get(0).size(); i++) {
@@ -66,13 +66,26 @@ public class utils {
             }
         } 
 
-        // Ge the Average
+        // Get the Average
         for (Integer i=0; i<avgVec.size(); i++) {
             avgVec.set(i, avgVec.get(i) / vecList.size());
         }
 
         return avgVec;
     }
+
+    /**
+     * Returns the average of the vector
+     */
+    public static Double getAverageOfVector(List<Double> vec) {
+        Double sum = 0.0;
+        for (Double val : vec) {
+            sum += val;
+        }
+        return sum / ((double)vec.size());
+    }
+
+
 
     /**
      * Returns the cosine similarity between two lists
@@ -104,4 +117,33 @@ public class utils {
         }
         return Math.sqrt(Sum);
     }
+
+    /**
+     * Given a list of positive doubles, return a normalized list that sums to 1
+     */
+    public static List<Double> normalizeVector(List<Double> vec) {
+        List<Double> normVec = new ArrayList<>(Collections.nCopies(vec.size(), 0.0));
+        Double sum = 0.0;
+        for (Double val : vec) {
+            sum += val;
+        }
+
+        for (Integer i=0; i < vec.size(); i++) {
+            normVec.set(i, vec.get(i) / sum);
+        }
+        return normVec;
+    }
+
+    /**
+     * Returns the Hadamard product (i.e element-wise) between two vectors 
+     */
+    public static List<Double> hadamardProduct(List<Double> vectorA, List<Double> vectorB) {
+        List<Double> returnVector = new ArrayList<>(Collections.nCopies(vectorA.size(), 0.0));
+
+        for (Integer i=0; i < vectorA.size(); i++) {
+            returnVector.set(i, vectorA.get(i) * vectorB.get(i));
+        }
+        return returnVector;
+    }
+
 }
