@@ -1,18 +1,37 @@
-<title>Table Search Demo</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
 
-<h1 style="text-align: center">Table Search Demo</h1>
-
-<div class="container">
-    Loading text from index.html page!
-    <br><br>
-
-    <form action="/query_submit", method="POST">
-        <label for="query">Input your search query below:</label><br>
-        <textarea style="font-size: 16;" name="query" id="query", cols="120" rows="40"></textarea>
-        <!-- <input type="text" id="query" name="query"><br><br> -->
-        <br> <br>
-        <input type="submit" value="Submit">
-    </form>
+    <link rel="stylesheet" type="text/css" href="/css/main.css">
+    <title>Table Search Demo</title>
+</head>
 
 
-</div>
+<body>
+
+    <h1 style="text-align: center">Table Search Demo</h1>
+
+    <div class="container">
+        <br><br>
+    
+        <form action="/query_submit", method="POST", class="query-form">
+            <label for="query">Input your search query below:</label><br>
+            <textarea style="font-size: 16;" name="query" id="query", cols="120" rows="40"></textarea>
+            <br> <br>
+            <input type="submit" value="Submit">
+        </form>
+    
+    </div>
+
+    <div class="container">
+        {{#show_table}}
+            SHOW TABLE!
+        {{/show_table}}
+    </div>
+    
+</body>
+

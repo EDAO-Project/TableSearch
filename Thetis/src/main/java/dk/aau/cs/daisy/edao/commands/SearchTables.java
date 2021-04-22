@@ -17,6 +17,10 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 
+import com.google.common.reflect.TypeToken;
+import java.lang.reflect.Type;
+
+
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.utils;
 
@@ -588,8 +592,11 @@ public class SearchTables extends Command {
             Gson gson = new Gson();
             Reader reader = Files.newBufferedReader(path.toPath());
     
-            // convert JSON file to array of entities
-            queryEntities = gson.fromJson(reader, List.class);
+            // convert JSON file to a hashmap and then extract the list of queries
+            Type type = new TypeToken<HashMap<String, List<List<String>>>>(){}.getType();
+            Map<String, List<List<String>>> map = gson.fromJson(reader, type);
+            queryEntities = map.get("queries");
+
             reader.close();    
         }
         catch (IOException e) {
