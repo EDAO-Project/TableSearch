@@ -3,7 +3,7 @@ package dk.aau.cs.daisy.edao.commands;
 import java.io.File;
 import java.io.FileReader;
 import java.io.*;
-import java.nio.charset.Charset;
+import java.nio.file.*;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.io.IOException;
@@ -12,10 +12,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.gson.JsonObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
+
 
 import com.google.common.reflect.TypeToken;
 import java.lang.reflect.Type;
@@ -617,21 +621,47 @@ public class SearchTables extends Command {
         return queryEntities;
     }
 
+    /**
+     * Saves the data of the filenameToScore Hashmap into the "filenameToScore.json" file at the specified output directory
+     */
     public void saveFilenameScores(File outputDir) {
-        // File outputDir = new File(path+"/statistics/");
         if (!outputDir.exists()){
             outputDir.mkdir();
         }
 
+        System.out.println("\nConstructing the filenameToScore.json file...");
+
+        // Specify the formate of the filenameToScore.json file 
+        JsonObject jsonObj = new JsonObject();
+        JsonArray innerObjs = new JsonArray();
+        // Iterate over filenameToScore hashmap
+        for (String file : filenameToScore.keySet()) {
+            JsonObject tmp = new JsonObject();
+            tmp.addProperty("tableID", file);
+            tmp.addProperty("score", filenameToScore.get(file));
+            
+            // Get Page Title and URL of the current file
+            JsonTable table = utils.getTableFromPath(Paths.get(this.tableDir.toString()+"/" + file));
+            String pgTitle = table.pgTitle;
+            String tableURL = "https://en.wikipedia.org/wiki/"+pgTitle.replace(' ', '_');;
+            tmp.addProperty("pgTitle", pgTitle);
+            tmp.addProperty("tableURL", tableURL);
+            
+            innerObjs.add(tmp);
+        }
+        jsonObj.add("scores", innerObjs);
+
         try {
             Writer writer = new FileWriter(outputDir+"/filenameToScore.json");
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(filenameToScore, writer);
+            gson.toJson(jsonObj, writer);
             writer.close();
         }
         catch (IOException i) {
             i.printStackTrace();
         }
+
+        System.out.println("Finished constructing the filenameToScore.json file.");
     }
 
 

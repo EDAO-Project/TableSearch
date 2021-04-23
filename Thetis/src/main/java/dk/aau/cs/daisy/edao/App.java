@@ -15,9 +15,9 @@ import static spark.Spark.*;
 import spark.ModelAndView;
 import spark.template.mustache.MustacheTemplateEngine;
 
+import java.util.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Arrays;
 
 import com.google.gson.*;
 import com.google.common.reflect.TypeToken;
@@ -56,13 +56,14 @@ public class App implements Runnable {
         System.out.println(arg_0);
 
         if (arg_0.equals("web")) {
-            System.out.println("Initaliazing web interface...");
+            System.out.println("Initializing web interface...");
 
             staticFiles.location("/public");
 
             // Index page
             get("/", (req, res) -> {
                 Map<String, Object> model = new HashMap<>();
+                model.put("queryString", "");
                 return render(model, "index.html");
             });
 
@@ -70,8 +71,8 @@ public class App implements Runnable {
             post("/query_submit", (req, res) -> {
                 System.out.println("In /query_submit route...");
 
-                String queryString = req.queryParams("query");
-                queryString = "{\"queries\": [" + queryString + "]}";
+                String rawQueryString = req.queryParams("query");
+                String queryString = "{\"queries\": [" + rawQueryString + "]}";
                 System.out.println("Input Query: " + queryString);
 
                 // Convert the query string into an appropriate JSON object to be used for querying
@@ -121,10 +122,8 @@ public class App implements Runnable {
                     Reader reader = Files.newBufferedReader(scoresFilePath);
             
                     // convert JSON file to a hashmap and then extract the list of queries
-                    Type type = new TypeToken<HashMap<String, Double>>(){}.getType();
-                    tableToScore = gson.fromJson(reader, type);
-                    System.out.println(tableToScore);
-        
+                    Type type = new TypeToken<HashMap<String, Object>>(){}.getType();
+                    tableToScore = gson.fromJson(reader, type);        
                     reader.close();    
                 }
                 catch (IOException e) {
@@ -132,8 +131,9 @@ public class App implements Runnable {
                 }
 
                 Map<String, Object> model = new HashMap<>();
-                model.put("tableToScore", tableToScore);
+                model.put("tableToScore", tableToScore.get("scores"));
                 model.put("show_table", true);
+                model.put("queryString", rawQueryString);
                 return render(model, "index.html");
             });
         }
