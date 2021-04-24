@@ -77,7 +77,6 @@ The Table datasets consist of:
    # This below does not work yet, ignore
    # python ./extract-table-mentions.py -i ./tableMentions.json.gz -o ./files 
    ```
-   
 
 3. Run preprocessing script for indexing
 
@@ -87,13 +86,48 @@ The Table datasets consist of:
    mvn package
    
    # From inside docker
-   java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables/files/ --output-dir /data/index/wikitables/
+   java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables/small_test/ --output-dir /data/index/small_test/
+   ```
+### Wikitable Search
+
+* Perform Search using the command line
+
+   Small Dataset Baseline
+   ```bash
+   java -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/small_test/ --query-file ../data/queries/query_small_test.json --table-dir /data/tables/wikitables/small_test/ --output-dir /data/index/small_test/search_output/
    ```
 
-4. Perform Search
+   Full Dataset Baseline
    ```bash
-   java -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/small_test/ --query-file ../data/queries/query1.json --table-dir /data/tables/wikitables/files
+   java -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/wikitables/ --query-file ../data/queries/query_tuple_large.json --table-dir /data/tables/wikitables/files/ --output-dir /data/index/wikitables/search_output/
    ```
+
+   Full Dataset PPR
+   ```bash
+   java -jar target/Thetis.0.1.jar search --search-mode ppr --query-file ../data/queries/query_tuple.json --table-dir /data/tables/wikitables/files/tables_50_MAX/ --output-dir /data/index/wikitables/search_output/
+   ```
+
+* Perform Search using the Web Interface
+
+   To test the interface on your local computer (i.e. LOCALHOST) we first need to create an ssh tunnel between the server and your current machine.
+   SparkJava uses port 4567 by default.
+   To create the ssh tunnel run the following command:
+   ```
+   ssh -L 4567:localhost:4567 ubuntu@130.226.98.8
+   ```
+   Then we can initialize the SparkJava web service
+   
+   To return results based on PPR run
+   ```bash
+   java -jar target/Thetis.0.1.jar web --mode ppr --table-dir /data/tables/wikitables/files/tables_50_MAX/ --output-dir /data/index/wikitables/search_output/
+   ```
+
+   To return results using the baseline run
+   ```bash
+   java -jar target/Thetis.0.1.jar web --mode analogous --table-dir /data/tables/wikitables/small_test/ --output-dir /data/index/small_test/search_output/
+   ```
+
+   Then once the server is running simply visit http://localhost:4567/ in your browser and the web interface should show up where you can input your queries.
 
 #### Tough Tables
 
