@@ -19,14 +19,15 @@ import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
-
-
 import com.google.common.reflect.TypeToken;
 import java.lang.reflect.Type;
 
-
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.utils;
+
+import org.neo4j.driver.exceptions.AuthenticationException;
+import org.neo4j.driver.exceptions.ServiceUnavailableException;
+import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 
 import picocli.CommandLine;
 
@@ -38,7 +39,7 @@ public class SearchTables extends Command {
     CommandLine.Model.CommandSpec spec; // injected by picocli
     
     public enum SearchMode {
-        EXACT("exact"), ANALOGOUS("analogous");
+        EXACT("exact"), ANALOGOUS("analogous"), PPR("ppr");
 
         private final String mode;
         SearchMode(String mode){
@@ -80,7 +81,7 @@ public class SearchTables extends Command {
     private QueryMode queryMode = null;
 
     private File hashmapDir = null;
-    @CommandLine.Option(names = { "-hd", "--hashmap-dir" }, paramLabel = "HASH_DIR", description = "Directory from which we load the hashmaps", required = true)
+    @CommandLine.Option(names = { "-hd", "--hashmap-dir" }, paramLabel = "HASH_DIR", description = "Directory from which we load the hashmaps", defaultValue = "../data/index/wikitables/")
     public void setHashMapDirectory(File value) {
         if(!value.exists()){
             throw new CommandLine.ParameterException(spec.commandLine(),
@@ -133,6 +134,25 @@ public class SearchTables extends Command {
         outputDir = value;
     }
 
+    private File configFile = null;
+    @CommandLine.Option(names = { "-cf", "--config"}, paramLabel = "CONF", description = "configuration file", required = true, defaultValue = "./config.properties" )
+    public void setConfigFile(File value) {
+
+        if(!value.exists()){
+            throw new CommandLine.ParameterException(spec.commandLine(),
+                    String.format("Invalid value '%s' for option '--config': " +
+                            "the file does not exists.", value));
+        }
+
+        if (value.isDirectory()) {
+            throw new CommandLine.ParameterException(spec.commandLine(),
+                    String.format("Invalid value '%s' for option '--config': " +
+                            "the path should point to a file not to a directory.", value));
+        }
+        configFile = value;
+    }
+
+    private Neo4jEndpoint connector;
 
     @Override
     public Integer call() {
@@ -142,35 +162,31 @@ public class SearchTables extends Command {
         System.out.println("Output Directory: " + outputDir);
 
         // Read off the queryEntities list from a json object
-        // TODO: Allow the query to be a set of tuples each with a list of entities
         queryEntities = this.parseQuery(queryFile);
         System.out.println("Query Entities: " + queryEntities + "\n");
 
-        // Perform De-Serialization of the indices
-        long startTime = System.nanoTime();    
-        if (this.deserializeHashMaps(hashmapDir)) {
-            System.out.println("Deserialization successful!\n");
-            System.out.println("Elapsed time for deserialization: " + (System.nanoTime() - startTime)/(1e9) + " seconds\n");
-        }
-        else {
-            System.out.println("de-serialization Failed!\n");
-            return -1;
-        }
+        if (searchMode.getMode() != "ppr") {
+            // Perform De-Serialization of the indices
+            long startTime = System.nanoTime();    
+            if (this.deserializeHashMaps(hashmapDir)) {
+                System.out.println("Deserialization successful!\n");
+                System.out.println("Elapsed time for deserialization: " + (System.nanoTime() - startTime)/(1e9) + " seconds\n");
+            }
+            else {
+                System.out.println("de-serialization Failed!\n");
+                return -1;
+            }
 
-        // Ensure that all queryEntities are searchable over the index
-        for (Integer i=0; i<queryEntities.size(); i++) {
-            for (String entity : queryEntities.get(i)) {
-                if (!entityToFilename.containsKey(entity)) {
-                    System.out.println(entity + " does not map to any known entity in the constructed index");
-                    return -1;
+            // Ensure that all queryEntities are searchable over the index
+            for (Integer i=0; i<queryEntities.size(); i++) {
+                for (String entity : queryEntities.get(i)) {
+                    if (!entityToFilename.containsKey(entity)) {
+                        System.out.println(entity + " does not map to any known entity in the constructed index");
+                        return -1;
+                    }
                 }
             }
-        }
-
-
-        // for (String ent : entityToFilename.keySet()) {
-        //     System.out.println(ent + " : " + entityToFilename.get(ent));
-        // }
+        } 
 
         // Perform search according to the `search-mode`
         switch (this.searchMode){
@@ -181,6 +197,10 @@ public class SearchTables extends Command {
             case ANALOGOUS:
                 System.out.println("Search mode: " + searchMode.getMode());
                 this.analogousSearch();
+                break;
+            case PPR:
+                System.out.println("Search mode: " + searchMode.getMode());
+                this.ppr();
                 break;
         }
 
@@ -510,6 +530,47 @@ public class SearchTables extends Command {
             }
         }
     }
+
+    public int ppr() {
+        // Initialize the connector
+        try {
+            this.connector = new Neo4jEndpoint(this.configFile);
+            connector.testConnection();
+        } catch(AuthenticationException ex){
+            System.err.println( "Could not Login to Neo4j Server (user or password do not match)");
+            System.err.println(ex.getMessage());
+        }catch (ServiceUnavailableException ex){
+            System.err.println( "Could not connect to Neo4j Server");
+            System.err.println(ex.getMessage());
+        } catch (FileNotFoundException ex){
+            System.err.println( "Configuration file for Neo4j connector not found");
+            System.err.println(ex.getMessage());
+        } catch ( IOException ex){
+            System.err.println("Error in reading configuration for Neo4j connector");
+            System.err.println(ex.getMessage());
+        }
+
+        long startTime = System.nanoTime();
+        System.out.println("\n\nRunning PPR on given Query Tuple(s)...");    
+        // Run PPR once from each query tuple
+        for (Integer i=0; i<queryEntities.size(); i++) {
+            // TODO: Handle multiple query tuples when using PPR
+            filenameToScore = connector.runPPR(queryEntities.get(i));
+        }
+        long elapsedTime = System.nanoTime() - startTime;
+        System.out.println("\n\nFinished running PPR on given Query Tuple(s)");    
+        System.out.println("Elapsed time: " + elapsedTime/(1e9) + " seconds\n");
+
+        // Sort the scores for each file
+        filenameToScore = sortByValue(filenameToScore);
+
+        // Save the PPR scores to a json file
+        this.saveFilenameScores(outputDir);
+
+        return 1;
+    }
+
+
 
     // function to sort hashmap by values
     public static Map<String, Double> sortByValue(Map<String, Double> hm)

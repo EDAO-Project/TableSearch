@@ -16,3 +16,19 @@ textarea {
     font-size: 20px;
     border-radius: 10px;
 }
+
+.table-bordered td{
+    border: 2px solid #a4a9ad;
+    font-size: large;
+}
+
+.table-bordered th{
+    border: 2px solid #a4a9ad;
+    border-bottom: 2px solid #a4a9ad;
+    font-size: large;
+}
+
+.table thead th{
+    vertical-align: bottom;
+    border-bottom: 2px solid #a4a9ad;
+}

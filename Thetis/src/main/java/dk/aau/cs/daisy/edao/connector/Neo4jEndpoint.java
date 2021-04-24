@@ -3,6 +3,9 @@ package dk.aau.cs.daisy.edao.connector;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import org.neo4j.driver.*;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import java.io.*;
 import java.util.*;
 
@@ -168,7 +171,6 @@ public class Neo4jEndpoint implements AutoCloseable {
                 return entity_types;
             });
         }
-
     }
 
 
@@ -190,7 +192,42 @@ public class Neo4jEndpoint implements AutoCloseable {
                 return entityUris;
             });
         }
-
-
     }
+
+
+    /**
+     * Run PPR over the semantic datalake given 
+     *
+     * @param links a list of dbpedia entities ["http://dbpedia.org/resource/United_States", ...]
+     * @return top ranked table nodes with their respective PPR
+     */
+    public Map<String, Double> runPPR(Iterable<String> queryTuple) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("queryTuple", queryTuple);
+
+        try (Session session = driver.session()) {
+            return session.readTransaction(tx -> {
+
+                // Get top ranked table nodes with their respective PPR scores
+                Result result = tx.run("MATCH (r:Resource) WHERE r.uri IN $queryTuple" + "\n"
+                    + "WITH collect(r) as nodeList CALL particlefiltering.unlabelled(nodeList, 0.01, 1000)" + "\n"
+                    + "YIELD nodeId, score WITH nodeId, score ORDER BY score DESC LIMIT 100" + "\n"
+                    + "MATCH (r:Resource)-[:rdf__type]->(t:Resource) WHERE ID(r) = nodeId and t.uri='https://schema.org/Table'" + "\n"
+                    + "RETURN r.uri as file, score as scoreVal"
+                    ,params);
+
+                Map<String, Double> tableToScore = new HashMap<>();
+                // Loop over all records and populate `tableToScore` HashMap
+                for (Record r : result.list()) {
+                    String tablePathStr = r.get("file").asString();
+                    String tableName = Paths.get(tablePathStr).getFileName().toString() + ".json";
+                    Double score = r.get("scoreVal").asDouble();
+                    tableToScore.put(tableName, score);
+                }
+
+                return tableToScore;
+            });
+        }
+    }
+
 }
