@@ -21,7 +21,7 @@
     
         <form action="/query_submit", method="POST", class="query-form">
             <label for="query">Input your search query below:</label><br>
-            <textarea style="font-size: 18px;" name="query" id="query" rows="20">{{queryString}}</textarea>
+            <textarea style="font-size: 18px;" name="query" id="query" rows="10" spellcheck="false">{{queryString}}</textarea>
             <br> <br>
 
             <div class="row">
@@ -31,6 +31,18 @@
             </div>
 
         </form>
+
+        <br>
+            {{#invalidEntities}}
+            <div class="alert alert-danger" role="alert">
+                <b>The following specified entities do no match to any known entity in the knowledge graph used!</b>
+                <br>
+                {{#invalidEntitiesList}}
+                    <li>{{.}}</li>
+                {{/invalidEntitiesList}}
+            </div>
+        {{/invalidEntities}}
+
     
     </div>
 

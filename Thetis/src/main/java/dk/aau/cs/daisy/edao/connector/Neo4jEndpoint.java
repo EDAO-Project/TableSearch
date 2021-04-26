@@ -210,7 +210,7 @@ public class Neo4jEndpoint implements AutoCloseable {
 
                 // Get top ranked table nodes with their respective PPR scores
                 Result result = tx.run("MATCH (r:Resource) WHERE r.uri IN $queryTuple" + "\n"
-                    + "WITH collect(r) as nodeList CALL particlefiltering.unlabelled(nodeList, 0.01, 1000)" + "\n"
+                    + "WITH collect(r) as nodeList CALL particlefiltering.unlabelled(nodeList, 0.1, 20)" + "\n"
                     + "YIELD nodeId, score WITH nodeId, score ORDER BY score DESC LIMIT 100" + "\n"
                     + "MATCH (r:Resource)-[:rdf__type]->(t:Resource) WHERE ID(r) = nodeId and t.uri='https://schema.org/Table'" + "\n"
                     + "RETURN r.uri as file, score as scoreVal"

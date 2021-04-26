@@ -94,17 +94,17 @@ The Table datasets consist of:
 
    Small Dataset Baseline
    ```bash
-   java -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/small_test/ --query-file ../data/queries/query_small_test.json --table-dir /data/tables/wikitables/small_test/ --output-dir /data/index/small_test/search_output/
+   java -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/small_test/ --query-file ../data/queries/query_small_test.json --table-dir /data/tables/wikitables/small_test/ --output-dir /data/index/small_test/
    ```
 
    Full Dataset Baseline
    ```bash
-   java -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/wikitables/ --query-file ../data/queries/query_tuple_large.json --table-dir /data/tables/wikitables/files/ --output-dir /data/index/wikitables/search_output/
+   java -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/wikitables/ --query-file ../data/queries/query_tuple_large.json --table-dir /data/tables/wikitables/files/tables_50_MAX/ --output-dir /data/index/wikitables/
    ```
 
    Full Dataset PPR
    ```bash
-   java -jar target/Thetis.0.1.jar search --search-mode ppr --query-file ../data/queries/query_tuple.json --table-dir /data/tables/wikitables/files/tables_50_MAX/ --output-dir /data/index/wikitables/search_output/
+   java -jar target/Thetis.0.1.jar search --search-mode ppr --query-file ../data/queries/query_tuple.json --table-dir /data/tables/wikitables/files/tables_50_MAX/ --output-dir /data/index/wikitables/
    ```
 
 * Perform Search using the Web Interface
@@ -119,12 +119,12 @@ The Table datasets consist of:
    
    To return results based on PPR run
    ```bash
-   java -jar target/Thetis.0.1.jar web --mode ppr --table-dir /data/tables/wikitables/files/tables_50_MAX/ --output-dir /data/index/wikitables/search_output/
+   java -jar target/Thetis.0.1.jar web --mode ppr --table-dir /data/tables/wikitables/files/tables_50_MAX/ --output-dir /data/index/wikitables/
    ```
 
    To return results using the baseline run
    ```bash
-   java -jar target/Thetis.0.1.jar web --mode analogous --table-dir /data/tables/wikitables/small_test/ --output-dir /data/index/small_test/search_output/
+   java -jar target/Thetis.0.1.jar web --mode analogous --table-dir /data/tables/wikitables/small_test/ --output-dir /data/index/small_test/
    ```
 
    Then once the server is running simply visit http://localhost:4567/ in your browser and the web interface should show up where you can input your queries.

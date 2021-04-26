@@ -276,7 +276,7 @@ public class IndexTables extends Command {
         // Compute the IDF scores for each entity in the repository
         System.out.println("Computing IDF scores for each entity...\n");
         for (String s : entityToFilename.keySet()) {
-            Double idfScore = Math.log10((double)parsedTables / (entityToFilename.get(s).size())) + 1;
+            Double idfScore = - Math.log10(entityToFilename.get(s).size() / (double)parsedTables);
             entityToIDF.put(s, idfScore);
         }
 
@@ -482,6 +482,12 @@ public class IndexTables extends Command {
             out.close();
             fileOut.close();
             System.out.println("Serialized entityToIDF hashmap");
+
+            Writer writer = new FileWriter(path+"/entityToIDF.json");
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            gson.toJson(entityToIDF, writer);
+            writer.close();
+            System.out.println("Wrote entityToIDF.json");
 
             return true;
 

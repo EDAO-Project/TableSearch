@@ -178,13 +178,19 @@ public class SearchTables extends Command {
             }
 
             // Ensure that all queryEntities are searchable over the index
+            System.out.println("\nIDF scores for each entity:");
             for (Integer i=0; i<queryEntities.size(); i++) {
+                System.out.println("Query Tuple: " + i);
                 for (String entity : queryEntities.get(i)) {
                     if (!entityToFilename.containsKey(entity)) {
                         System.out.println(entity + " does not map to any known entity in the constructed index");
                         return -1;
                     }
+                    else {
+                        System.out.println(entity + ": " + entityToIDF.get(entity));
+                    }
                 }
+                System.out.println("\n");
             }
         } 
 
@@ -235,6 +241,10 @@ public class SearchTables extends Command {
     // Maps each entity to its IDF score. The idf score of an entity is given by log(N/(1+n_t)) + 1 where N is the number of filenames/tables in the repository
     // and n_t is the number of tables that contain the entity in question.
     private Map<String, Double> entityToIDF = new HashMap<>();
+
+    //********************* Global Variables of Statistics *********************//
+
+    private Map<String, Map<String, Object>> filenameToStatistics = new HashMap<>();
 
     public void exactSearch() {
 
@@ -366,11 +376,13 @@ public class SearchTables extends Command {
             return false;
         }
 
-        // System.out.println("Table: "+ table._id );
         String filename = path.getFileName().toString();
 
         // Map each row number of the table each query tuple to its respective similarity vector
         Map<Integer, Map<Integer, List<Double>>> rowTupleIDVectorMap = new HashMap<>();
+
+        Map<String, Object> statisticsMap = new HashMap<>();
+        Integer numEntityMappedRows = 0;    // Number of rows in a table that have at least one cell mapping ot a known entity
 
         // Loop over each query entity. TODO: Treat this on a tuple by tuple basis
         int rowId = 0;
@@ -392,33 +404,43 @@ public class SearchTables extends Command {
                 }
                 collId+=1;
             }
+            
+            // Compute similarity vectors only for rows that map to at least one entity
+            if (rowEntities.size() > 0) {
+                numEntityMappedRows += 1;
+                Map<Integer, List<Double>> tupleIDVectorMap = new HashMap<>();
 
-            Map<Integer, List<Double>> tupleIDVectorMap = new HashMap<>(); 
+                // For each row and for each query tuple compute the maximal similarity vector
+                for (Integer tupleID=0; tupleID<queryEntities.size(); tupleID++) {
+                    // Initialize the maximum vector for the current tuple, to a zero vector of size equal to the query tuple size.
+                    List<Double> maximumTupleVector = new ArrayList<Double>(Collections.nCopies(queryEntities.get(tupleID).size(), 0.0));
 
-            // For each row and for each query tuple compute the maximal similarity vector
-            for (Integer tupleID=0; tupleID<queryEntities.size(); tupleID++) {
-                // Initialize the maximum vector for the current tuple, to a zero vector of size equal to the query tuple size.
-                List<Double> maximumTupleVector = new ArrayList<Double>(Collections.nCopies(queryEntities.get(tupleID).size(), 0.0));
-
-                for (Integer queryEntityID=0; queryEntityID<queryEntities.get(tupleID).size(); queryEntityID++) {
-                    String queryEntity = queryEntities.get(tupleID).get(queryEntityID);
-                    Double bestSimScore = 0.0;
-                    for (String rowEntity : rowEntities) {
-                        // Compute pairwise entity similarity between 'queryEntity' and 'rowEntity'
-                        Double simScore = this.entitySimilarityScore(queryEntity, rowEntity);
-                        if (simScore > bestSimScore) {
-                            bestSimScore = simScore;
+                    for (Integer queryEntityID=0; queryEntityID<queryEntities.get(tupleID).size(); queryEntityID++) {
+                        String queryEntity = queryEntities.get(tupleID).get(queryEntityID);
+                        Double bestSimScore = 0.0;
+                        for (String rowEntity : rowEntities) {
+                            // Compute pairwise entity similarity between 'queryEntity' and 'rowEntity'
+                            Double simScore = this.entitySimilarityScore(queryEntity, rowEntity);
+                            if (simScore > bestSimScore) {
+                                bestSimScore = simScore;
+                            }
                         }
+                        maximumTupleVector.set(queryEntityID, bestSimScore);
                     }
-                    maximumTupleVector.set(queryEntityID, bestSimScore);
+                    tupleIDVectorMap.put(tupleID, maximumTupleVector);
                 }
-                tupleIDVectorMap.put(tupleID, maximumTupleVector);
+                rowTupleIDVectorMap.put(rowId, tupleIDVectorMap);
             }
-            rowTupleIDVectorMap.put(rowId, tupleIDVectorMap);
             rowId+=1;
         }
 
         similarityVectorMap.put(filename, rowTupleIDVectorMap);
+
+        // Update Statistics
+        statisticsMap.put("numEntityMappedRows", numEntityMappedRows);
+        statisticsMap.put("fractionOfEntityMappedRows", (double)numEntityMappedRows / table.numDataRows);
+        filenameToStatistics.put(filename, statisticsMap);
+
         return true;
     }
 
@@ -459,7 +481,7 @@ public class SearchTables extends Command {
         long startTime = System.nanoTime();
     
         for (String filename : similarityVectorMap.keySet()) {
-            // Map each query tupleID List of all similarity vectors concerning the current filename 
+            // Map each query tupleID to a list of all similarity vectors concerning the current filename 
             Map<Integer, List<List<Double>>> tupleIDToListOfSimVectors = new HashMap<>();
 
             // Loop over each row and query tuple to populate the `tupleIDToListOfSimVectors` HashMap
@@ -491,21 +513,28 @@ public class SearchTables extends Command {
             // The score takes into account the weight vector associated with each tuple
             Map<Integer, Double> tupleIDToScore = new HashMap<>();
             for (Integer tupleID=0; tupleID < queryEntities.size(); tupleID++) {
-                List<Double> curTupleAvgVec = utils.hadamardProduct(utils.getAverageVector(tupleIDToListOfSimVectors.get(tupleID)), tupleIDToWeightVector.get(tupleID));
-                List<Double> identityVector = new ArrayList<Double>(Collections.nCopies(curTupleAvgVec.size(), 1.0));
-                identityVector = utils.hadamardProduct(identityVector, tupleIDToWeightVector.get(tupleID));
-                Double score = 0.0;
+                if (similarityVectorMap.get(filename).size() > 0) {
+                    // There is at least one data row that has values mapping to known entities
+                    List<Double> curTupleAvgVec = utils.hadamardProduct(utils.getAverageVector(tupleIDToListOfSimVectors.get(tupleID)), tupleIDToWeightVector.get(tupleID));
+                    List<Double> identityVector = new ArrayList<Double>(Collections.nCopies(curTupleAvgVec.size(), 1.0));
+                    identityVector = utils.hadamardProduct(identityVector, tupleIDToWeightVector.get(tupleID));
+                    Double score = 0.0;
 
-                if (vec_similarity_measure == "cosine") {
-                    // Note: Cosine similarity doesn't make sense if we are operating in a vector similarity space
-                    score = utils.cosineSimilarity(curTupleAvgVec, identityVector);
+                    if (vec_similarity_measure == "cosine") {
+                        // Note: Cosine similarity doesn't make sense if we are operating in a vector similarity space
+                        score = utils.cosineSimilarity(curTupleAvgVec, identityVector);
+                    }
+                    else if (vec_similarity_measure == "euclidean") {
+                        score = utils.euclideanDistance(curTupleAvgVec, identityVector);
+                        // Convert euclidean distance to similarity, high similarity (i.e. close to 1) means euclidean distance is small
+                        score = 1 / (score + 1);
+                    }
+                    tupleIDToScore.put(tupleID, score);
                 }
-                else if (vec_similarity_measure == "euclidean") {
-                    score = utils.euclideanDistance(curTupleAvgVec, identityVector);
-                    // Convert euclidean distance to similarity, high similarity (i.e. close to 1) means euclidean distance is small
-                    score = 1 / (score + 1);
+                else {
+                   // No entity maps to any value in any row in this table so we give the file a score of zero
+                   tupleIDToScore.put(tupleID, 0.0);
                 }
-                tupleIDToScore.put(tupleID, score);
             }
 
             // TODO: Each tuple is weighted equality. Maybe add extra weighting per tuple when taking average?
@@ -513,9 +542,13 @@ public class SearchTables extends Command {
             List<Double> tupleIDScores = new ArrayList<Double>(tupleIDToScore.values()); 
             Double fileScore = utils.getAverageOfVector(tupleIDScores);
             filenameToScore.put(filename, fileScore);
-        }
+
+            // Update Statistics
+            filenameToStatistics.get(filename).put("tupleScores", tupleIDScores);
+        } 
+
         long elapsedTime = System.nanoTime() - startTime;
-        System.out.println("Elapsed time: " + elapsedTime/(1e9) + " seconds\n");  
+        System.out.println("Elapsed time: " + elapsedTime/(1e9) + " seconds\n");
 
         // Sort the scores for each file and return the top-k filenames
         filenameToScore = sortByValue(filenameToScore);
@@ -551,11 +584,25 @@ public class SearchTables extends Command {
         }
 
         long startTime = System.nanoTime();
-        System.out.println("\n\nRunning PPR on given Query Tuple(s)...");    
+        System.out.println("\n\nRunning PPR on given Query Tuple(s)...");
+
+        // Currently the score of a file is the sum of the ppr scores for that file across all query tuples
+        // TODO: Potentially a better way to normalize? 
+
         // Run PPR once from each query tuple
         for (Integer i=0; i<queryEntities.size(); i++) {
-            // TODO: Handle multiple query tuples when using PPR
-            filenameToScore = connector.runPPR(queryEntities.get(i));
+            // TODO: Maybe run the runPPR() function in parallel for greater efficiency
+            Map<String, Double> curTupleFilenameToScore = connector.runPPR(queryEntities.get(i));
+            // Update the 'filenameToScore' accordingly
+            for (String s : curTupleFilenameToScore.keySet()) {
+                if (!filenameToScore.containsKey(s)) {
+                    filenameToScore.put(s, curTupleFilenameToScore.get(s));
+                }
+                else {
+                    filenameToScore.put(s, filenameToScore.get(s) + curTupleFilenameToScore.get(s));
+                }
+            }
+            System.out.println("Finished computing PPR for tuple: " + i);
         }
         long elapsedTime = System.nanoTime() - startTime;
         System.out.println("\n\nFinished running PPR on given Query Tuple(s)");    
@@ -637,6 +684,8 @@ public class SearchTables extends Command {
             fileIn.close();
             System.out.println("Deserialized entityToIDF");
 
+
+
             return true;
         } 
         catch (IOException i) {
@@ -707,13 +756,20 @@ public class SearchTables extends Command {
             String tableURL = "https://en.wikipedia.org/wiki/"+pgTitle.replace(' ', '_');;
             tmp.addProperty("pgTitle", pgTitle);
             tmp.addProperty("tableURL", tableURL);
-            
+
+            // Add Statistics for current filename
+            if (searchMode.getMode() != "ppr") {
+                tmp.addProperty("numEntityMappedRows", filenameToStatistics.get(file).get("numEntityMappedRows").toString());
+                tmp.addProperty("fractionOfEntityMappedRows", filenameToStatistics.get(file).get("fractionOfEntityMappedRows").toString());
+                tmp.addProperty("tupleScores", filenameToStatistics.get(file).get("tupleScores").toString());
+            }
+
             innerObjs.add(tmp);
         }
         jsonObj.add("scores", innerObjs);
 
         try {
-            Writer writer = new FileWriter(outputDir+"/filenameToScore.json");
+            Writer writer = new FileWriter(outputDir+"/search_output/filenameToScore.json");
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             gson.toJson(jsonObj, writer);
             writer.close();

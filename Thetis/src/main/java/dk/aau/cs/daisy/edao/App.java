@@ -54,13 +54,15 @@ public class App implements Runnable {
 
             // Web interface commandline parsing
             org.apache.commons.cli.CommandLine cmd = webInterfaceCommandLine(args);
-            
             String mode = cmd.getOptionValue("mode");
             String tableDir = cmd.getOptionValue("table-dir");
             String outputDir = cmd.getOptionValue("output-dir");
             System.out.println("Mode: " + mode);
             System.out.println("Table Directory: " + tableDir);
             System.out.println("Output Directory: " + outputDir + "\n\n");
+
+            // Maps each entity to an IDF score 
+            Map<String, Double> entityToIDF = getEntityToIDFScores(new File(outputDir));
 
             staticFiles.location("/public");
 
@@ -79,36 +81,33 @@ public class App implements Runnable {
                 String queryString = "{\"queries\": [" + rawQueryString + "]}";
                 System.out.println("Input Query: " + queryString);
 
+                JsonObject queryJSON = new JsonObject();
+
                 // Convert the query string into an appropriate JSON object to be used for querying
                 try {
                     Writer writer = new FileWriter("../data/queries/user_query.json");
                     Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
                     JsonElement jelem = gson.fromJson(queryString, JsonElement.class);
-                    JsonObject jobj = jelem.getAsJsonObject();
+                    queryJSON = jelem.getAsJsonObject();
 
-                    System.out.println("Updated Input Query: " + jobj);
+                    System.out.println("Converted Input Query to JSON object\n");
 
-                    gson.toJson(jobj, writer);
+                    gson.toJson(queryJSON, writer);
                     writer.close();
                 }
                 catch (IOException i) {
                     i.printStackTrace();
                 }
 
-                // TODO: Check if the user entered dbpedia entries are valid
-
-
-                // Run search command (Currently set to use the baseline)
-                // String[] searchCommand = new String[]{
-                //     "search",
-                //     "--search-mode", "analogous",
-                //     "--hashmap-dir", "../data/index/small_test/",
-                //     "--query-file", "../data/queries/user_query.json",
-                //     "--table-dir", "/data/tables/wikitables/small_test/",
-                //     "--output-dir", "/data/index/small_test/search_output/"
-                // };
-
+                // Check if the user entered entities that do not exist in the knowledge graph
+                Boolean invalidEntities = false;
+                List<String> invalidEntitiesList = getInvalidEntities(queryJSON, entityToIDF);
+                if (invalidEntitiesList.size() > 0) {
+                    invalidEntities = true;
+                }
+                
+                // Execute the search command
                 String[] searchCommand = new String[]{
                     "search",
                     "--search-mode", mode,
@@ -123,14 +122,14 @@ public class App implements Runnable {
                     System.out.println("Successful Search Completed!");
                 }
                 else {
-                    // Throw error
+                    System.err.println("Search Failed!");
                 }
 
+                // Read the scores output and populate 'tableToScore' list
                 List<Object> tableToScore = new ArrayList<>();
-                // Read the scores output and populate `tableToScore`
                 try {
                     Gson gson = new Gson();
-                    Path scoresFilePath = Paths.get(outputDir + "filenameToScore.json");
+                    Path scoresFilePath = Paths.get(outputDir + "search_output/filenameToScore.json");
                     Reader reader = Files.newBufferedReader(scoresFilePath);
             
                     // convert JSON file to a hashmap and then extract the list of queries
@@ -148,7 +147,7 @@ public class App implements Runnable {
                         tableToScore.add(scores.get(i));
                     }
                 }
-                catch (IOException e) {
+                catch (IOException e) { 
                     e.printStackTrace();
                 }
 
@@ -156,6 +155,9 @@ public class App implements Runnable {
                 model.put("tableToScore", tableToScore);
                 model.put("show_table", true);
                 model.put("queryString", rawQueryString);
+
+                model.put("invalidEntities", invalidEntities);
+                model.put("invalidEntitiesList", invalidEntitiesList);
                 return render(model, "index.html");
             });
         }
@@ -195,4 +197,52 @@ public class App implements Runnable {
 
         return cmd;
     }
+
+    private static Map<String, Double> getEntityToIDFScores(File path) {
+        System.out.println("Extracting EntityToIDFScores hashmap...");
+        Map<String, Double> entityToIDF = new HashMap<>();
+        try {
+            FileInputStream fileIn = new FileInputStream(path+"/entityToIDF.ser");
+            ObjectInputStream in = new ObjectInputStream(fileIn);
+            entityToIDF = (HashMap) in.readObject();
+            in.close();
+            fileIn.close();
+        } 
+        catch (IOException i) {
+            i.printStackTrace();
+        }
+        catch (ClassNotFoundException c) {
+            System.out.println("Class not found");
+            c.printStackTrace();
+        }
+        System.out.println("Finished Extracting EntityToIDFScores hashmap\n");
+
+        return entityToIDF;
+    }
+
+    /**
+     * 
+     * @param queryJSON: user query as a JSON object
+     * @param entityToIDF: mapping of each known entity to an IDF score
+     * @return the list of user specified entities that cannot be found in the knowledge base. Returns an empty list of all entities are valid
+     */
+    private static List<String> getInvalidEntities(JsonObject queryJSON, Map<String, Double> entityToIDF) {
+        List<String> invalidEntitiesList = new ArrayList<>(); 
+        JsonArray queryTuplesArr = queryJSON.get("queries").getAsJsonArray();
+        for (Integer tupleID=0; tupleID<queryTuplesArr.size(); tupleID++) {
+            Gson gson = new Gson();
+            Type type = new TypeToken<List<String>>(){}.getType();
+            List<String> tupleEntities = gson.fromJson(queryTuplesArr.get(tupleID), type);
+            for (String s : tupleEntities) {
+                if (!entityToIDF.containsKey(s)) {
+                    System.err.println("Entity: " + s + " does not exist in the knowledge graph!");
+                    invalidEntitiesList.add(s);
+                }
+            }
+        }
+        return invalidEntitiesList;
+    }
+
+
+
 }
