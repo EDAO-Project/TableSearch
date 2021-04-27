@@ -37,9 +37,9 @@ The reference KG is DBpedia.
    ./download-dbpedia.sh dbpedia_files.txt 
    ```
 
-2. Load the data into a database: Let's try Neo4j
-
-   https://gist.github.com/kuzeko/7ce71c6088c866b0639c50cf9504869a
+2. Load the data into a database. In this case Neo4j
+   
+   Take a look at: https://gist.github.com/kuzeko/7ce71c6088c866b0639c50cf9504869a for more details
 
 
 ### Tables
@@ -51,7 +51,7 @@ The Table datasets consist of:
 - **Tough Tables** extended SemTabEval dataset 
 
 
-#### WikiTable
+#### WikiTables
 
 > Bhagavatula, C. S., Noraset, T., & Downey, D. (2015, October). TabEL: entity linking in web tables. In International Semantic Web Conference (pp. 425-441). Springer, Cham.
 
