@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
+import java.util.Collections;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javafx.util.Pair;
@@ -234,6 +235,8 @@ public class IndexTables extends Command {
     // and n_t is the number of tables that contain the entity in question.
     private final Map<String, Double> entityToIDF = new HashMap<>();
 
+    private final Map<String, Object> tableIDToStats = new HashMap<>();
+
     private int cellsWithLinks = 0;
 
     public long indexWikiTables(){
@@ -298,7 +301,6 @@ public class IndexTables extends Command {
      */
     public boolean parseTable(Path path) {
 
-
         // Initialization
         JsonTable table;
         Gson gson = new GsonBuilder().serializeNulls().create();
@@ -332,7 +334,7 @@ public class IndexTables extends Command {
 
         String filename = path.getFileName().toString();
 
-        // Maps RowNumber, ColumnNumber -> Wikipedia links contained in it
+        // Maps a cell specified by RowNumber, ColumnNumber to the list of entities it matches to
         Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
 
         // The set of entities corresponding to this filename/table
@@ -373,10 +375,10 @@ public class IndexTables extends Command {
                             }
                         }
 
-                        // Each wikilink is mapped to an entity (i.e. a dbpedia entry) in wikipediaLinkToEntity so we can update the entityToFilename and entityInFilenameToTableLocations for each cell we visit
+                        // Each wikilink is mapped to an entity (i.e. a dbpedia entry) in wikipediaLinkToEntity
+                        // so we can update the entityToFilename and entityInFilenameToTableLocations for each cell we visit
                         if(wikipediaLinkToEntity.containsKey(link)) {
                             String entity = wikipediaLinkToEntity.get(link);
-                            Pair<Integer, Integer> cur_pair = new Pair<>(rowId, collId);
                             List<Integer> tableLocation = Arrays.asList(rowId, collId);
 
                             if (entityToFilename.containsKey(entity)) {
@@ -401,7 +403,6 @@ public class IndexTables extends Command {
                                 // Add entity to the entityToFilename and the current filename 
                                 List<String> filenameList = new ArrayList<>();
                                 filenameList.add(filename);
-                                // Arrays.asList(filename);
                                 entityToFilename.put(entity, filenameList);
 
                                 // Update the entityInFilenameToTableLocations
@@ -438,8 +439,44 @@ public class IndexTables extends Command {
 
         tableIDTOEntities.put(FilenameUtils.removeExtension(filename), setOfEntities);
 
+        // Log Statistics for current table
+        getTableStats(table, filename, setOfEntities);
+
         return true;
     }
+
+    /**
+     * Update the tableIDToStats dictionary give a processed JsonTable
+     */
+    public void getTableStats(JsonTable table, String filename, Set<String> tableEntities) {
+
+        Map<String, Object> tableStats = new HashMap<>();
+
+        tableStats.put("numCols", table.numCols);
+        tableStats.put("numRows", table.numDataRows);
+        tableStats.put("numCells", table.numCols*table.numDataRows);
+        tableStats.put("numEntities", tableEntities.size());
+
+        // Statistics of number of entities mapping to each row and column
+        // TODO: Consider cell values that map to many entities (now no separation)
+        List<Integer> numEntitiesPerRow = new ArrayList<Integer>(Collections.nCopies(table.numDataRows, 0));
+        List<Integer> numEntitiesPerCol = new ArrayList<Integer>(Collections.nCopies(table.numCols, 0));
+        for (String ent : tableEntities) {
+            List<List<Integer>> locations = entityInFilenameToTableLocations.get(ent + "__"  + filename);
+            for (List<Integer> loc : locations) {
+                // Increment the associated location of 'numEntitiesPerRow' and 'numEntitiesPerCol' by 1
+                numEntitiesPerRow.set(loc.get(0), numEntitiesPerRow.get(loc.get(0)) + 1);
+                numEntitiesPerCol.set(loc.get(1), numEntitiesPerCol.get(loc.get(1)) + 1); 
+            }
+        }
+        tableStats.put("numEntitiesPerRow", numEntitiesPerRow);
+        tableStats.put("numEntitiesPerCol", numEntitiesPerCol);
+        tableStats.put("entities", tableEntities);
+
+        // Update the tableIDToStats map 
+        tableIDToStats.put(filename, tableStats);
+    }
+
 
 
     /**
@@ -551,6 +588,10 @@ public class IndexTables extends Command {
 
             writer = new FileWriter(outputDir+"/cellToNumLinksFrequency.json");
             gson.toJson(cellToNumLinksFrequency, writer);
+            writer.close();
+
+            writer = new FileWriter(outputDir+"/perTableStats.json");
+            gson.toJson(tableIDToStats, writer);
             writer.close();
         }
         catch (IOException i) {
