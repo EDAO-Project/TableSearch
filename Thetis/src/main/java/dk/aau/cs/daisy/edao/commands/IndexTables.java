@@ -440,7 +440,7 @@ public class IndexTables extends Command {
         tableIDTOEntities.put(FilenameUtils.removeExtension(filename), setOfEntities);
 
         // Log Statistics for current table
-        getTableStats(table, filename, setOfEntities);
+        getTableStats(table, filename, setOfEntities, entityMatches.size());
 
         return true;
     }
@@ -448,29 +448,33 @@ public class IndexTables extends Command {
     /**
      * Update the tableIDToStats dictionary give a processed JsonTable
      */
-    public void getTableStats(JsonTable table, String filename, Set<String> tableEntities) {
+    public void getTableStats(JsonTable table, String filename, Set<String> tableEntities, Integer numMappedCells) {
 
         Map<String, Object> tableStats = new HashMap<>();
 
         tableStats.put("numCols", table.numCols);
         tableStats.put("numRows", table.numDataRows);
         tableStats.put("numCells", table.numCols*table.numDataRows);
-        tableStats.put("numEntities", tableEntities.size());
+        tableStats.put("numUniqueEntities", tableEntities.size());
+        tableStats.put("numMappedCells", numMappedCells);
 
         // Statistics of number of entities mapping to each row and column
         // TODO: Consider cell values that map to many entities (now no separation)
         List<Integer> numEntitiesPerRow = new ArrayList<Integer>(Collections.nCopies(table.numDataRows, 0));
         List<Integer> numEntitiesPerCol = new ArrayList<Integer>(Collections.nCopies(table.numCols, 0));
+        Long numCellToEntityMatches = 0L; // Specifies the total number (bag semantics) of entities all cells map to  
         for (String ent : tableEntities) {
             List<List<Integer>> locations = entityInFilenameToTableLocations.get(ent + "__"  + filename);
             for (List<Integer> loc : locations) {
                 // Increment the associated location of 'numEntitiesPerRow' and 'numEntitiesPerCol' by 1
                 numEntitiesPerRow.set(loc.get(0), numEntitiesPerRow.get(loc.get(0)) + 1);
-                numEntitiesPerCol.set(loc.get(1), numEntitiesPerCol.get(loc.get(1)) + 1); 
+                numEntitiesPerCol.set(loc.get(1), numEntitiesPerCol.get(loc.get(1)) + 1);
+                numCellToEntityMatches += 1; 
             }
         }
         tableStats.put("numEntitiesPerRow", numEntitiesPerRow);
         tableStats.put("numEntitiesPerCol", numEntitiesPerCol);
+        tableStats.put("numCellToEntityMatches", numCellToEntityMatches);
         tableStats.put("entities", tableEntities);
 
         // Update the tableIDToStats map 
