@@ -24,6 +24,7 @@ import java.lang.reflect.Type;
 
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.utils;
+import dk.aau.cs.daisy.edao.utilities.HungarianAlgorithm;
 
 import org.neo4j.driver.exceptions.AuthenticationException;
 import org.neo4j.driver.exceptions.ServiceUnavailableException;
@@ -79,6 +80,9 @@ public class SearchTables extends Command {
 
     @CommandLine.Option(names = { "-qm", "--query-mode" }, description = "Must be one of {tuple, entity}", required = true, defaultValue = "tuple")
     private QueryMode queryMode = null;
+
+    @CommandLine.Option(names = { "-scpqe", "--singleColumnPerQueryEntity"}, description = "If specified, each query tuple will be evaluated against only one entity")
+    private boolean singleColumnPerQueryEntity; 
 
     private File hashmapDir = null;
     @CommandLine.Option(names = { "-hd", "--hashmap-dir" }, paramLabel = "HASH_DIR", description = "Directory from which we load the hashmaps", defaultValue = "../data/index/wikitables/")
@@ -160,6 +164,7 @@ public class SearchTables extends Command {
         System.out.println("Query File: " + queryFile);
         System.out.println("Table Directory: " + tableDir);
         System.out.println("Output Directory: " + outputDir);
+        System.out.println("Single Column per Query Entity: " + singleColumnPerQueryEntity);
 
         // Read off the queryEntities list from a json object
         queryEntities = this.parseQuery(queryFile);
@@ -368,12 +373,20 @@ public class SearchTables extends Command {
     /**
      * Given a path to a table, update the similarityVectorMap for the current query with respect
      * to each row and each query tuple in this table
+     * 
+     * If '--singleColumnPerQueryEntity' is specified then each query tuple can map to only one column in the table
      */
     public boolean searchTable(Path path) {
         JsonTable table = utils.getTableFromPath(path);
         // Check if the table is empty/erroneous
         if (table.numDataRows == 0) {
             return false;
+        }
+
+        // If each query entity needs to map to only one column find the best mapping
+        List<List<Integer>> tupleToColumnMappings = new ArrayList<>();
+        if (singleColumnPerQueryEntity) {
+            tupleToColumnMappings = getQueryToColumnMapping(table);
         }
 
         String filename = path.getFileName().toString();
@@ -445,7 +458,88 @@ public class SearchTables extends Command {
     }
 
     /*
-     * The simialrity between two entities is the jaccard similarity of the entity types corresponding to the entities   
+     * Map each query entity from each query tuple to its best matching column id for the input 'table'   
+     */
+    public List<List<Integer>> getQueryToColumnMapping(JsonTable table) {
+
+        // Initialize multi-dimensional array indexed by (tupleID, entityID, columnID) mapping to the 
+        // aggregated score for that query entity with respect the column
+        List<List<List<Double>>> entityToColumnScore = new ArrayList<>();
+        for (Integer tupleID=0; tupleID<queryEntities.size(); tupleID++) {
+            entityToColumnScore.add(new ArrayList<List<Double>>(queryEntities.get(tupleID).size()));
+            for (Integer queryEntityID=0; queryEntityID<queryEntities.get(tupleID).size(); queryEntityID++) {
+                entityToColumnScore.get(tupleID).add(new ArrayList<Double>(Collections.nCopies(table.numCols, 0.0)));
+            }
+        }
+        
+        int rowId = 0;
+        // Loop over every cell in a table and populate 'entityToColumnScore'
+        for(List<JsonTable.TableCell> row : table.rows){
+            int colId = 0;
+            for(JsonTable.TableCell cell : row){
+                if(!cell.links.isEmpty()) {
+                    String curEntity = null;
+                    // A cell value may map to multiple entities. Currently use the first one. TODO: Consider all of them?
+                    for(String link : cell.links) {
+                        // Only consider links for which we have a known entity mapping
+                        if (wikipediaLinkToEntity.containsKey(link)) {
+                            curEntity = wikipediaLinkToEntity.get(link);
+                            break;
+                        }
+                    }
+                    if (curEntity != null) {
+                        // Loop over each query tuple and each entity in a tuple and compute a score between the query entity and 'curEntity'
+                        for (Integer tupleID=0; tupleID<queryEntities.size(); tupleID++) {
+                            for (Integer queryEntityID=0; queryEntityID<queryEntities.get(tupleID).size(); queryEntityID++) {
+                                String queryEntity = queryEntities.get(tupleID).get(queryEntityID);
+                                Double score = this.entitySimilarityScore(queryEntity, curEntity);
+                                entityToColumnScore.get(tupleID).get(queryEntityID).set(colId, entityToColumnScore.get(tupleID).get(queryEntityID).get(colId) + score);
+                            }
+                        }
+                    }
+                }
+                colId+=1;
+            }
+        }
+
+        // Find the best mapping between a query entity and a column for each query tuple.
+        List<List<Integer>> tupleToColumnMappings = getBestMatchFromScores(entityToColumnScore);
+        return tupleToColumnMappings;
+    }
+
+    /*
+     * Given the multi-dimensional array indexed by (tupleID, entityID, columnID) mapping to
+     * the aggregated score for that query entity with respect the column, return the best columnID map for each entity
+     * 
+     * This function returns a 2-D list of integers indexed by (tupleID, entityID) and map to the 
+     */
+    public List<List<Integer>> getBestMatchFromScores(List<List<List<Double>>> entityToColumnScore) {
+        
+        // Mapping of the matched columnIDs for each entity in each query tuple
+        // Indexed by (tupleID, entityID) mapping to the columnID. If a columnID is -1 then that entity is was not chosen for assignment
+        List<List<Integer>> tupleToColumnMappings = new ArrayList<>();
+
+        for (Integer tupleID=0; tupleID<queryEntities.size(); tupleID++) {
+            // 2-D array where each row is composed of the negative column relevance scores for a given entity in the query tuple
+            // Taken from: https://stackoverflow.com/questions/10043209/convert-arraylist-into-2d-array-containing-varying-lengths-of-arrays
+            double[][] scoresMatrix = entityToColumnScore.get(tupleID).stream().map(  u  ->  u.stream().mapToDouble(i->-1*i).toArray()  ).toArray(double[][]::new);
+
+            // Run the Hungarian Algorithm on the scoresMatrix
+            // If there are less columns that rows, some rows (i.e. query entities) will not be assigned to a column.
+            // More specifically they will be assigned to a column id of -1 
+            HungarianAlgorithm ha = new HungarianAlgorithm(scoresMatrix);
+            int[] assignmentArray = ha.execute();
+            List<Integer> assignmentList = Arrays.stream(assignmentArray).boxed().collect(Collectors.toList());
+
+            tupleToColumnMappings.add(assignmentList);
+        }
+        
+        return tupleToColumnMappings;
+    }
+
+
+    /*
+     * The similarity between two entities is the jaccard similarity of the entity types corresponding to the entities   
      */
     public double entitySimilarityScore(String ent1, String ent2) {
         Set<String> entTypes1 = new HashSet<>();
