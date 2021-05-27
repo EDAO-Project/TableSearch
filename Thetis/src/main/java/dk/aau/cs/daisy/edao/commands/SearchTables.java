@@ -166,6 +166,11 @@ public class SearchTables extends Command {
         System.out.println("Output Directory: " + outputDir);
         System.out.println("Single Column per Query Entity: " + singleColumnPerQueryEntity);
 
+        // Create output directory if it doesn't exist
+        if (!outputDir.exists()) {
+            outputDir.mkdirs();
+        }
+
         // Read off the queryEntities list from a json object
         queryEntities = this.parseQuery(queryFile);
         System.out.println("Query Entities: " + queryEntities + "\n");
@@ -233,7 +238,7 @@ public class SearchTables extends Command {
     // e.g. entityToFilename.get("http://dbpedia.org/resource/Yellow_Yeiyah") = [table-316-3.json, ...]
     private Map<String, List<String>> entityToFilename = new HashMap<>();
 
-    // Map an entity in a filename (the key is the entity_URI + "__" + filename) to the list of [rowId, colID] where the entity is found
+    // Map an entity in a filename (the key is the entity_URI + "__" + filename) to the list of [rowId, colId] where the entity is found
     // e.g. entityInFilenameToTableLocations.get("http://dbpedia.org/resource/Yellow_Yeiyah__table-316-3.json") = [[0,2], [2,2], ...]
     private Map<String, List<List<Integer>>> entityInFilenameToTableLocations = new HashMap<>();
 
@@ -401,25 +406,41 @@ public class SearchTables extends Command {
         int rowId = 0;
         // Loop over every cell in a table
         for(List<JsonTable.TableCell> row : table.rows){
-            int collId = 0;
-            List<String> rowEntities = new ArrayList<>();
-            for(JsonTable.TableCell cell : row){
-                if(!cell.links.isEmpty()) {
+            // List<String> rowEntities = new ArrayList<>();
+            // In a given row map a colId to its respective entity value 
+            Map<Integer, String> colIdToEntity = new HashMap<>();
+            for (Integer colId=0; colId<row.size(); colId++) {
+                if(!row.get(colId).links.isEmpty()) {
                     // A cell value may map to multiple entities. Currently use the first one
                     // TODO: Consider all of them?
-                    for(String link : cell.links) {
+                    for(String link : row.get(colId).links) {
                         // Only consider links for which we have a known entity mapping
                         if (wikipediaLinkToEntity.containsKey(link)) {
-                            rowEntities.add(wikipediaLinkToEntity.get(link));
+                            colIdToEntity.put(colId, wikipediaLinkToEntity.get(link));
+                            // rowEntities.add(wikipediaLinkToEntity.get(link));
                             break;
                         }
                     }
                 }
-                collId+=1;
             }
+            // for(JsonTable.TableCell cell : row){
+            //     if(!cell.links.isEmpty()) {
+            //         // A cell value may map to multiple entities. Currently use the first one
+            //         // TODO: Consider all of them?
+            //         for(String link : cell.links) {
+            //             // Only consider links for which we have a known entity mapping
+            //             if (wikipediaLinkToEntity.containsKey(link)) {
+            //                 rowEntities.add(wikipediaLinkToEntity.get(link));
+            //                 break;
+            //             }
+            //         }
+            //     }
+            //     colId+=1;
+            // }
+
             
             // Compute similarity vectors only for rows that map to at least one entity
-            if (rowEntities.size() > 0) {
+            if (!colIdToEntity.isEmpty()) {
                 numEntityMappedRows += 1;
                 Map<Integer, List<Double>> tupleIDVectorMap = new HashMap<>();
 
@@ -431,11 +452,22 @@ public class SearchTables extends Command {
                     for (Integer queryEntityID=0; queryEntityID<queryEntities.get(tupleID).size(); queryEntityID++) {
                         String queryEntity = queryEntities.get(tupleID).get(queryEntityID);
                         Double bestSimScore = 0.0;
-                        for (String rowEntity : rowEntities) {
-                            // Compute pairwise entity similarity between 'queryEntity' and 'rowEntity'
-                            Double simScore = this.entitySimilarityScore(queryEntity, rowEntity);
-                            if (simScore > bestSimScore) {
-                                bestSimScore = simScore;
+
+                        if (singleColumnPerQueryEntity) {
+                            // Each query entity maps to only one entity from a single column (if it exists)
+                            Integer assigned_col_id = tupleToColumnMappings.get(tupleID).get(queryEntityID);
+                            if (colIdToEntity.containsKey(assigned_col_id)) {
+                                bestSimScore = this.entitySimilarityScore(queryEntity, colIdToEntity.get(assigned_col_id));
+                            } 
+                        }
+                        else {
+                            // Loop over each entity in the row
+                            for (String rowEntity : colIdToEntity.values()) {
+                                // Compute pairwise entity similarity between 'queryEntity' and 'rowEntity'
+                                Double simScore = this.entitySimilarityScore(queryEntity, rowEntity);
+                                if (simScore > bestSimScore) {
+                                    bestSimScore = simScore;
+                                }
                             }
                         }
                         maximumTupleVector.set(queryEntityID, bestSimScore);
@@ -472,7 +504,6 @@ public class SearchTables extends Command {
             }
         }
         
-        int rowId = 0;
         // Loop over every cell in a table and populate 'entityToColumnScore'
         for(List<JsonTable.TableCell> row : table.rows){
             int colId = 0;
@@ -511,7 +542,7 @@ public class SearchTables extends Command {
      * Given the multi-dimensional array indexed by (tupleID, entityID, columnID) mapping to
      * the aggregated score for that query entity with respect the column, return the best columnID map for each entity
      * 
-     * This function returns a 2-D list of integers indexed by (tupleID, entityID) and map to the 
+     * This function returns a 2-D list of integers indexed by (tupleID, entityID) and maps to the columnID 
      */
     public List<List<Integer>> getBestMatchFromScores(List<List<List<Double>>> entityToColumnScore) {
         
@@ -829,8 +860,10 @@ public class SearchTables extends Command {
      * Saves the data of the filenameToScore Hashmap into the "filenameToScore.json" file at the specified output directory
      */
     public void saveFilenameScores(File outputDir) {
-        if (!outputDir.exists()){
-            outputDir.mkdir();
+
+        File saveDir = new File(outputDir, "/search_output/");
+        if (!saveDir.exists()){
+            saveDir.mkdir();
         }
 
         System.out.println("\nConstructing the filenameToScore.json file...");
@@ -863,7 +896,7 @@ public class SearchTables extends Command {
         jsonObj.add("scores", innerObjs);
 
         try {
-            Writer writer = new FileWriter(outputDir+"/search_output/filenameToScore.json");
+            Writer writer = new FileWriter(saveDir+ "/filenameToScore.json");
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             gson.toJson(jsonObj, writer);
             writer.close();

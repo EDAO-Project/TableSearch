@@ -440,15 +440,21 @@ public class IndexTables extends Command {
         tableIDTOEntities.put(FilenameUtils.removeExtension(filename), setOfEntities);
 
         // Log Statistics for current table
-        getTableStats(table, filename, setOfEntities, entityMatches.size());
+        getTableStats(table, filename, setOfEntities, entityMatches);
 
         return true;
     }
 
     /**
-     * Update the tableIDToStats dictionary give a processed JsonTable
+     * Update the tableIDToStats dictionary given a processed JsonTable
+     * 
+     * @param table     The JsonTable to be processed
+     * @param filename  The file name of the JsonTable
+     * @param tableEntities The set of entities that map to the JsonTable
+     * @param entityMatches A map indexed by (rowId, colId) pair mapping to the list of entities for that row.
+     * If a coordinate is missing it means  
      */
-    public void getTableStats(JsonTable table, String filename, Set<String> tableEntities, Integer numMappedCells) {
+    public void getTableStats(JsonTable table, String filename, Set<String> tableEntities, Map<Pair<Integer, Integer>, List<String>> entityMatches) {
 
         Map<String, Object> tableStats = new HashMap<>();
 
@@ -456,7 +462,7 @@ public class IndexTables extends Command {
         tableStats.put("numRows", table.numDataRows);
         tableStats.put("numCells", table.numCols*table.numDataRows);
         tableStats.put("numUniqueEntities", tableEntities.size());
-        tableStats.put("numMappedCells", numMappedCells);
+        tableStats.put("numMappedCells", entityMatches.size());
 
         // Statistics of number of entities mapping to each row and column
         // TODO: Consider cell values that map to many entities (now no separation)
@@ -476,6 +482,14 @@ public class IndexTables extends Command {
         tableStats.put("numEntitiesPerCol", numEntitiesPerCol);
         tableStats.put("numCellToEntityMatches", numCellToEntityMatches);
         tableStats.put("entities", tableEntities);
+
+        // Find number of cells mapped in each column
+        List<Integer> numCellToEntityMatchesPerCol = new ArrayList<Integer>(Collections.nCopies(table.numCols, 0));
+        for (Pair<Integer, Integer> pos : entityMatches.keySet()) {
+            Integer colId = pos.getValue();
+            numCellToEntityMatchesPerCol.set(colId, numCellToEntityMatchesPerCol.get(colId) + 1);
+        }
+        tableStats.put("numCellToEntityMatchesPerCol", numCellToEntityMatchesPerCol);
 
         // Update the tableIDToStats map 
         tableIDToStats.put(filename, tableStats);
