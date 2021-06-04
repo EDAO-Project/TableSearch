@@ -491,6 +491,28 @@ public class IndexTables extends Command {
         }
         tableStats.put("numCellToEntityMatchesPerCol", numCellToEntityMatchesPerCol);
 
+
+        // For each column of the table find if it contains numeric values or not ()
+        List<Boolean> tableColumnsIsNumeric = new ArrayList<Boolean>(Collections.nCopies(table.numCols, false));
+        if (table.numNumericCols == 0) {
+            // No column is numerical. Do nothing since `tableColumnsIsNumeric` is set to all false by default
+        }
+        else if (table.numNumericCols == table.numCols) {
+            // All columns are numerical columns
+            tableColumnsIsNumeric = new ArrayList<Boolean>(Collections.nCopies(table.numCols, true));
+        }
+        else {
+            // There is at least a column that is numerical. Loop over the first row in the table to find which columns are numerical
+            Integer colId = 0;
+            for (JsonTable.TableCell cell : table.rows.get(0)) {
+                if (cell.isNumeric) {
+                    tableColumnsIsNumeric.set(colId, true);
+                }
+                colId+=1;
+            }
+        }
+        tableStats.put("tableColumnsIsNumeric", tableColumnsIsNumeric);
+
         // Update the tableIDToStats map 
         tableIDToStats.put(filename, tableStats);
     }
