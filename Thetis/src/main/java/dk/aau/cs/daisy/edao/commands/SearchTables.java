@@ -486,6 +486,19 @@ public class SearchTables extends Command {
         statisticsMap.put("fractionOfEntityMappedRows", (double)numEntityMappedRows / table.numDataRows);
         filenameToStatistics.put(filename, statisticsMap);
 
+        // if (filename.equals("table-37100598-1.json")) {
+        //     System.out.println("QueryTupleToColumnMapping" + tupleToColumnMappings);
+        //     try {
+        //         Writer writer = new FileWriter(outputDir + "/search_output/table_score.json");
+        //         Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        //         gson.toJson(rowTupleIDVectorMap, writer);
+        //         writer.close();
+        //     }
+        //     catch (IOException i) {
+        //         i.printStackTrace();
+        //     }
+        // }
+        
         return true;
     }
 
@@ -631,7 +644,7 @@ public class SearchTables extends Command {
                 for (Integer i=0; i < queryEntities.get(tupleID).size(); i++) {
                     curTupleIDFScores.add(entityToIDF.get(queryEntities.get(tupleID).get(i)));
                 }
-                tupleIDToWeightVector.put(tupleID, utils.normalizeVector(curTupleIDFScores));
+                tupleIDToWeightVector.put(tupleID, curTupleIDFScores);
             }
             
             // Compute a score for the current file with respect to each query tuple
@@ -640,9 +653,8 @@ public class SearchTables extends Command {
             for (Integer tupleID=0; tupleID < queryEntities.size(); tupleID++) {
                 if (similarityVectorMap.get(filename).size() > 0) {
                     // There is at least one data row that has values mapping to known entities
-                    List<Double> curTupleAvgVec = utils.hadamardProduct(utils.getAverageVector(tupleIDToListOfSimVectors.get(tupleID)), tupleIDToWeightVector.get(tupleID));
+                    List<Double> curTupleAvgVec = utils.getAverageVector(tupleIDToListOfSimVectors.get(tupleID));
                     List<Double> identityVector = new ArrayList<Double>(Collections.nCopies(curTupleAvgVec.size(), 1.0));
-                    identityVector = utils.hadamardProduct(identityVector, tupleIDToWeightVector.get(tupleID));
                     Double score = 0.0;
 
                     if (vec_similarity_measure == "cosine") {
@@ -650,7 +662,8 @@ public class SearchTables extends Command {
                         score = utils.cosineSimilarity(curTupleAvgVec, identityVector);
                     }
                     else if (vec_similarity_measure == "euclidean") {
-                        score = utils.euclideanDistance(curTupleAvgVec, identityVector);
+                        // Perform weighted euclidean distance between the `curTupleAvgVec` and `identityVector` vectors where the weights are specified by `tupleIDToWeightVector.get(tupleID)`
+                        score = utils.euclideanDistance(curTupleAvgVec, identityVector, tupleIDToWeightVector.get(tupleID));
                         // Convert euclidean distance to similarity, high similarity (i.e. close to 1) means euclidean distance is small
                         score = 1 / (score + 1);
                     }
