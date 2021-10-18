@@ -168,6 +168,7 @@ def main():
 
     min_rows = args.min_rows
     max_rows = args.max_rows
+    min_cols = args.min_cols
 
     if max_rows > min_rows:
         output_folder = args.output / 'tables_{}_{}'.format(min_rows, max_rows)
@@ -178,7 +179,7 @@ def main():
         print(f"Creating directory {output_folder}")
         output_folder.mkdir(parents=True, exist_ok=True)
 
-    num_tables = export(args.tables, output_folder, 50, 100, 3, args.verbose)
+    num_tables = export(args.tables, output_folder, min_rows, max_rows, min_cols, args.verbose)
     print("Exported {} tables".format(num_tables))
 
 

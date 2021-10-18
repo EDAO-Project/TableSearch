@@ -104,7 +104,18 @@ public class utils {
         if (normA == 0.0 || normB == 0.0) {
             return 0.0;
         }
-        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+
+        double cosineSim = dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+        
+        // Due to rounding it might be possible for the similarity to be greater than 1.0 or less than -1.0 (ensure that the similarity stays in the [-1, 1] range)
+        if (cosineSim <= -1.0) {
+            cosineSim = -1.0;
+        }
+        else if (cosineSim >= 1.0) {
+            cosineSim = 1.0;
+        }
+        
+        return cosineSim;
     }
 
     /**

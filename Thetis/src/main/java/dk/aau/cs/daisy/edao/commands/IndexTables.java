@@ -97,7 +97,7 @@ public class IndexTables extends Command {
 
 
     private File tableDir = null;
-    @CommandLine.Option(names = { "-td", "--table-dir"}, paramLabel = "TABLE_DIR", description = "Directory containing tables", required = true)
+    @CommandLine.Option(names = { "-td", "--table-dir"}, paramLabel = "TABLE_DIR", description = "Directory containing the input tables", required = true)
     public void setTableDirectory(File value) {
 
         if(!value.exists()){
@@ -116,7 +116,7 @@ public class IndexTables extends Command {
 
 
     private File outputDir = null;
-    @CommandLine.Option(names = { "-od", "--output-dir" }, paramLabel = "OUT_DIR", description = "Directory where to save the index", required = true)
+    @CommandLine.Option(names = { "-od", "--output-dir" }, paramLabel = "OUT_DIR", description = "Directory where the index and it metadata are saved", required = true)
     public void setOutputDirectory(File value) {
 
         if(!value.exists()){
@@ -148,8 +148,6 @@ public class IndexTables extends Command {
 
     @Override
     public Integer call() {
-        System.out.println("IndexTables command run: not fully implemented");
-
         System.out.println("Input Directory: " + this.tableDir.getAbsolutePath() );
         System.out.println("Output Directory: " + this.outputDir.getAbsolutePath() );
 
@@ -255,6 +253,8 @@ public class IndexTables extends Command {
                 Integer.MAX_VALUE,
                 (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
             List<Path> file_paths_list = file_stream.collect(Collectors.toList());
+            Collections.sort(file_paths_list);
+
             System.out.println("\nThere are " + file_paths_list.size() + " files to be processed.");
 
             long startTime = System.nanoTime();    
@@ -306,8 +306,7 @@ public class IndexTables extends Command {
         Gson gson = new GsonBuilder().serializeNulls().create();
 
         // Tries to parse the JSON file, it fails if file not found or JSON is not well formatted
-        TypeAdapter<JsonTable> strictGsonObjectAdapter =
-                new Gson().getAdapter(JsonTable.class);
+        TypeAdapter<JsonTable> strictGsonObjectAdapter = new Gson().getAdapter(JsonTable.class);
         try (JsonReader reader = new JsonReader(new FileReader(path.toFile()))) {
             table = strictGsonObjectAdapter.read(reader);
         } catch (FileNotFoundException e) {
@@ -357,7 +356,7 @@ public class IndexTables extends Command {
                             matchedUris.add(wikipediaLinkToEntity.get(link));
                         } 
                         else { 
-                            // Query the Neo4j DB to find the entitity corresponding to a wikilink from a cell value
+                            // Query the Neo4j DB to find the entity corresponding to a Wikilink from a cell value
                             List<String> tempLinks = connector.searchLink(link.replace("http://www.", "http://en."));
                             if(!tempLinks.isEmpty()) {
                                 // Currently only select a single dbpedia entity (i.e. the first one) for each wikilink
@@ -369,8 +368,12 @@ public class IndexTables extends Command {
                                 // Update the wikilinkToNumEntitiesFrequency map
                                 wikilinkToNumEntitiesFrequency.merge(tempLinks.size(), 1, Integer::sum);
 
-                                // Retrieve a list of rdf__types of the entity and save them, in entityTypes map
+                                // Retrieve a list of rdf__types of the entity (filter them appropriately) and save them, in entityTypes map
                                 List<String> entity_types_uris = connector.searchTypes(entity);
+                                List<String> entity_types_to_remove = Arrays.asList("http://www.w3.org/2002/07/owl#Thing"); 
+                                for (String ent_for_removal : entity_types_to_remove) {
+                                    entity_types_uris.remove(ent_for_removal);
+                                }
                                 entityTypes.put(entity, entity_types_uris);
                             }
                         }
@@ -452,7 +455,6 @@ public class IndexTables extends Command {
      * @param filename  The file name of the JsonTable
      * @param tableEntities The set of entities that map to the JsonTable
      * @param entityMatches A map indexed by (rowId, colId) pair mapping to the list of entities for that row.
-     * If a coordinate is missing it means  
      */
     public void getTableStats(JsonTable table, String filename, Set<String> tableEntities, Map<Pair<Integer, Integer>, List<String>> entityMatches) {
 
@@ -565,6 +567,12 @@ public class IndexTables extends Command {
             gson.toJson(entityToIDF, writer);
             writer.close();
             System.out.println("Wrote entityToIDF.json");
+
+            writer = new FileWriter(path+"/wikipediaLinkToEntity.json");
+            gson = new GsonBuilder().setPrettyPrinting().create();
+            gson.toJson(wikipediaLinkToEntity, writer);
+            writer.close();
+            System.out.println("Wrote wikipediaLinkToEntity.json");
 
             return true;
 
