@@ -23,7 +23,10 @@
 hs_err_pid*
 
 data/index/
-data/test_queries/
+data/search/
+data/queries/test_queries/
+data/queries/www18_wikitables/queries_test/
+data/queries/www18_wikitables/queries/
 
 table_analysis/env/
 Thetis/eval/data-2021ZB/

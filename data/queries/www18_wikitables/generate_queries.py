@@ -4,7 +4,8 @@ import json
 import os
 import numpy as np
 import pandas as pd
-import tqdm as tqdm
+
+from tqdm import tqdm
 from pathlib import Path
 
 
@@ -97,9 +98,12 @@ def clean_query_relevances_df(df, min_cols=1, min_rows=1):
 
     return new_df
 
-def get_query_entity_tuples(df, index_dir, data_dir):
-    print("Generating query entity tuples...")
+def get_query_entity_tuples(df, index_dir, data_dir, tuples_per_query):
+    '''
+    Given a dataframe of the queries and their relevant tables extract a set of represetnative tuples as queries
+    '''
 
+    print("Generating query entity tuples...")
     with open(index_dir + "wikipediaLinkToEntity.json", "r") as json_file:
         wiki_links_to_ents = json.load(json_file)
 
@@ -108,47 +112,81 @@ def get_query_entity_tuples(df, index_dir, data_dir):
         per_table_stats = json.load(json_file)
     indexed_tables = set([os.path.splitext(x)[0] for x in per_table_stats.keys()])
 
-    # Dictionary that maps each query with the chosen tuple of entities
-    query_to_tup_of_ents = {}
+    # Dictionary that maps each query with a list of the chosen tuples of entities
+    query_to_list_of_tuples = {}
 
     # Loop over each query and find a highly relevant table from which to extract a set of represetnative entity tuples
     matching_tables = set()
-    for q_id in df['query_id'].unique():
+    for q_id in tqdm(df['query_id'].unique()):
         df_tmp = df[(df['query_id'] == q_id) & (df['relevance'] > 1)]
         common_tables = set(df_tmp['table_id']) & indexed_tables
         matching_tables.update(common_tables)
 
         if len(common_tables) > 0:
             # For each common table find mappable entities
-            table_entity_tuples = {}
+            table_to_max_ents_dict = {'table_id': [], 'max_num_unique_ents_per_row': [], 'num_rows_with_max_num_unique_ents': [], 'row_ids': []}
             for table_id in common_tables:
                 with open(data_dir + table_id+ ".json", "r") as json_file:
                     table = json.load(json_file)
-                
-                num_entities_per_row = per_table_stats[table_id+".json"]["numEntitiesPerRow"]
-                sorted_idx = np.argsort(num_entities_per_row)[::-1]
-                
-                tup_of_entities = get_entity_tuple(table["rows"][sorted_idx[0]], wiki_links_to_ents)
 
-                table_entity_tuples[table_id] = {}
-                table_entity_tuples[table_id]["max_num_ents_per_row"] = max(num_entities_per_row)
-                table_entity_tuples[table_id]["num_rows_with_max_num_ents_per_row"] = num_entities_per_row.count(table_entity_tuples[table_id]["max_num_ents_per_row"])
-                table_entity_tuples[table_id]["tup_of_ents"] = tup_of_entities
+                # Find the rows with the maximal number of unique for the current table
+                max_num_unique_ents_per_row, num_rows_with_max_num_unique_ents, row_ids = get_rows_with_max_num_unique_ents(table, wiki_links_to_ents)
+                table_to_max_ents_dict["table_id"].append(table_id)
+                table_to_max_ents_dict["max_num_unique_ents_per_row"].append(max_num_unique_ents_per_row)
+                table_to_max_ents_dict["num_rows_with_max_num_unique_ents"].append(num_rows_with_max_num_unique_ents)
+                table_to_max_ents_dict["row_ids"].append(row_ids)
+            
+            # Choose the table that has rows with the highest number of unique entities
+            table_to_max_ents_df = pd.DataFrame.from_dict(table_to_max_ents_dict)
+            table_to_max_ents_df = table_to_max_ents_df.sort_values(['max_num_unique_ents_per_row', 'num_rows_with_max_num_unique_ents'], ascending=[False, False])
+            best_table_row = table_to_max_ents_df.head(1)
 
-            # Choose a tuple of entities for the current query
-            # TODO: Currently we choose a tuple from a table that has the greatest number of mapped entities per row
-            max_num_ents_per_row_dict = {table_id:table_entity_tuples[table_id]["max_num_ents_per_row"] for table_id in table_entity_tuples}
-            if max(max_num_ents_per_row_dict.values()) > 0:
-                chosen_table_id = max(max_num_ents_per_row_dict, key=max_num_ents_per_row_dict.get)
-                query_to_tup_of_ents[q_id] = table_entity_tuples[chosen_table_id]
-                query_to_tup_of_ents[q_id]["table_id"] = chosen_table_id 
+            # Ensure that the 'max_num_unique_ents_per_row' is greater than 0
+            if max(best_table_row['max_num_unique_ents_per_row']) > 0:
+                with open(data_dir + best_table_row['table_id'].values[0] + ".json", "r") as json_file:
+                    best_table = json.load(json_file)
+                
+                if tuples_per_query == 'single':
+                    # Only the first row in the best_table['row_ids'] is chosen as the tuple
+                    selected_rows = [best_table_row['row_ids'].values[0][0]]
+                elif tuples_per_query == 'all':
+                    # All rows in the best_table['row_ids'] are chosen as the tuples
+                    selected_rows = best_table_row['row_ids'].values[0]
+
+                selected_tuples = [get_entity_tuple(best_table['rows'][row_id], wiki_links_to_ents) for row_id in selected_rows]
+                query_to_list_of_tuples[q_id] = selected_tuples
 
     print("Finished generating query entity tuples\n\n")
-    return query_to_tup_of_ents
+    return query_to_list_of_tuples
+
+def get_rows_with_max_num_unique_ents(table, wiki_links_to_ents):
+    '''
+    Given a json of `table` and the dictionary of the `wiki_links_to_ents` find the set of rows/tuples in `table`
+    for which the number of unique entities in a row is maximal.
+
+    Returns 3 items:
+
+    'max_num_unique_ents_per_row' (int): The maximum number of unique entities mapped in a any row in the current table
+    'num_rows_with_max_num_unique_ents' (int): The number of rows that have the maximum number of unique entities
+    'row_ids' (list of int): A list with the row IDs that have the maximal number of unique entities per row
+    '''
+    df_dict = {'row_id': [], 'num_ents': []}
+    for i in range(len(table["rows"])):
+        num_ents = len(set(get_entity_tuple(table["rows"][i], wiki_links_to_ents)))
+        df_dict['row_id'].append(i)
+        df_dict['num_ents'].append(num_ents)
+
+    # Extract the desired outputs from the dataframe
+    df = pd.DataFrame.from_dict(df_dict)
+    max_num_unique_ents_per_row = df['num_ents'].max()
+    df = df[df['num_ents'] == max_num_unique_ents_per_row]
+    row_ids = df['row_id'].tolist()
+
+    return max_num_unique_ents_per_row, len(df.index), row_ids
 
 def get_entity_tuple(row, wiki_links_to_ents):
     '''
-    Given a row from the json get a list of its mappped entites
+    Given a row from the json get a list of its mapped entities
     '''
     tup_of_ents = []
     for cell in row:
@@ -158,12 +196,12 @@ def get_entity_tuple(row, wiki_links_to_ents):
                 tup_of_ents.append(wiki_links_to_ents[wikilink])
     return tup_of_ents
 
-def create_query_files(query_to_tup_of_ents, q_output_dir):
-    for q_id in query_to_tup_of_ents:
+def create_query_files(query_to_list_of_tuples, q_output_dir):
+    for q_id in query_to_list_of_tuples:
         query_json = {}
-        query_json['queries'] = [query_to_tup_of_ents[q_id]["tup_of_ents"]]
+        query_json['queries'] = query_to_list_of_tuples[q_id]
         
-        with open("q_"+str(q_id)+".json", 'w') as fp:
+        with open(q_output_dir + "q_"+str(q_id)+".json", 'w') as fp:
             json.dump(query_json, fp, indent=4)
 
 
@@ -180,9 +218,9 @@ def main(args):
 
     # Extract a set of representative entity tuples for each query
     # (the entity tuples must be extract from highly relevant tables, so with a relevance score of 2) 
-    query_to_tup_of_ents = get_query_entity_tuples(df=df_clean, index_dir=args.index_dir, data_dir=args.data_dir)
+    query_to_list_of_tuples = get_query_entity_tuples(df=df_clean, index_dir=args.index_dir, data_dir=args.data_dir, tuples_per_query=args.tuples_per_query)
 
-    create_query_files(query_to_tup_of_ents, args.q_output_dir)
+    create_query_files(query_to_list_of_tuples, args.q_output_dir)
 
 
 if __name__ == "__main__":
@@ -195,6 +233,10 @@ if __name__ == "__main__":
     parser.add_argument('--index_dir', help="Path to the directory where the index step output files are saved", required=True)
     parser.add_argument('--data_dir', help="Path to the directory where the table json files are saved", required=True)
     parser.add_argument('--q_output_dir', help="Path to the directory where the generated query entity tuples are stored", required=True)
+
+    parser.add_argument('--tuples_per_query', choices=['single', 'all'], default='single',
+        help="Specifies if only one or all of the best found tuples are used as the query tuples",
+    )
 
     args = parser.parse_args()
 
