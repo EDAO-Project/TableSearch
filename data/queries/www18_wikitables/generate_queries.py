@@ -2,6 +2,7 @@ import argparse
 import json
 
 import os
+import shutil
 import numpy as np
 import pandas as pd
 
@@ -98,9 +99,11 @@ def clean_query_relevances_df(df, min_cols=1, min_rows=1):
 
     return new_df
 
-def get_query_entity_tuples(df, index_dir, data_dir, tuples_per_query):
+def get_query_entity_tuples(df, index_dir, data_dir, tuples_per_query, known_entity_embeddings=None):
     '''
     Given a dataframe of the queries and their relevant tables extract a set of represetnative tuples as queries
+
+    If known_entity_embeddings is not None then the tuples extracted must all have entities found in `known_entity_embeddings`
     '''
 
     print("Generating query entity tuples...")
@@ -130,7 +133,7 @@ def get_query_entity_tuples(df, index_dir, data_dir, tuples_per_query):
                     table = json.load(json_file)
 
                 # Find the rows with the maximal number of unique for the current table
-                max_num_unique_ents_per_row, num_rows_with_max_num_unique_ents, row_ids = get_rows_with_max_num_unique_ents(table, wiki_links_to_ents)
+                max_num_unique_ents_per_row, num_rows_with_max_num_unique_ents, row_ids = get_rows_with_max_num_unique_ents(table, wiki_links_to_ents, known_entity_embeddings)
                 table_to_max_ents_dict["table_id"].append(table_id)
                 table_to_max_ents_dict["max_num_unique_ents_per_row"].append(max_num_unique_ents_per_row)
                 table_to_max_ents_dict["num_rows_with_max_num_unique_ents"].append(num_rows_with_max_num_unique_ents)
@@ -159,10 +162,12 @@ def get_query_entity_tuples(df, index_dir, data_dir, tuples_per_query):
     print("Finished generating query entity tuples\n\n")
     return query_to_list_of_tuples
 
-def get_rows_with_max_num_unique_ents(table, wiki_links_to_ents):
+def get_rows_with_max_num_unique_ents(table, wiki_links_to_ents, known_entity_embeddings=None):
     '''
     Given a json of `table` and the dictionary of the `wiki_links_to_ents` find the set of rows/tuples in `table`
     for which the number of unique entities in a row is maximal.
+
+    If `known_entity_embeddings` is not None then only consider tuples for which all entities are found in `known_entity_embeddings`
 
     Returns 3 items:
 
@@ -172,7 +177,14 @@ def get_rows_with_max_num_unique_ents(table, wiki_links_to_ents):
     '''
     df_dict = {'row_id': [], 'num_ents': []}
     for i in range(len(table["rows"])):
-        num_ents = len(set(get_entity_tuple(table["rows"][i], wiki_links_to_ents)))
+        ents = set(get_entity_tuple(table["rows"][i], wiki_links_to_ents))
+        num_ents = len(ents)
+        if known_entity_embeddings:
+            # Ensure that all entities in `ents` are in known_entity_embeddings otherwise set `num_ents` to zero
+            for ent in ents:
+                if ent not in known_entity_embeddings:
+                    num_ents = 0
+
         df_dict['row_id'].append(i)
         df_dict['num_ents'].append(num_ents)
 
@@ -205,7 +217,31 @@ def create_query_files(query_to_list_of_tuples, q_output_dir):
             json.dump(query_json, fp, indent=4)
 
 
+def create_filtered_tables(query_ids, df, data_dir, filtered_tables_output_dir):
+    '''
+    Creates a subdirectory for each query under the `filtered_tables_output_dir` directory with all
+    the tables referenced for a query in the groundtruth dataframe `df`
+    '''
+    for q_id in query_ids:
+        out_dir = args.filtered_tables_output_dir + 'q_' + str(q_id) + '/' 
+        Path(out_dir).mkdir(parents=True, exist_ok=True)
+
+        tables_to_copy = df[df['query_id'] == q_id]['table_id'].values
+        for table in tables_to_copy:
+            if Path(data_dir + table + '.json').is_file():
+                shutil.copy(data_dir + table + '.json', out_dir)
+                
+
 def main(args):
+    # If the `embeddings_path` is specified then ensure all selected query tuples map to entities in `known_entity_embeddings`
+    known_entity_embeddings = None
+    if args.embeddings_path:
+        print("Loading the known embeddings file...")
+        with open(args.embeddings_path) as json_file:
+            known_entity_embeddings = json.load(json_file)
+            known_entity_embeddings = set(known_entity_embeddings.keys())
+        print("Finished loading the known embeddings file\n")
+
 
     # Extract the query relevant tables into a dataframe
     df = get_query_relevances(args.relevance_queries_path)
@@ -218,10 +254,22 @@ def main(args):
 
     # Extract a set of representative entity tuples for each query
     # (the entity tuples must be extract from highly relevant tables, so with a relevance score of 2) 
-    query_to_list_of_tuples = get_query_entity_tuples(df=df_clean, index_dir=args.index_dir, data_dir=args.data_dir, tuples_per_query=args.tuples_per_query)
+    query_to_list_of_tuples = get_query_entity_tuples(
+        df=df_clean,
+        index_dir=args.index_dir,
+        data_dir=args.data_dir,
+        tuples_per_query=args.tuples_per_query,
+        known_entity_embeddings=known_entity_embeddings)
 
     create_query_files(query_to_list_of_tuples, args.q_output_dir)
 
+    # Create the set of filtered tables for each query
+    create_filtered_tables(
+        query_ids=query_to_list_of_tuples.keys(),
+        df=df_clean,
+        data_dir=args.data_dir,
+        filtered_tables_output_dir=args.filtered_tables_output_dir
+    )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -233,6 +281,9 @@ if __name__ == "__main__":
     parser.add_argument('--index_dir', help="Path to the directory where the index step output files are saved", required=True)
     parser.add_argument('--data_dir', help="Path to the directory where the table json files are saved", required=True)
     parser.add_argument('--q_output_dir', help="Path to the directory where the generated query entity tuples are stored", required=True)
+    parser.add_argument('--filtered_tables_output_dir', help="Path to the directory where the filtered table datasets for each query are stored", required=True)
+    parser.add_argument('--embeddings_path', help="Path to the available pre-trained embeddings of entities. \
+        If specified all entities in the selected query tuples must be mappable to a pre-trained embedding")
 
     parser.add_argument('--tuples_per_query', choices=['single', 'all'], default='single',
         help="Specifies if only one or all of the best found tuples are used as the query tuples",
@@ -240,9 +291,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Create query output directory if it doesn't exist (Remove all files in it if any)
+    # Create the query output directory if it doesn't exist (Remove all files in it if any)
     Path(args.q_output_dir).mkdir(parents=True, exist_ok=True)
     for f in os.listdir(args.q_output_dir):
         os.remove(os.path.join(args.q_output_dir, f))
+
+    # Create the directory where the filtered tables for each query are stored (Remove all data in it if any)
+    Path(args.filtered_tables_output_dir).mkdir(parents=True, exist_ok=True)
+    shutil.rmtree(args.filtered_tables_output_dir) 
 
     main(args)  
