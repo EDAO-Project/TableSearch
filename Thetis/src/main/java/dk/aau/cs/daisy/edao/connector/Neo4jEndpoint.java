@@ -63,7 +63,7 @@ public class Neo4jEndpoint implements AutoCloseable {
                         "RETURN COUNT(a) as count");
                 return result.single().get("count").asLong();
             });
-            System.out.printf("Connection established. Nodes: %d ", numNodes);
+            System.out.printf("Neo4j Connection established. Num Nodes: %d \n", numNodes);
         }
     }
 
@@ -198,20 +198,30 @@ public class Neo4jEndpoint implements AutoCloseable {
     /**
      * Run PPR over the semantic datalake given 
      *
-     * @param links a list of dbpedia entities ["http://dbpedia.org/resource/United_States", ...]
+     * @param queryTuple a list of dbpedia entities ["http://dbpedia.org/resource/United_States", ...]
+     * @param weights a list of the weights for each entity 
+     * @param minThreshold the minimum threshold used by the PPR algorithm
+     * @param numParticles the number of particles used by the PPR algorithm
+     * @param topK the number highest scoring tables to be retrieved. If there are less than `topK` tables that were scored return all of them  
+     * 
      * @return top ranked table nodes with their respective PPR
      */
-    public Map<String, Double> runPPR(Iterable<String> queryTuple) {
+    public Map<String, Double> runPPR(Iterable<String> queryTuple, Iterable<Double> weights, Double minThreshold, Double numParticles, Integer topK) {
         Map<String, Object> params = new HashMap<>();
         params.put("queryTuple", queryTuple);
+        params.put("weights", weights);
+        params.put("minThreshold", minThreshold);
+        params.put("numParticles", numParticles);
+        params.put("topK", topK);
+
 
         try (Session session = driver.session()) {
             return session.readTransaction(tx -> {
 
                 // Get top ranked table nodes with their respective PPR scores
                 Result result = tx.run("MATCH (r:Resource) WHERE r.uri IN $queryTuple" + "\n"
-                    + "WITH collect(r) as nodeList CALL particlefiltering.unlabelled(nodeList, 0.1, 20)" + "\n"
-                    + "YIELD nodeId, score WITH nodeId, score ORDER BY score DESC LIMIT 100" + "\n"
+                    + "WITH collect(r) as nodeList CALL particlefiltering.unlabelled.weighted(nodeList, $weights, $minThreshold, $numParticles)" + "\n"
+                    + "YIELD nodeId, score WITH nodeId, score ORDER BY score DESC LIMIT $topK" + "\n"
                     + "MATCH (r:Resource)-[:rdf__type]->(t:Resource) WHERE ID(r) = nodeId and t.uri='https://schema.org/Table'" + "\n"
                     + "RETURN r.uri as file, score as scoreVal"
                     ,params);
@@ -228,6 +238,48 @@ public class Neo4jEndpoint implements AutoCloseable {
                 return tableToScore;
             });
         }
+    }
+
+    /**
+     * Return the number of edges in the graph
+     */
+    public Long getNumEdges() {
+        try (Session session = driver.session()) {
+            Long numEdges = session.readTransaction(tx -> {
+                Result result = tx.run("MATCH (r1:Resource)-[l]->(r2:Resource) RETURN COUNT(l) as count");
+                return result.single().get("count").asLong();
+            });
+            return numEdges;
+        } 
+    }
+
+    /**
+     * Return the number of nodes in the graph
+     */
+    public Long getNumNodes() {
+        try (Session session = driver.session()) {
+            Long numNodes = session.readTransaction(tx -> {
+                Result result = tx.run("MATCH (a:Resource) RETURN COUNT(a) as count");
+                return result.single().get("count").asLong();
+            });
+            return numNodes;
+        } 
+    }
+
+    /**
+     * Return the number of neighbors for a given input node
+     */
+    public Long getNumNeighbors(String node) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("node", node);
+
+        try (Session session = driver.session()) {
+            Long numNeighbors = session.readTransaction(tx -> {
+                Result result = tx.run("MATCH (a:Resource) WHERE a.uri in [$node] RETURN apoc.node.degree(a) as count", params);
+                return result.single().get("count").asLong();
+            });
+            return numNeighbors;
+        } 
     }
 
 }
