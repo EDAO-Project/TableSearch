@@ -1,7 +1,12 @@
 #!/bin/bash
+:'###################################################
+Populate the neo4j database for the www18 dataset
+#####################################################
+'
+
 export NEO4J_HOME=${PWD}
 export NEO4J_IMPORT="${NEO4J_HOME}/neo4j-server/import"
-export DATA_IMPORT="${PWD}/files"
+export DATA_IMPORT="${PWD}/files_www18"
 export NEO4J_DB_DIR=$NEO4J_HOME/neo4j-server/data/databases/graph.db
 ulimit -n 65535
 
