@@ -83,16 +83,7 @@ The Table datasets consist of:
    mvn package
    
    # From inside docker
-   java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables/files/tables_50_MAX/ --output-dir /data/index/wikitables/
-
-   java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables/small_test/ --output-dir /data/index/small_test/
-
    java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/index/www18_wikitables/
-
-   java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables/files/www18_wikitables_parsed_test/tables_10_MAX/ --output-dir /data/index/www18_wikitables_test/
-
-   java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables/small_test/ --output-dir /data/index/wikitables_small_test/
-
    ```
 
 4. Materialize table to entity edges in the Graph

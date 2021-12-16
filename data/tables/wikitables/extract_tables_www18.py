@@ -8,6 +8,7 @@ import gzip
 import pathlib
 import argparse
 import os
+import shutil
 
 import numpy as np
 
@@ -240,8 +241,9 @@ def main():
     if args.input_dir_raw:
         generate_json_file_per_table(args.input_dir_raw, args.output_dir_clean)
 
-    num_tables = export(args.input_dir, output_folder, min_rows, max_rows, min_cols, args.verbose)
-    print("Exported {} tables".format(num_tables))
+    if args.input_dir:
+        num_tables = export(args.input_dir, output_folder, min_rows, max_rows, min_cols, args.verbose)
+        print("Exported {} tables".format(num_tables))
 
 
 if __name__ == "__main__":
