@@ -31,7 +31,7 @@ Semantically Augmented Table Search
 
 The reference KG is DBpedia.
 
-1. Enter the `data/kg/dbpedia` folder and download the files with the command 
+1. Enter the `data/kg/dbpedia` directory and download the files with the command 
 
    ```bash
    ./download-dbpedia.sh dbpedia_files.txt 
@@ -39,43 +39,49 @@ The reference KG is DBpedia.
 
 2. Load the data into a database. In this case Neo4j
    
-   Take a look at: https://gist.github.com/kuzeko/7ce71c6088c866b0639c50cf9504869a for more details
+   Take a look at: https://gist.github.com/kuzeko/7ce71c6088c866b0639c50cf9504869a for more details on setting up Neo4J
 
 
-### Tables
+### Table Datasets
 
 The Table datasets consist of:
 
-- **WikiTables** from Wikipedia pages
-- **SemTabEval** maybe ?
-- **Tough Tables** extended SemTabEval dataset 
-
+- **WikiTables** Tables taken from Wikipedia pages
+- **GitTables** maybe TODO? 
 
 #### WikiTables
-
+The WikiTables corpus originates from the TabEL paper
 > Bhagavatula, C. S., Noraset, T., & Downey, D. (2015, October). TabEL: entity linking in web tables. In International Semantic Web Conference (pp. 425-441). Springer, Cham.
 
-1. Download from the official link
+We use the WikiTables corpus as provided in the STR paper (this is the same corpus as described in TabEL but with different filenames so we can appropriately compare our method to STR) 
+>  Zhang, S., & Balog, K. (2018, April). Ad hoc table retrieval using semantic similarity. In Proceedings of the 2018 world wide web conference (pp. 1553-1562).
+
+1. Download the raw corpus and unzip it
 
    ```bash
-   mkdir -p data/tables/wikitables
-   
-   wget -P data/tables/wikitables http://websail-fe.cs.northwestern.edu/TabEL/tables.json.gz
-   wget -P data/tables/wikitables http://websail-fe.cs.northwestern.edu/TabEL/tableMentions.json.gz
+   mkdir -p data/tables/wikitables/files/wikitables_raw/
+   wget -P data/tables/wikitables http://iai.group/downloads/smart_table/WP_tables.zip
+
+   unzip data/tables/wikitables/WP_tables.zip -d data/tables/wikitables/files/wikitables_raw/
+   mv data/tables/wikitables/files/wikitables_raw/tables_redi2_1/* data/tables/wikitables/files/wikitables_raw/
+   rm -rf data/tables/wikitables/files/wikitables_raw/tables_redi2_1/
    ```
   
 2. Run preprocessing script for extracting tables
-
    ```bash
-   mkdir -p data/tables/wikitables/files
    cd data/tables/wikitables
    python3 -m venv .virtualenv
    source .virtualenv/bin/activate
    pip install -r requirements.txt
-   python extract-tables.py -t tables.json.gz --min-rows 50 --max-rows 0 --min-cols 3 -o files/ 
+
+   # Create one json file for each table in the wikitables_raw/ directory and  
+   python extract_tables.py --input_dir_raw files/wikitables_raw/ --output_dir_clean files/wikitables/
+
+   # Parse each json file to extract the appropriate json format for each table in the dataset
+   python extract_tables.py --input_dir files/wikitables/ --output files/wikitables_parsed/ --min-rows 10 --max-rows 0 --min-cols 2   
    ```
 
-3. Run preprocessing script for indexing
+3. Run preprocessing script for indexing. Notice that we first create a docker container and then run all commands within it
 
    ```bash
    docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
@@ -83,15 +89,20 @@ The Table datasets consist of:
    mvn package
    
    # From inside docker
-   java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/index/www18_wikitables/
+   java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables/files/wikitables_parsed/tables_10_MAX/ --output-dir /data/index/wikitables/
    ```
 
 4. Materialize table to entity edges in the Graph
 
-   Running the indexing in step 3 will generate a ``tableIDToEntities.ttl`` file.
-   That file contains the mappings of each table to each entity.
+   Running the indexing in step 3 will generate the ``tableIDToEntities.ttl`` which contains the mappings of each entity as well as the ``tableIDToTypes.ttl``file.
+   Copy these two files to the ``data/kg/dbpedia/files_wikitables/`` directory using:
+   ```bash
+   mkdir -p data/kg/dbpedia/files_wikitables/
+   cp data/index/wikitables/tableIDToEntities.ttl data/index/wikitables/tableIDToTypes.ttl data/kg/dbpedia/files_wikitables/
+   ```
       
-   We update the neo4j database by introducing table nodes which are connected to all the entities found in them. To perform this run the ``import-dbpedia-www18.sh`` script found in the ``data/kg/dbpedia/`` directory.
+   We update the neo4j database by introducing table nodes which are connected to all the entities found in them.
+   To perform this run the ``generate_table_nodes.sh`` script found in the ``data/kg/dbpedia/`` directory.
 
 ### Wikitable Search
 
@@ -140,7 +151,7 @@ The Table datasets consist of:
    java -jar target/Thetis.0.1.jar search --search-mode ppr --hashmap-dir ../data/index/www18_wikitables/ --query-file ../data/queries/www18_wikitables/wikipage_tables_analysis/queries/query.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/search/wikipage_tables_analysis/ --minThreshold 0.005 --numParticles 300 --topK 200
    ```
 
-* Perform Search using the Web Interface
+* Perform Search using the Web Interface (TODO: Maybe remove this since we don't use it?)
 
    To test the interface on your local computer (i.e. LOCALHOST) we first need to create an ssh tunnel between the server and your current machine.
    SparkJava uses port 4567 by default.

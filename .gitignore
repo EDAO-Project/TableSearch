@@ -22,11 +22,35 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
+
+# Custom Ignore Paths
+
+.vscode/
+
 data/index/
 data/search/
+data/kg/dbpedia/files/
+data/kg/dbpedia/files_wikitables/
+
+data/kg_old/
+data/kg/dbpedia/neo4j-server/
+data/index_old/
+data/tables_old/
+data/tables/wikitables/files/
 data/queries/test_queries/
 data/queries/www18_wikitables/queries_test/
 data/queries/www18_wikitables/queries/
+data/queries/www18_wikitables/queries_old/
+data/queries/ppr_approximation/queries/
+data/queries/ppr_approximation/figures/
+data/tables/gittables/tables/
 
 table_analysis/env/
 Thetis/eval/data-2021ZB/
+
+Neo4j-ParticleFiltering/
+gittables/abstraction_tables/
+
+
+# Custom Paths/Files to keep
+!data/index/wikitables/.gitkeep
