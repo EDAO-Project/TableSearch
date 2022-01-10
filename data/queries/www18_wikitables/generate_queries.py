@@ -47,6 +47,7 @@ def get_statistics_of_tables(df, table_stats_dir):
     df['num_numeric_columns'] = num_numeric_columns
 
     # Print summary statistics over the dataframe
+    print("STATISTICS OF TABLES WITH KNOWN GROUND TRUTH")
     print("[Number of Columns] MAX: {} ".format(df['num_columns'].max()), 
         "MIN: {:.3f} ".format(df['num_columns'].min()),
         "AVG: {:.3f} ".format(df['num_columns'].mean()),
@@ -245,7 +246,7 @@ def main(args):
 
     # Extract the query relevant tables into a dataframe
     df = get_query_relevances(args.relevance_queries_path)
-    df = get_statistics_of_tables(df, table_stats_dir="../../tables/wikitables/files/www18_wikitables/")
+    df = get_statistics_of_tables(df, table_stats_dir='../../tables/wikitables/files/wikitables/')
     df.to_pickle("query_relevances_df.pickle")
 
     # Remove tables that have less than specified number of rows and columns. Also remove queries that have 1 or fewer highly relevant tables
@@ -253,7 +254,7 @@ def main(args):
     df_clean.to_pickle("query_relevances_cleaned_df.pickle")
 
     # Extract a set of representative entity tuples for each query
-    # (the entity tuples must be extract from highly relevant tables, so with a relevance score of 2) 
+    # (the entity tuples must be extracted from highly relevant tables, so with a relevance score of 2) 
     query_to_list_of_tuples = get_query_entity_tuples(
         df=df_clean,
         index_dir=args.index_dir,
@@ -261,6 +262,7 @@ def main(args):
         tuples_per_query=args.tuples_per_query,
         known_entity_embeddings=known_entity_embeddings)
 
+    # Create a query json file for each query
     create_query_files(query_to_list_of_tuples, args.q_output_dir)
 
     # Create the set of filtered tables for each query
@@ -278,8 +280,8 @@ if __name__ == "__main__":
     parser.add_argument('--min_rows', help='minimum number of rows for a table to be considered highly relevant', default=10, type=int)
     parser.add_argument('--min_cols', help='minimum number of columns for a table to be considered highly relevant', default=2, type=int)
 
-    parser.add_argument('--index_dir', help="Path to the directory where the index step output files are saved", required=True)
-    parser.add_argument('--data_dir', help="Path to the directory where the table json files are saved", required=True)
+    parser.add_argument('--index_dir', help="Path to the directory where the indexing step output files are located", required=True)
+    parser.add_argument('--data_dir', help="Path to the directory where the parsed table json files are saved", required=True)
     parser.add_argument('--q_output_dir', help="Path to the directory where the generated query entity tuples are stored", required=True)
     parser.add_argument('--filtered_tables_output_dir', help="Path to the directory where the filtered table datasets for each query are stored", required=True)
     parser.add_argument('--embeddings_path', help="Path to the available pre-trained embeddings of entities. \
