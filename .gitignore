@@ -26,6 +26,7 @@ hs_err_pid*
 # Custom Ignore Paths
 
 .vscode/
+.idea/
 
 data/index/
 data/search/
