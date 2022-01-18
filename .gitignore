@@ -38,9 +38,9 @@ data/index_old/
 data/tables_old/
 data/tables/wikitables/files/
 data/queries/test_queries/
-data/queries/www18_wikitables/queries_test/
-data/queries/www18_wikitables/queries/
-data/queries/www18_wikitables/queries_old/
+data/queries/www18_wikitables/
+data/queries/wikipages/queries/
+data/queries/wikitables_table_queries/
 data/queries/ppr_approximation/queries/
 data/queries/ppr_approximation/figures/
 data/tables/gittables/tables/
@@ -49,7 +49,14 @@ table_analysis/env/
 Thetis/eval/data-2021ZB/
 
 Neo4j-ParticleFiltering/
-gittables/abstraction_tables/
+
+data/tables/gittables/abstraction_tables/
+data/tables/gittables/dwarf_tables/
+data/tables/gittables/gittables_parsed/
+data/tables/gittables/tables/
+data/tables/gittables/figures/
+
+data/tables/wikipages/tables/
 
 
 # Custom Paths/Files to keep
