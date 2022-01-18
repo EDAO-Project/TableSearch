@@ -13,6 +13,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
+import dk.aau.cs.daisy.edao.similarity.CosineSimilarity;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 
 public class utils {
@@ -91,31 +92,7 @@ public class utils {
      * Returns the cosine similarity between two lists
      */
     public static double cosineSimilarity(List<Double> vectorA, List<Double> vectorB) {
-        double dotProduct = 0.0;
-        double normA = 0.0;
-        double normB = 0.0;
-        for (int i = 0; i < vectorA.size(); i++) {
-            dotProduct += vectorA.get(i) * vectorB.get(i);
-            normA += Math.pow(vectorA.get(i), 2);
-            normB += Math.pow(vectorB.get(i), 2);
-        }
-
-        // Handle division by zero
-        if (normA == 0.0 || normB == 0.0) {
-            return 0.0;
-        }
-
-        double cosineSim = dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-        
-        // Due to rounding it might be possible for the similarity to be greater than 1.0 or less than -1.0 (ensure that the similarity stays in the [-1, 1] range)
-        if (cosineSim <= -1.0) {
-            cosineSim = -1.0;
-        }
-        else if (cosineSim >= 1.0) {
-            cosineSim = 1.0;
-        }
-        
-        return cosineSim;
+        return CosineSimilarity.make(vectorA, vectorB).similarity();
     }
 
     /**

@@ -23,6 +23,7 @@ import com.google.gson.JsonElement;
 import com.google.common.reflect.TypeToken;
 import java.lang.reflect.Type;
 
+import dk.aau.cs.daisy.edao.similarity.JaccardSimilarity;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.utils;
 import dk.aau.cs.daisy.edao.utilities.HungarianAlgorithm;
@@ -709,20 +710,8 @@ public class SearchTables extends Command {
             if (entityTypes.containsKey(ent2)) {
                 entTypes2 = new HashSet<String>(entityTypes.get(ent2));
             }
-    
-            // Compute the Jaccard Similarity
-            Set<String> intersection = new HashSet<String>(entTypes1);
-            intersection.retainAll(entTypes2);
-    
-            Set<String> union = new HashSet<String>(entTypes1);
-            union.addAll(entTypes2);
-    
-            double jaccardScore = 0.0;
-            if (!union.isEmpty()) {
-                jaccardScore = (double)intersection.size() / union.size();
-            }
-            
-            return jaccardScore;
+
+            return JaccardSimilarity.make(entTypes1, entTypes2).similarity();
         }
 
         // Check if the `usePretrainedEmbeddings` mode is specified and if there are embeddings for both entities
