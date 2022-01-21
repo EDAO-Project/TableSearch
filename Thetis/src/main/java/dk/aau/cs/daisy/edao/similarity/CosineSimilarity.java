@@ -1,27 +1,31 @@
 package dk.aau.cs.daisy.edao.similarity;
 
-import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 
-public class CosineSimilarity extends CollectionSimilarity<Double>
+public class CosineSimilarity implements Similarity
 {
-    private CosineSimilarity(Collection<Double> l1, Collection<Double> l2)
+    private List<Double> l1, l2;
+
+    private CosineSimilarity(List<Double> l1, List<Double> l2)
     {
-        super(l1, l2);
+        this.l1 = l1;
+        this.l2 = l2;
     }
 
-    public static CosineSimilarity make(Collection<Double> l1, Collection<Double> l2)
+    public static CosineSimilarity make(List<Double> l1, List<Double> l2)
     {
         return new CosineSimilarity(l1, l2);
     }
 
+    // TODO: Maybe throw exception if the lists are of unequal lengths
     @Override
-    protected double performMeasurement()
+    public double similarity()
     {
         double dotProduct = 0.0;
         double normA = 0.0;
         double normB = 0.0;
-        Iterator<Double> l1Iter = super.l1.iterator(), l2Iter = super.l2.iterator();
+        Iterator<Double> l1Iter = this.l1.iterator(), l2Iter = this.l2.iterator();
 
         while (l1Iter.hasNext() && l2Iter.hasNext())
         {

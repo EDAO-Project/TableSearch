@@ -1,23 +1,26 @@
 package dk.aau.cs.daisy.edao.similarity;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
-public class JaccardSimilarity<E> extends CollectionSimilarity<E>
+public class JaccardSimilarity<E> implements Similarity
 {
-    private JaccardSimilarity(Collection<E> l1, Collection<E> l2)
+    private Set<E> s1, s2;
+
+    private JaccardSimilarity(Set<E> s1, Set<E> s2)
     {
-        super(l1, l2);
+        this.s1 = s1;
+        this.s2 = s2;
     }
 
-    public static <E> JaccardSimilarity<E> make(Collection<E> l1, Collection<E> l2)
+    public static <E> JaccardSimilarity<E> make(Set<E> s1, Set<E> s2)
     {
-        return new JaccardSimilarity<E>(l1, l2);
+        return new JaccardSimilarity<E>(s1, s2);
     }
 
     @Override
-    protected double performMeasurement()
+    public double similarity()
     {
         List<E> intersection = intersection(), union = union();
 
@@ -29,15 +32,15 @@ public class JaccardSimilarity<E> extends CollectionSimilarity<E>
 
     private List<E> intersection()
     {
-        List<E> inter = new ArrayList<>(super.l1);
-        inter.retainAll(super.l2);
+        List<E> inter = new ArrayList<>(this.s1);
+        inter.retainAll(this.s2);
         return inter;
     }
 
     private List<E> union()
     {
-        List<E> union = new ArrayList<>(super.l1);
-        union.addAll(super.l2);
+        List<E> union = new ArrayList<>(this.s1);
+        union.addAll(this.s2);
         return union;
     }
 }
