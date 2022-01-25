@@ -1,6 +1,7 @@
 package dk.aau.cs.daisy.edao;
 
 import dk.aau.cs.daisy.edao.commands.IndexTables;
+import dk.aau.cs.daisy.edao.commands.LoadEmbedding;
 import dk.aau.cs.daisy.edao.commands.SearchTables;
 import dk.aau.cs.daisy.edao.commands.Web;
 
@@ -27,6 +28,7 @@ import org.apache.commons.cli.*;
 @CommandLine.Command(name = "thetis", version = "1.0-SNAPSHOT", subcommands = {
         IndexTables.class,
         SearchTables.class,
+        LoadEmbedding.class,
         Web.class,
 })
 public class App implements Runnable {

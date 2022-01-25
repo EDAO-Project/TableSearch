@@ -13,6 +13,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
+import dk.aau.cs.daisy.edao.commands.parser.EmbeddingsParser;
+import dk.aau.cs.daisy.edao.commands.parser.Parser;
 import dk.aau.cs.daisy.edao.similarity.CosineSimilarity;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 
@@ -86,8 +88,6 @@ public class utils {
         return sum / ((double)vec.size());
     }
 
-
-
     /**
      * Returns the cosine similarity between two lists
      */
@@ -136,4 +136,8 @@ public class utils {
         return returnVector;
     }
 
+    public static Parser getEmbeddingsParser(String content)
+    {
+        return new EmbeddingsParser(content);
+    }
 }
