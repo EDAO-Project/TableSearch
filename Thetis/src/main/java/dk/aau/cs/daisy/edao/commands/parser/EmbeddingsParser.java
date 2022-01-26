@@ -72,11 +72,15 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
         try
         {
             StringBuilder lexemeBuilder = new StringBuilder();
+            boolean seenChar = false;
             int c;
 
             while ((c = this.input.read()) != -1)
             {
-                if (c == ' ' || c == '\n')
+                if (!seenChar && (Character.isLetter(c) || Character.isDigit(c) || c == '-' || c == '.'))
+                    seenChar = true;
+
+                else if ((c == ' ' || c == '\n') && seenChar)
                     break;
 
                 lexemeBuilder.append((char) c);
