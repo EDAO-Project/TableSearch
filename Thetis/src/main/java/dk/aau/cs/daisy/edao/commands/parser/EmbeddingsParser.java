@@ -76,7 +76,7 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
 
             while ((c = this.input.read()) != -1)
             {
-                if (c == ' ')
+                if (c == ' ' || c == '\n')
                     break;
 
                 lexemeBuilder.append((char) c);
