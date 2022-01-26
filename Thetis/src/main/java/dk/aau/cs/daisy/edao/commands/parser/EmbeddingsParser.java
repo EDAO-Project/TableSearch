@@ -80,7 +80,10 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
                 if (!seenChar && (Character.isLetter(c) || Character.isDigit(c) || c == '-' || c == '.'))
                     seenChar = true;
 
-                else if ((c == ' ' || c == '\n') && seenChar)
+                else if (!seenChar && (c == ' ' || c == '\n'))
+                    continue;
+
+                else if (c == ' ' || c == '\n')
                     break;
 
                 lexemeBuilder.append((char) c);
