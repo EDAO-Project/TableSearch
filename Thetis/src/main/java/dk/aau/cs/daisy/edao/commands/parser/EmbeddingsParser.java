@@ -1,5 +1,8 @@
 package dk.aau.cs.daisy.edao.commands.parser;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
@@ -28,12 +31,18 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
         }
     }
 
-    private List<String> content;
-    private int pointer = 0;
+    private InputStream input;
+    private boolean isClosed = false;
+    private int lexCount = 0;
 
     public EmbeddingsParser(String content)
     {
-        this.content = lex(content);
+        this.input = new ByteArrayInputStream(content.getBytes());
+    }
+
+    public EmbeddingsParser(InputStream inputStream)
+    {
+        this.input = inputStream;
     }
 
     // Lex by space
@@ -42,39 +51,57 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
         return List.of(content.split(" "));
     }
 
-    // Does not move iterator pointer
-    // Returns null if the points already points to the last lexeme
     @Override
     public String nextLexeme()
     {
-        if (this.pointer == this.content.size() - 1)
-            return null;
-
-        return this.content.get(this.pointer + 1);
+        return next().getLexeme();
     }
 
     @Override
     public boolean hasNext()
     {
-        return this.pointer < this.content.size();
+        return !this.isClosed;
     }
 
     @Override
     public EmbeddingToken next()
     {
-        if (this.pointer == this.content.size())
+        if (this.isClosed)
             return null;
 
-        String lexeme = this.content.get(this.pointer++).replaceAll("\n", "");
+        try
+        {
+            StringBuilder lexemeBuilder = new StringBuilder();
+            int c;
 
-        if (lexeme.startsWith("http"))
-            return new EmbeddingToken(lexeme, EmbeddingToken.Token.ENTITY);
+            while ((c = this.input.read()) != -1)
+            {
+                if (c == ' ')
+                    break;
 
-        else if (parseDecimal(lexeme))
-            return new EmbeddingToken(lexeme, EmbeddingToken.Token.VALUE);
+                lexemeBuilder.append((char) c);
+            }
 
-        else
-            throw new RuntimeException("Could not parse lexeme '" + lexeme + "'");
+            if (c != ' ')
+                this.isClosed = true;
+
+            this.lexCount++;
+            String lexeme = lexemeBuilder.toString();
+
+            if (lexeme.startsWith("http"))
+                return new EmbeddingToken(lexeme, EmbeddingToken.Token.ENTITY);
+
+            else if (parseDecimal(lexeme))
+                return new EmbeddingToken(lexeme, EmbeddingToken.Token.VALUE);
+
+            else
+                throw new RuntimeException("Could not parse lexeme '" + lexeme + "'");
+        }
+
+        catch (IOException exception)
+        {
+            return null;
+        }
     }
 
     private static boolean parseDecimal(String lexeme)
@@ -94,9 +121,19 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
     @Override
     public void reverse(int count)
     {
-        if (this.pointer - count < 0)
+        if (this.lexCount - count < 0)
             throw new IllegalArgumentException("Reversed too far");
 
-        this.pointer -= count;
+        try
+        {
+            this.input.reset();
+
+            for (int i = 0; i < this.lexCount - count; i++)
+            {
+                next();
+            }
+        }
+
+        catch (IOException exc) {}
     }
 }

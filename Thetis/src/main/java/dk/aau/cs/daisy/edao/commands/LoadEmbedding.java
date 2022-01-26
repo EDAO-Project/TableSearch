@@ -34,7 +34,7 @@ public class LoadEmbedding extends Command
     {
         try
         {
-            EmbeddingsParser parser = new EmbeddingsParser(readFile());
+            EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile));
             SQLite db = SQLite.init(DB_NAME, DB_PATH);
             setupDBTable(db);
             insertEmbeddings(db, parser);
@@ -53,20 +53,6 @@ public class LoadEmbedding extends Command
         }
 
         return -1;
-    }
-
-    private String readFile() throws IOException
-    {
-        FileInputStream reader = new FileInputStream(this.embeddingsFile);
-        StringBuilder builder = new StringBuilder();
-        int c;
-
-        while ((c = reader.read()) != -1)
-        {
-            builder.append((char) c);
-        }
-
-        return builder.toString();
     }
 
     private static void setupDBTable(DBDriver db)
