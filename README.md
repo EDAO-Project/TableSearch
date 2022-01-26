@@ -261,6 +261,20 @@ Then once the server is running simply visit http://localhost:4567/ in your brow
 
 2. Run preprocessing script for indexing
 
+## DBpedia RDF Embeddings
+
+Generate RDF embeddings by following the steps in the README in the <a href="https://github.com/EDAO-Project/DBpediaEmbedding">DBpediaEmbedding</a> repository. 
+Create a folder `embeddings` in `data`. Move the embeddings file `vectors.txt` into the `data/embeddings` folder.
+
+The embeddings will be loaded into an SQLite database with two attributes: _entityIRI_ of type string and _embedding_ of type float[] (float array).
+
+Build the project and run the _embedding_ command from within the container
+```
+docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
+cd /src
+mvn package
+java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt
+```
 
 # Useful Docker Commands
 
