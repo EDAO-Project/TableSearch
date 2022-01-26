@@ -266,7 +266,7 @@ Then once the server is running simply visit http://localhost:4567/ in your brow
 Generate RDF embeddings by following the steps in the README in the <a href="https://github.com/EDAO-Project/DBpediaEmbedding">DBpediaEmbedding</a> repository. 
 Create a folder `embeddings` in `data`. Move the embeddings file `vectors.txt` into the `data/embeddings` folder.
 
-The embeddings will be loaded into an SQLite database with two attributes: _entityIRI_ of type string and _embedding_ of type float[] (float array).
+The embeddings will be loaded into an SQLite database with a relation of two attributes in the working directory: _entityIRI_ of type string and _embedding_ of type float[] (float array).
 
 Build the project and run the _embedding_ command from within the container
 ```
