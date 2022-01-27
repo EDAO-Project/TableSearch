@@ -95,7 +95,7 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
             this.lexCount++;
             String lexeme = lexemeBuilder.toString();
 
-            if (lexeme.startsWith("http"))
+            if (lexeme.contains("://"))
                 return new EmbeddingToken(lexeme, EmbeddingToken.Token.ENTITY);
 
             else if (parseDecimal(lexeme))
