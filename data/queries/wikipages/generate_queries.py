@@ -64,16 +64,26 @@ def get_rows_with_max_num_unique_ents(table, wiki_links_to_ents, known_entity_em
 
     return max_num_unique_ents_per_row, len(df.index), row_ids
 
-def get_query_entity_tuples(df, tables_dir, wiki_links_to_ents, tuples_per_query):
+def get_query_entity_tuples(df, tables_dir, wiki_links_to_ents, min_tuple_width, num_tuples_per_query):
     '''
     Given a dataframe of the queries and their relevant tables extract a set of represetnative tuples as queries
+
+    Returns a two items:
+    * An updated query dataframe that specifies selected table and its row_ids to construct the query for each wikipage
+    * A dictionary keyed by the wikipage_id that maps to the selected entity tuples 
     '''
+
+    df['tuple_width'] = np.nan
+    df['num_tuples'] = np.nan
+    df['selected_table'] = np.nan
+    df['selected_row_ids'] = np.nan
+    df['selected_row_ids'] = df['selected_row_ids'].astype('object')
 
     # Dictionary that maps each query with a list of the chosen tuples of entities
     query_to_list_of_tuples = {}
 
     print("\nGenerating a query from each wikipage...")
-    for _, df_row in tqdm(df.iterrows(), total=len(df.index)):
+    for idx, df_row in tqdm(df.iterrows(), total=len(df.index)):
 
         relevant_tables = df_row['tables']
 
@@ -99,19 +109,38 @@ def get_query_entity_tuples(df, tables_dir, wiki_links_to_ents, tuples_per_query
         if max(best_table_row['max_num_unique_ents_per_row']) > 0:
             with open(tables_dir + best_table_row['table_id'].values[0], "r") as json_file:
                 best_table = json.load(json_file)
-            
-            if tuples_per_query == 'single':
-                # Only the first row in the best_table['row_ids'] is chosen as the tuple
-                selected_rows = [best_table_row['row_ids'].values[0][0]]
-            elif tuples_per_query == 'all':
-                # All rows in the best_table['row_ids'] are chosen as the tuples
-                selected_rows = best_table_row['row_ids'].values[0]
 
-            selected_tuples = [get_entity_tuple(best_table['rows'][row_id], wiki_links_to_ents) for row_id in selected_rows]
+            # Check if `min_tuple_width` is specified and if so check if it is satisfied
+            if min_tuple_width != None and min_tuple_width > max(best_table_row['max_num_unique_ents_per_row']):
+                print("Skipping query creation for wikipage:", df_row['wikipage'],
+                    ". Needed a minimum tuple width of", min_tuple_width, "but current maximum is", max(best_table_row['max_num_unique_ents_per_row']))
+                continue
+            
+            # Check if `num_tuples_per_query` is specified and if so check if it is satisfied
+            if num_tuples_per_query != None and num_tuples_per_query > max(best_table_row['num_rows_with_max_num_unique_ents']):
+                print("Skipping query creation for wikipage:", df_row['wikipage'],
+                    ". Needed a minimum of", num_tuples_per_query, "tuples but currently there are only",
+                    max(best_table_row['num_rows_with_max_num_unique_ents']), 'tuples available')
+                continue
+            
+            # Select the desired rows and row IDs
+            if num_tuples_per_query:
+                selected_row_ids = best_table_row['row_ids'].values[0][:num_tuples_per_query]
+            else:
+                selected_row_ids = best_table_row['row_ids'].values[0]
+            
+            selected_tuples = [get_entity_tuple(best_table['rows'][row_id], wiki_links_to_ents) for row_id in selected_row_ids]
             query_to_list_of_tuples[df_row['wikipage_id']] = selected_tuples
+
+            # Update the dataframe `df`
+            df.loc[idx, 'tuple_width'] = len(selected_tuples[0])
+            df.loc[idx, 'num_tuples'] = len(selected_tuples)
+            df.loc[idx, 'selected_table'] = best_table_row['table_id'].values[0]
+            df.at[idx, 'selected_row_ids'] = selected_row_ids
+
     print("Finished generating queries\n")
 
-    return query_to_list_of_tuples
+    return df, query_to_list_of_tuples
 
 
 def main(args):
@@ -121,12 +150,16 @@ def main(args):
         wiki_links_to_ents = json.load(json_file)
 
     # Dictionary that maps each query with a list of the chosen tuples of entities
-    query_to_list_of_tuples = get_query_entity_tuples(
+    df, query_to_list_of_tuples = get_query_entity_tuples(
         df = df,
         tables_dir=args.tables_dir,
         wiki_links_to_ents=wiki_links_to_ents,
-        tuples_per_query=args.tuples_per_query
+        min_tuple_width=args.min_tuple_width,
+        num_tuples_per_query=args.num_tuples_per_query
     )
+
+    # Save the updated df
+    df.to_pickle(args.output_query_df)
 
     # Create a query json file for each query
     create_query_files(query_to_list_of_tuples, args.q_output_dir)
@@ -139,9 +172,17 @@ if __name__ == "__main__":
     parser.add_argument('--tables_dir', help='Path to the parsed table json files', required=True)
     parser.add_argument('--q_output_dir', help="Path to the directory where the generated query entity tuples are stored", required=True)
     parser.add_argument('--wikilink_to_entity', help="Path to the wikipediaLinkToEntity.json file", required=True)
+    parser.add_argument('--output_query_df', help='Path to where the updated query dataframe should be saved', required=True)
 
-    parser.add_argument('--tuples_per_query', choices=['single', 'all'], default='single',
-        help="Specifies if only one or all of the best found tuples are used as the query tuples",
+    parser.add_argument('--min_tuple_width', type=int, help='The minimum width of a query tuple to be considered. \
+        If a wikipage has no table that can match the specified `min_tuple_width` then that wikipage \
+        is skipped (i.e., we do not generate a query for that wikipage)'
+    )
+
+    parser.add_argument('--num_tuples_per_query', type=int, help='The number of query tuples extracted for each query.. \
+        If not specified then all tuples with the maximum tuple width are selected. \
+        If the specified number of tuples exceeds the available ones then the query is skipped. \
+        If the available number of tuples is greater than the specified amount then the first `num_tuples_per_query` are selected'
     )
 
     args = parser.parse_args()
