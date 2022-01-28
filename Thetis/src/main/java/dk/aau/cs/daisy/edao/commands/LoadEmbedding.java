@@ -64,7 +64,8 @@ public class LoadEmbedding extends Command
 
     private static void insertEmbeddings(SQLite db, EmbeddingsParser parser)
     {
-        String entity = null, embedding = null;
+        String entity = null;
+        StringBuilder embeddingBuilder = null;
 
         while (parser.hasNext())
         {
@@ -73,37 +74,18 @@ public class LoadEmbedding extends Command
             if (token.getToken() == EmbeddingsParser.EmbeddingToken.Token.ENTITY)
             {
                 if (entity != null)
-                    db.update("INSERT INTO Embeddings (entityIRI, embedding) VALUES ('" + entity + "', '" + embedding + "');");
+                    db.update("INSERT INTO Embeddings (entityIRI, embedding) VALUES ('" + entity +
+                            "', '" + embeddingBuilder.toString().substring(0, embeddingBuilder.length() - 2) + "}');");
 
                 entity = token.getLexeme();
+                embeddingBuilder = new StringBuilder();
             }
 
             else
-            {
-                parser.reverse(1);
-                embedding = embeddingsBLOB(parser);
-            }
-        }
-    }
-
-    private static String embeddingsBLOB(EmbeddingsParser parser)
-    {
-        StringBuilder builder = new StringBuilder("{");
-
-        while (parser.hasNext())
-        {
-            EmbeddingsParser.EmbeddingToken token = parser.next();
-
-            if (token.getToken() == EmbeddingsParser.EmbeddingToken.Token.ENTITY)
-            {
-                parser.reverse(1);
-                break;
-            }
-
-            builder.append(token.getLexeme()).append(", ");
+                embeddingBuilder.append(token.getLexeme()).append(", ");
         }
 
-        String embeddingStr = builder.toString();
-        return embeddingStr.substring(0, embeddingStr.length() - 2) + "}";
+        db.update("INSERT INTO Embeddings (entityIRI, embedding) VALUES ('" + entity +
+                "', '" + embeddingBuilder.toString().substring(0, embeddingBuilder.length() - 2) + "}');");
     }
 }
