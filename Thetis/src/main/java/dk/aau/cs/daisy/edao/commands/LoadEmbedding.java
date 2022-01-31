@@ -7,6 +7,7 @@ import picocli.CommandLine;
 
 import java.io.*;
 import java.sql.ResultSet;
+import java.util.List;
 
 @picocli.CommandLine.Command(name = "embedding", description = "Loads embedding vectors into an SQLite database")
 public class LoadEmbedding extends Command
@@ -35,10 +36,16 @@ public class LoadEmbedding extends Command
         try
         {
             EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile));
-            SQLite db = SQLite.init(DB_NAME, DB_PATH);
+            SQLite db = SQLite.init(":memory:", "");
             setupDBTable(db);
-            insertEmbeddings(db, parser);
 
+            while (parser.hasNext())
+            {
+                insertEmbeddings(db, parser, 50);
+            }
+
+            db.migrate(List.of("Embeddings"), DB_NAME, DB_PATH);
+            db.close();
             return 0;
         }
 
@@ -62,30 +69,33 @@ public class LoadEmbedding extends Command
                             "embedding FLOAT[] NOT NULL);");
     }
 
-    private static void insertEmbeddings(SQLite db, EmbeddingsParser parser)
+    private static void insertEmbeddings(SQLite db, EmbeddingsParser parser, int batchSize)
     {
         String entity = null;
-        StringBuilder embeddingBuilder = null;
+        StringBuilder embeddingBuilder = null,
+                insertQuery = new StringBuilder("INSERT INTO Embeddings (entityIRI, embedding) VALUES ");
+        int count = 0;
 
-        while (parser.hasNext())
+        while (parser.hasNext() && count < batchSize)
         {
             EmbeddingsParser.EmbeddingToken token = parser.next();
 
             if (token.getToken() == EmbeddingsParser.EmbeddingToken.Token.ENTITY)
             {
                 if (entity != null)
-                    db.update("INSERT INTO Embeddings (entityIRI, embedding) VALUES ('" + entity +
-                            "', '" + embeddingBuilder.toString().substring(0, embeddingBuilder.length() - 2) + "}');");
+                    insertQuery.append("('").append(entity).append("', '").
+                                            append(embeddingBuilder.toString().substring(0, embeddingBuilder.length() - 2)).
+                                            append("}'), ");
 
                 entity = token.getLexeme();
                 embeddingBuilder = new StringBuilder();
+                count++;
             }
 
             else
                 embeddingBuilder.append(token.getLexeme()).append(", ");
         }
 
-        db.update("INSERT INTO Embeddings (entityIRI, embedding) VALUES ('" + entity +
-                "', '" + embeddingBuilder.toString().substring(0, embeddingBuilder.length() - 2) + "}');");
+        db.update(insertQuery.insert(insertQuery.length() - 2, ';').substring(0, insertQuery.length() - 2));
     }
 }

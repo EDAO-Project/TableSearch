@@ -89,7 +89,7 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
                 lexemeBuilder.append((char) c);
             }
 
-            if (c != ' ')
+            if (c != ' ' && c != '\n')
                 this.isClosed = true;
 
             this.lexCount++;

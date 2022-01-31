@@ -1,6 +1,7 @@
 package dk.aau.cs.daisy.edao.connector;
 
 import java.sql.*;
+import java.util.List;
 
 public class SQLite implements DBDriver
 {
@@ -108,6 +109,50 @@ public class SQLite implements DBDriver
         catch (SQLException e)
         {
             setError(e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean migrate(List<String> tableNames, String dbName, String path)
+    {
+        try
+        {
+            Class.forName("org.sqlite.JDBC");
+            Connection conn = DriverManager.getConnection("jdbc:sqlite:" + path + dbName);
+            conn.setAutoCommit(false);
+
+            if (!insertTables(conn, tableNames))
+                return false;
+
+            close();
+            this.connection = conn;
+            return true;
+        }
+
+        catch (ClassNotFoundException |SQLException exc)
+        {
+            setError(exc.getMessage());
+            return false;
+        }
+    }
+
+    private boolean insertTables(Connection conn, List<String> tables)
+    {
+        try
+        {
+            Statement statement = conn.createStatement();
+
+            for (String table : tables)
+            {
+                statement.executeUpdate("CREATE TABLE " + table + " AS SELECT * FROM " + table + ";");
+            }
+
+            return true;
+        }
+
+        catch (SQLException exc)
+        {
+            setError(exc.getMessage());
             return false;
         }
     }
