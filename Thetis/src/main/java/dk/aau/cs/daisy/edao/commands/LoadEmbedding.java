@@ -37,7 +37,7 @@ public class LoadEmbedding extends Command
         try
         {
             EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile));
-            SQLite db = SQLite.init(":memory:", "");
+            SQLite db = SQLite.init(DB_NAME, DB_PATH);
             setupDBTable(db);
             int batchSize = 1000, batchSizeCount = batchSize;
             double mbLoaded = 0;
