@@ -50,7 +50,6 @@ public class LoadEmbedding extends Command
                 batchSizeCount += batchSize;
             }
 
-            db.migrate(List.of("Embeddings"), DB_NAME, DB_PATH);
             db.close();
             return 0;
         }
