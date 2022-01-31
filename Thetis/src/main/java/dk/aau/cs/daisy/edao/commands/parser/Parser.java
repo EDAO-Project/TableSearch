@@ -5,5 +5,5 @@ import java.util.Iterator;
 public interface Parser<T> extends Iterator<T>
 {
     String nextLexeme();
-    void reverse(int count);
+    EmbeddingsParser.EmbeddingToken prev();
 }
