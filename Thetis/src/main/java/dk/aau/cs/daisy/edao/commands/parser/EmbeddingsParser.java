@@ -1,6 +1,7 @@
 package dk.aau.cs.daisy.edao.commands.parser;
 
 import java.io.*;
+import java.text.ParseException;
 import java.util.List;
 
 public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
@@ -81,13 +82,14 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
                 else if (!seenChar && (c == ' ' || c == '\n'))
                     continue;
 
-                else if (c == ' ' || c == '\n')
+                else if (c == ' ' ||
+                        (c == '\n' && !parseDecimal(lexemeBuilder.toString()) && lexemeBuilder.toString().contains("://")))
                     break;
 
                 lexemeBuilder.append((char) c);
             }
 
-            if (c != ' ' && c != '\n')
+            if (c == -1)
                 this.isClosed = true;
 
             String lexeme = lexemeBuilder.toString();
@@ -105,7 +107,7 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
             }
 
             else
-                throw new RuntimeException("Could not parse lexeme '" + lexeme + "'");
+                throw new ParsingException("Could not parse lexeme '" + lexeme + "'");
         }
 
         catch (IOException exception)

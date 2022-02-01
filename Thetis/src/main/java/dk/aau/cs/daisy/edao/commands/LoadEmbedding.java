@@ -1,6 +1,7 @@
 package dk.aau.cs.daisy.edao.commands;
 
 import dk.aau.cs.daisy.edao.commands.parser.EmbeddingsParser;
+import dk.aau.cs.daisy.edao.commands.parser.ParsingException;
 import dk.aau.cs.daisy.edao.connector.DBDriver;
 import dk.aau.cs.daisy.edao.connector.SQLite;
 import picocli.CommandLine;
@@ -37,6 +38,10 @@ public class LoadEmbedding extends Command
         try
         {
             EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile));
+            log("Parsing...");
+            parseFile(new FileInputStream(this.embeddingsFile));
+            log("Parsing complete");
+
             SQLite db = SQLite.init(DB_NAME, DB_PATH);
             setupDBTable(db);
             int batchSize = 1000, batchSizeCount = batchSize;
@@ -45,8 +50,7 @@ public class LoadEmbedding extends Command
             while (parser.hasNext())
             {
                 mbLoaded += (double) insertEmbeddings(db, parser, batchSize) / Math.pow(1024, 2);
-                System.out.println((new Date()).toString() + ": LOAD BATCH [" + batchSizeCount + "] - " +
-                        mbLoaded + "MB");
+                log("LOAD BATCH [" + batchSizeCount + "] - " + mbLoaded + "MB");
                 batchSizeCount += batchSize;
             }
 
@@ -59,12 +63,27 @@ public class LoadEmbedding extends Command
             System.err.println("File error: " + exception.getMessage());
         }
 
-        catch (Exception exc)
+        catch (ParsingException exc)
         {
-            System.out.println(exc.getMessage());
+            System.out.println("Parsing error: " + exc.getMessage());
         }
 
         return -1;
+    }
+
+    private static void log(String message)
+    {
+        System.out.println((new Date()).toString() + ": " + message);
+    }
+
+    private static void parseFile(InputStream inputStream)
+    {
+        EmbeddingsParser parser = new EmbeddingsParser(inputStream);
+
+        while (parser.hasNext())
+        {
+            parser.next();
+        }
     }
 
     private static void setupDBTable(DBDriver db)
