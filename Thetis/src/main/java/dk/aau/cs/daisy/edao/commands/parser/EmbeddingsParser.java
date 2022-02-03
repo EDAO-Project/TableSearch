@@ -71,20 +71,20 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
         try
         {
             StringBuilder lexemeBuilder = new StringBuilder();
-            boolean seenChar = false;
+            boolean readAnything = false;
             int c;
 
             while ((c = this.input.read()) != -1)
             {
-                if (!seenChar && (Character.isLetter(c) || Character.isDigit(c) || c == '-' || c == '.'))
-                    seenChar = true;
+                if (!readAnything && (Character.isLetter(c) || Character.isDigit(c) || c == '-' || c == '.') || c == '/')
+                    readAnything = true;
 
-                else if (!seenChar && (c == ' ' || c == '\n'))
-                    continue;
-
-                else if (c == ' ' ||
-                        (c == '\n' && !parseDecimal(lexemeBuilder.toString()) && lexemeBuilder.toString().contains("://")))
+                else if (readAnything && (c == ' ' || c == '\n') && (parseDecimal(lexemeBuilder.toString()) ||
+                        lexemeBuilder.toString().contains("://")))
                     break;
+
+                else if (!readAnything && (c == ' ' || c == '\n'))
+                    continue;
 
                 lexemeBuilder.append((char) c);
             }
