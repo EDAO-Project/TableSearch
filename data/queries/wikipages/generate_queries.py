@@ -168,7 +168,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--wikipages_df', help='Path to the wikipages_df file summarizing the wikipages to be used', required=True)
+    parser.add_argument('--wikipages_df', help='Path to the wikipages_df file summarizing the wikipages to be used.', required=True)
     parser.add_argument('--tables_dir', help='Path to the parsed table json files', required=True)
     parser.add_argument('--q_output_dir', help="Path to the directory where the generated query entity tuples are stored", required=True)
     parser.add_argument('--wikilink_to_entity', help="Path to the wikipediaLinkToEntity.json file", required=True)

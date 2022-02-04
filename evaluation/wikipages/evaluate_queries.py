@@ -3,7 +3,7 @@ import numpy as np
 import json
 import os
 import random
-
+import argparse
 
 from pathlib import Path
 
@@ -87,8 +87,6 @@ def get_ndcg_scores_over_labeled(df, scores_path, tables_path, seed=0):
 
 
 
-
-
 def get_ndcg_scores_over_output(df, scores_path, k=10):
     '''
     Compute the NDCG scores for every query scored in the `scores_path`
@@ -142,3 +140,36 @@ def get_ndcg_scores_over_output(df, scores_path, k=10):
             pass
         
     return scores_dict
+
+def main(args):
+
+    df = pd.read_pickle(args.query_df)
+
+    scores_over_output = get_ndcg_scores_over_output(
+        df=df,
+        scores_path=args.scores_dir,
+        k=args.topk
+    )
+
+    with open(args.output_dir + 'scores_over_output_' + str(args.topk) + '.json', 'w') as fp:
+        json.dump(scores_over_output, fp, indent=4)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--output_dir', help='Path to the directory where the scores .json file is saved', required=True)
+    parser.add_argument('--query_df', help='Path to the queries dataframe (i.e., the list of wikipages that are evaluated)', required=True)
+    parser.add_argument('--scores_dir', help='Path to the directory where the scores for each table are stored', required=True)
+    parser.add_argument('--topk', type=int, default=10, help='Specifies the top-k value for which NDCG scores are evaluated')
+    args = parser.parse_args()
+
+    # Create the query output directory if it doesn't exist (Remove all files in it if any)
+    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+
+    print("\nOutput Directory:", args.output_dir)
+    print("Query Dataframe:", args.query_df)
+    print("Scores Directory:", args.scores_dir)
+    print("Top-k:", args.topk,'\n')
+
+    main(args)  
