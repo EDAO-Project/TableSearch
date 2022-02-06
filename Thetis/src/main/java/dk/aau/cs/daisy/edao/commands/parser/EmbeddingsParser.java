@@ -76,7 +76,7 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
 
             while ((c = this.input.read()) != -1)
             {
-                if (!readAnything && (Character.isLetter(c) || Character.isDigit(c) || c == '-' || c == '.') || c == '/')
+                if (!readAnything && (Character.isLetter(c) || Character.isDigit(c) || c == '-' || c == '.' || c == '/' || c == ':'))
                     readAnything = true;
 
                 else if (readAnything && (c == ' ' || c == '\n') && (parseDecimal(lexemeBuilder.toString()) ||
