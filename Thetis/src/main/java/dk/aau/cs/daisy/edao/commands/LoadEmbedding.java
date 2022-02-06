@@ -60,12 +60,12 @@ public class LoadEmbedding extends Command
 
         catch (IOException exception)
         {
-            System.err.println("File error: " + exception.getMessage());
+            log("File error: " + exception.getMessage());
         }
 
         catch (ParsingException exc)
         {
-            System.out.println("Parsing error: " + exc.getMessage());
+            log("Parsing error: " + exc.getMessage());
         }
 
         return -1;
