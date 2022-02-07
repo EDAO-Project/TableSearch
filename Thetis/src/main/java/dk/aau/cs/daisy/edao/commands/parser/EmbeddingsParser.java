@@ -79,7 +79,7 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
                 if (!readAnything && (Character.isLetter(c) || Character.isDigit(c) || c == '-' || c == '.' || c == '/' || c == ':'))
                     readAnything = true;
 
-                else if (readAnything && (c == ' ' || c == '\n') && (parseDecimal(lexemeBuilder.toString()) ||
+                else if (readAnything && lexemeBuilder.length() > 0 && (c == ' ' || c == '\n') && (parseDecimal(lexemeBuilder.toString()) ||
                         lexemeBuilder.toString().contains("://")))
                     break;
 
