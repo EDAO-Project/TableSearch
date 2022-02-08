@@ -39,7 +39,7 @@ public class LoadEmbedding extends Command
         {
             EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile));
             log("Parsing...");
-            //parseFile(new FileInputStream(this.embeddingsFile));
+            parseFile(new FileInputStream(this.embeddingsFile));
             log("Parsing complete");
 
             SQLite db = SQLite.init(DB_NAME, DB_PATH);
