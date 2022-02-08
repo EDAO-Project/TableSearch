@@ -39,7 +39,7 @@ public class LoadEmbedding extends Command
         {
             EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile));
             log("Parsing...");
-            parseFile(new FileInputStream(this.embeddingsFile));
+            //parseFile(new FileInputStream(this.embeddingsFile));
             log("Parsing complete");
 
             SQLite db = SQLite.init(DB_NAME, DB_PATH);
@@ -99,7 +99,7 @@ public class LoadEmbedding extends Command
         StringBuilder embeddingBuilder = null,
                 insertQuery = new StringBuilder("INSERT INTO Embeddings (entityIRI, embedding) VALUES ");
         int count = 0;
-        EmbeddingsParser.EmbeddingToken prev = parser.prev();
+        EmbeddingsParser.EmbeddingToken prev = parser.prev(), token;
 
         if (prev != null && prev.getToken() == EmbeddingsParser.EmbeddingToken.Token.ENTITY)
         {
@@ -108,10 +108,8 @@ public class LoadEmbedding extends Command
             count++;
         }
 
-        while (parser.hasNext() && count < batchSize)
+        while (parser.hasNext() && count < batchSize && (token = parser.next()) != null)
         {
-            EmbeddingsParser.EmbeddingToken token = parser.next();
-
             if (token.getToken() == EmbeddingsParser.EmbeddingToken.Token.ENTITY)
             {
                 if (entity != null)

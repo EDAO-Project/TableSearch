@@ -62,6 +62,10 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
         return !this.isClosed;
     }
 
+    // Note this method can throw a ParsingException even if the file has been parsed correctly.
+    // This is when the file ends with a newline character, since the next read will return -1,
+    // and hence the lexeme is empty and cannot be parsed.
+    // In this case, null is returned.
     @Override
     public EmbeddingToken next()
     {
@@ -79,8 +83,8 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
                 if (!readAnything && (Character.isLetter(c) || Character.isDigit(c) || c == '-' || c == '.' || c == '/' || c == ':'))
                     readAnything = true;
 
-                else if (readAnything && lexemeBuilder.length() > 0 && (c == ' ' || c == '\n') && (parseDecimal(lexemeBuilder.toString()) ||
-                        lexemeBuilder.toString().contains("://")))
+                else if (readAnything && lexemeBuilder.length() > 0 && (c == ' ' || c == '\n') &&
+                        (parseDecimal(lexemeBuilder.toString()) || lexemeBuilder.toString().contains("://")))
                     break;
 
                 else if (!readAnything && (c == ' ' || c == '\n'))
@@ -105,6 +109,9 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
                 this.prev = new EmbeddingToken(lexeme, EmbeddingToken.Token.VALUE);
                 return this.prev;
             }
+
+            else if (lexeme.isBlank())
+                return null;
 
             else
                 throw new ParsingException("Could not parse lexeme '" + lexeme + "'");
