@@ -44,7 +44,7 @@ public class LoadEmbedding extends Command
 
             SQLite db = SQLite.init(DB_NAME, DB_PATH);
             setupDBTable(db);
-            int batchSize = 1000, batchSizeCount = batchSize;
+            int batchSize = 100, batchSizeCount = batchSize;
             double mbLoaded = 0;
 
             while (parser.hasNext())
@@ -113,7 +113,7 @@ public class LoadEmbedding extends Command
             if (token.getToken() == EmbeddingsParser.EmbeddingToken.Token.ENTITY)
             {
                 if (entity != null)
-                    insertQuery.append("('").append(entity).append("', '").
+                    insertQuery.append("('").append(entity).append("', '{").
                                             append(embeddingBuilder.substring(0, embeddingBuilder.length() - 2)).
                                             append("}'), ");
 
@@ -127,7 +127,6 @@ public class LoadEmbedding extends Command
         }
 
         String cleanedQuery = insertQuery.insert(insertQuery.length() - 2, ';').substring(0, insertQuery.length() - 2);
-        db.update(cleanedQuery);
-        return cleanedQuery.length();
+        return db.update(cleanedQuery) ? cleanedQuery.length() : 0;
     }
 }
