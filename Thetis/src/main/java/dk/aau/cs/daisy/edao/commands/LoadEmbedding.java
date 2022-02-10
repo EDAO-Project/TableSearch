@@ -44,19 +44,19 @@ public class LoadEmbedding extends Command
 
             SQLite db = SQLite.init(DB_NAME, DB_PATH);
             setupDBTable(db);
-            int batchSize = 100, batchSizeCount = batchSize;
-            double mbLoaded = 0;
+            int batchSize = 50, batchSizeCount = batchSize;
+            double loaded = 0;
 
             while (parser.hasNext())
             {
-                int entities = insertEmbeddings(db, parser, batchSize);
-                mbLoaded += (double) entities / Math.pow(1024, 2);
+                int bytes = insertEmbeddings(db, parser, batchSize);
+                loaded += (double) bytes / Math.pow(1024, 2);
 
-                if (entities == 0)
+                if (bytes == 0)
                     log("ERROR: " + db.getError());
 
                 else
-                    log("LOAD BATCH [" + batchSizeCount + "] - " + mbLoaded + "MB");
+                    log("LOAD BATCH [" + batchSizeCount + "] - " + loaded + " mb");
 
                 batchSizeCount += batchSize;
             }
@@ -105,7 +105,7 @@ public class LoadEmbedding extends Command
         String entity = null;
         StringBuilder embeddingBuilder = null,
                 insertQuery = new StringBuilder("INSERT INTO Embeddings (entityIRI, embedding) VALUES ");
-        int count = 0;
+        int count = 0, loaded = 0;
         EmbeddingsParser.EmbeddingToken prev = parser.prev(), token;
 
         if (prev != null && prev.getToken() == EmbeddingsParser.EmbeddingToken.Token.ENTITY)
@@ -113,6 +113,7 @@ public class LoadEmbedding extends Command
             entity = prev.getLexeme();
             embeddingBuilder = new StringBuilder();
             count++;
+            loaded = entity.length() + 1;
         }
 
         while (parser.hasNext() && count < batchSize && (token = parser.next()) != null)
@@ -120,20 +121,25 @@ public class LoadEmbedding extends Command
             if (token.getToken() == EmbeddingsParser.EmbeddingToken.Token.ENTITY)
             {
                 if (entity != null)
-                    insertQuery.append("('").append(entity).append("', '{").
+                    insertQuery.append("('").append(entity.replace("'", "''")).append("', '{").
                                             append(embeddingBuilder.substring(0, embeddingBuilder.length() - 2)).
                                             append("}'), ");
 
                 entity = token.getLexeme();
                 embeddingBuilder = new StringBuilder();
                 count++;
+                loaded += entity.length() + 1;
             }
 
             else
-                embeddingBuilder.append(token.getLexeme()).append(", ");
+            {
+                String lexeme = token.getLexeme();
+                loaded += lexeme.length() + 1;
+                embeddingBuilder.append(lexeme).append(", ");
+            }
         }
 
         String cleanedQuery = insertQuery.insert(insertQuery.length() - 2, ';').substring(0, insertQuery.length() - 2);
-        return db.update(cleanedQuery) ? count : 0;
+        return db.update(cleanedQuery) ? loaded : 0;
     }
 }
