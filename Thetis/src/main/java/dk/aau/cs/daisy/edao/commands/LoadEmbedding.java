@@ -49,8 +49,15 @@ public class LoadEmbedding extends Command
 
             while (parser.hasNext())
             {
-                mbLoaded += (double) insertEmbeddings(db, parser, batchSize) / Math.pow(1024, 2);
-                log("LOAD BATCH [" + batchSizeCount + "] - " + mbLoaded + "MB");
+                int entities = insertEmbeddings(db, parser, batchSize);
+                mbLoaded += (double) entities / Math.pow(1024, 2);
+
+                if (entities == 0)
+                    log("ERROR: " + db.getError());
+
+                else
+                    log("LOAD BATCH [" + batchSizeCount + "] - " + mbLoaded + "MB");
+
                 batchSizeCount += batchSize;
             }
 
@@ -127,6 +134,6 @@ public class LoadEmbedding extends Command
         }
 
         String cleanedQuery = insertQuery.insert(insertQuery.length() - 2, ';').substring(0, insertQuery.length() - 2);
-        return db.update(cleanedQuery) ? cleanedQuery.length() : 0;
+        return db.update(cleanedQuery) ? count : 0;
     }
 }
