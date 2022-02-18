@@ -7,9 +7,7 @@ import dk.aau.cs.daisy.edao.connector.SQLite;
 import picocli.CommandLine;
 
 import java.io.*;
-import java.sql.ResultSet;
 import java.util.Date;
-import java.util.List;
 
 @picocli.CommandLine.Command(name = "embedding", description = "Loads embedding vectors into an SQLite database")
 public class LoadEmbedding extends Command
@@ -44,7 +42,7 @@ public class LoadEmbedding extends Command
 
             SQLite db = SQLite.init(DB_NAME, DB_PATH);
             setupDBTable(db);
-            int batchSize = 50, batchSizeCount = batchSize;
+            int batchSize = 100, batchSizeCount = batchSize;
             double loaded = 0;
 
             while (parser.hasNext())
@@ -70,9 +68,9 @@ public class LoadEmbedding extends Command
             log("File error: " + exception.getMessage());
         }
 
-        catch (ParsingException exc)
+        catch (ParsingException exception)
         {
-            log("Parsing error: " + exc.getMessage());
+            log("Parsing error: " + exception.getMessage());
         }
 
         return -1;
@@ -80,7 +78,7 @@ public class LoadEmbedding extends Command
 
     private static void log(String message)
     {
-        System.out.println((new Date()).toString() + ": " + message);
+        System.out.println(new Date() + ": " + message);
     }
 
     private static void parseFile(InputStream inputStream)
@@ -96,8 +94,8 @@ public class LoadEmbedding extends Command
     private static void setupDBTable(DBDriver db)
     {
         db.update("CREATE TABLE Embeddings (" +
-                            "entityIRI VARCHAR(100) NOT NULL," +
-                            "embedding FLOAT[] NOT NULL);");
+                            "entityIRI VARCHAR(100) PRIMARY KEY," +
+                            "embedding VARCHAR(1000) NOT NULL);");
     }
 
     private static int insertEmbeddings(SQLite db, EmbeddingsParser parser, int batchSize)
@@ -121,9 +119,9 @@ public class LoadEmbedding extends Command
             if (token.getToken() == EmbeddingsParser.EmbeddingToken.Token.ENTITY)
             {
                 if (entity != null)
-                    insertQuery.append("('").append(entity.replace("'", "''")).append("', '{").
-                                            append(embeddingBuilder.substring(0, embeddingBuilder.length() - 2)).
-                                            append("}'), ");
+                    insertQuery.append("('").append(entity.replace("'", "''")).append("', '").
+                                            append(embeddingBuilder.substring(0, embeddingBuilder.length() - 1)).
+                                            append("'), ");
 
                 entity = token.getLexeme();
                 embeddingBuilder = new StringBuilder();
@@ -135,7 +133,7 @@ public class LoadEmbedding extends Command
             {
                 String lexeme = token.getLexeme();
                 loaded += lexeme.length() + 1;
-                embeddingBuilder.append(lexeme).append(", ");
+                embeddingBuilder.append(lexeme).append(",");
             }
         }
 
