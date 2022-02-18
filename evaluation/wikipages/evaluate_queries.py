@@ -4,11 +4,14 @@ import json
 import os
 import random
 import argparse
+import itertools
 
 from pathlib import Path
 
 from sklearn.metrics import ndcg_score
 from tqdm import tqdm
+
+import utils
 
 
 def get_n_random_tables(n, exclude_list, tables_list, seed=0):
@@ -87,7 +90,7 @@ def get_ndcg_scores_over_labeled(df, scores_path, tables_path, seed=0):
 
 
 
-def get_ndcg_scores_over_output(df, scores_path, k=10):
+def get_ndcg_scores_over_output(full_df, scores_path, groundtruth_relevance_scores_dir, tables_list, k=10):
     '''
     Compute the NDCG scores for every query scored in the `scores_path`
 
@@ -100,40 +103,43 @@ def get_ndcg_scores_over_output(df, scores_path, k=10):
     # Maps a wikipage_id to its respective ndcg score
     scores_dict = {}
 
-    # Loop over each query output and compute a top-k NDCG score where k is 2 times the number of truly relevant tables
-    for file in tqdm(os.listdir(scores_path)):
+    # Loop over each query output and compute a top-k NDCG score
+    for file in tqdm(sorted(os.listdir(scores_path))):
         filepath = Path(scores_path+file+'/search_output/filenameToScore.json')
         if filepath.is_file():
             wikipage_id = int(file.split('_')[1])
-            gt_relevant_tables = set(df[df['wikipage_id']==wikipage_id]['tables'].values[0])
-           
-            # Read scores
+
+            # Get the gt_to_relevance_scores_dict
+            gt_tables_to_relevance_scores_dict = utils.evaluation_helpers.get_gt_tables_to_relevance_scores_dict(
+               full_df=full_df, wikipage_id=wikipage_id, 
+               groundtruth_relevance_scores_dir=groundtruth_relevance_scores_dir, tables_list=tables_list
+            )
+
+            # Read scores and populate table_id_to_pred_score
             with open(scores_path + file + '/search_output/filenameToScore.json', 'r') as fp:
                 scored_tables_json = json.load(fp)['scores']
+            table_id_to_pred_score = {table_dict['tableID']:table_dict['score'] for table_dict in scored_tables_json}
 
             # Ensure there are k or more scored tables in the 'scored_tables_json'
             assert len(scored_tables_json)>=k, 'There are less than k tables that have been scored for wikipage_id: ' + str(wikipage_id)
 
-            # Get top-k tables and their scores
-            top_k_tables_dict = {}
-            for i in range(k):
-                dict_tmp = scored_tables_json[i]
-                top_k_tables_dict[dict_tmp['tableID']]=dict_tmp['score']
 
+            # Construct the predicted relevance scores
+            pred_tables_to_relevance_scores_dict = {table:0 for table in gt_tables_to_relevance_scores_dict}
+            for table in table_id_to_pred_score:
+                pred_tables_to_relevance_scores_dict[table] = table_id_to_pred_score[table]
 
-            # Construct groundtruth relevance scores
-            gt_relevance = []
-            for table in top_k_tables_dict.keys():
-                if table in gt_relevant_tables:
-                    gt_relevance.append(1)
-                else:
-                    gt_relevance.append(0)
-            num_relevant_tables = gt_relevance.count(1)
+            # Compute the num_relevant tables in the top-k of the `table_id_to_pred_score` dictionary
+            num_relevant_tables = 0
+            for table in list(table_id_to_pred_score.keys())[:k]:
+                if gt_tables_to_relevance_scores_dict[table] > 0:
+                    num_relevant_tables+=1
 
-            gt_relevance = np.array([gt_relevance])
-            predicted_relevance = np.array([list(top_k_tables_dict.values())])
+            
+            gt_relevance = np.array([list(gt_tables_to_relevance_scores_dict.values())])
+            predicted_relevance = np.array([list(pred_tables_to_relevance_scores_dict.values())])
 
-            score = ndcg_score(gt_relevance, predicted_relevance)
+            score = ndcg_score(gt_relevance, predicted_relevance, k=k)
             scores_dict[wikipage_id] = {'ndcg': score, 'num_relevant_tables': num_relevant_tables}
         else:
             # Ignore this query if scores not found
@@ -144,10 +150,16 @@ def get_ndcg_scores_over_output(df, scores_path, k=10):
 def main(args):
 
     df = pd.read_pickle(args.query_df)
+    full_df = pd.read_pickle(args.full_df)
+
+    # Extract the names of all tables in our search space
+    tables_list = os.listdir(args.tables_dir)
 
     scores_over_output = get_ndcg_scores_over_output(
-        df=df,
+        full_df=full_df,
         scores_path=args.scores_dir,
+        groundtruth_relevance_scores_dir=args.groundtruth_relevance_scores_dir,
+        tables_list=tables_list,
         k=args.topk
     )
 
@@ -161,6 +173,9 @@ if __name__ == "__main__":
     parser.add_argument('--output_dir', help='Path to the directory where the scores .json file is saved', required=True)
     parser.add_argument('--query_df', help='Path to the queries dataframe (i.e., the list of wikipages that are evaluated)', required=True)
     parser.add_argument('--scores_dir', help='Path to the directory where the scores for each table are stored', required=True)
+    parser.add_argument('--full_df', help='Path to the full queries dataframe (i.e., it provides mappings for each wikipage to its set of tables', required=True)
+    parser.add_argument('--groundtruth_relevance_scores_dir', help='Path to the directory that contains the groundtruth relevance scores for each wikipage', required=True)
+    parser.add_argument('--tables_dir', help='Path to the directory containing all the tables that make up the search space for all queries', required=True)
     parser.add_argument('--topk', type=int, default=10, help='Specifies the top-k value for which NDCG scores are evaluated')
     args = parser.parse_args()
 
@@ -170,6 +185,8 @@ if __name__ == "__main__":
     print("\nOutput Directory:", args.output_dir)
     print("Query Dataframe:", args.query_df)
     print("Scores Directory:", args.scores_dir)
+    print("Full Dataframe:", args.full_df)
+    print("Tables Directory:", args.tables_dir)
     print("Top-k:", args.topk,'\n')
 
     main(args)  
