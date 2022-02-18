@@ -155,7 +155,11 @@ python extract_tables_per_wikipage.py  --input_tables_dir ../wikitables/files/wi
 
 # Extract the wikipedia pages to use to create the dataset 
 python generate_dataset.py --min_num_entities_per_table 10 --min_num_tables_per_page 10 --max_num_tables_per_page 40 \
---wikitables_dir ../wikitables/files/wikitables_parsed/tables_10_MAX/ --output_tables_dir tables/
+--wikitables_dir ../wikitables/files/wikitables_parsed/tables_10_MAX/ --output_dir wikipages_dataset/
+
+# Construct the expanded wikipages dataset
+python generate_dataset.py --min_num_entities_per_table 10 --min_num_tables_per_page 1 --max_num_tables_per_page 40 \
+--wikitables_dir ../wikitables/files/wikitables_parsed/tables_10_MAX/ --output_dir expanded_dataset/
 ```
 
 ### WikiPages query generation

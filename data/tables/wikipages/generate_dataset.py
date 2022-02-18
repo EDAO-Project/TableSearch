@@ -90,16 +90,17 @@ def main(args):
         min_num_tables_per_page=args.min_num_tables_per_page,
         max_num_tables_per_page=args.max_num_tables_per_page
     )
-    df.to_pickle('wikipages_df.pickle')
+    df.to_pickle(args.output_dir+'wikipages_df.pickle')
 
     # Create a directory with the selected tables by copying them from args.wikitables_dir
-    print("\nSaving the WikiPages tables at:", args.output_tables_dir, '...')
+    tables_output_dir = args.output_dir + 'tables/' 
+    Path(tables_output_dir).mkdir(parents=True, exist_ok=True)
+    print("\nSaving the WikiPages tables at:", tables_output_dir, '...')
     for _, row in tqdm(df.iterrows()):
         tables = row['tables']
         for table in tables:
-            shutil.copy(args.wikitables_dir+table, args.output_tables_dir+table)
+            shutil.copy(args.wikitables_dir+table, tables_output_dir + table)
     print("Finished saving the WikiPages tables\n")
-
 
  
 
@@ -110,15 +111,17 @@ if __name__ == "__main__":
     parser.add_argument('--max_num_tables_per_page', type=int, help='The maximum number of tables found in a wikipage in order to be selected', required=True)
 
     parser.add_argument('--wikitables_dir', help='Path to the where the directory containing the parsed json files of all wikitables', required=True)
-    parser.add_argument('--output_tables_dir', help='Path to where the selected tables for the wikipages dataset are saved to', required=True)
-
+    parser.add_argument('--output_dir', help='Path to where the selected tables for the wikipages dataset are saved to as well as the wikipages_df.pickle', required=True)
     args = parser.parse_args()
 
 
-    # Create the output_tables_dir if it doesn't exist (Remove all files in it if any)
-    Path(args.output_tables_dir).mkdir(parents=True, exist_ok=True)
-    for f in os.listdir(args.output_tables_dir):
-        os.remove(os.path.join(args.output_tables_dir, f))
+    # Create the output_dir if it doesn't exist (Remove all files in it if any)
+    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    for f in os.listdir(args.output_dir):
+        os.remove(os.path.join(args.output_dir, f))
 
+    # Save the input arguments in the output_dir
+    with open(args.output_dir + 'args.json', 'w') as fp:
+        json.dump(vars(args), fp, sort_keys=True, indent=4)
 
     main(args)

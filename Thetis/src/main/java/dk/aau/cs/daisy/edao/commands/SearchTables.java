@@ -109,6 +109,10 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = { "-upe", "--usePretrainedEmbeddings"}, description = "If specified, pre-trained embeddings are used to capture the similarity between two entities whenever possible")
     private boolean usePretrainedEmbeddings;
 
+    @CommandLine.Option(names = { "-ajs", "--adjustedJaccardSimilarity"}, description = "If specified, the Jaccard similarity between two entities can only be one if the two entities compared are identical. " + 
+        "If two different entities share the same types then assign an adjusted score of 0.95. ")
+    private boolean adjustedJaccardSimilarity;
+
     @CommandLine.Option(names = { "-wppr", "--weightedPPR"}, description = "If specified, the number of particles given to each query node depends on their number of edges and IDF scores.")
     private boolean weightedPPR;
 
@@ -696,6 +700,11 @@ public class SearchTables extends Command {
      * However if 'usePretrainedEmbeddings' is specified and there exist embeddings for both entities 
      * then use the angular distance between the two embedding vectors as the score.
      * 
+     * If 'usePretrainedEmbeddings' is not specified but 'adjustedJaccardSimilarity' is specified then 
+     * an adjusted Jaccard similarity between two entities is used where the similarity score is 1 only if the two entities are identical.
+     * Otherwise a maximum similarity score is placed if the two entities are different 
+
+     * 
      * Returns a number between 0 and 1    
      */
     public double entitySimilarityScore(String ent1, String ent2) {
@@ -711,7 +720,24 @@ public class SearchTables extends Command {
                 entTypes2 = new HashSet<String>(entityTypes.get(ent2));
             }
 
-            return JaccardSimilarity.make(entTypes1, entTypes2).similarity();
+            if (adjustedJaccardSimilarity) {
+                if (ent1.equals(ent2)) {
+                    // The two entities compared are equal so return a score of 1.0
+                    return 1.0;
+                }
+                else {
+                    // The two entities compared are different. Impose a maximum possible score less than 1.0
+                    double max_score = 0.95;
+                    double score = JaccardSimilarity.make(entTypes1, entTypes2).similarity();
+                    if (score > max_score) {
+                        return max_score;
+                    }
+                    return score;
+                    }
+            }
+            else {
+                return JaccardSimilarity.make(entTypes1, entTypes2).similarity();
+            }
         }
 
         // Check if the `usePretrainedEmbeddings` mode is specified and if there are embeddings for both entities

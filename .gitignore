@@ -41,10 +41,12 @@ data/tables/wikitables/files/
 data/queries/test_queries/
 data/queries/www18_wikitables/
 data/queries/wikipages/queries/
+data/queries/wikipages/groundtruth_generation/wikipage_relevance_scores/
 data/queries/wikitables_table_queries/
 data/queries/ppr_approximation/queries/
 data/queries/ppr_approximation/figures/
 data/tables/gittables/tables/
+
 
 table_analysis/env/
 Thetis/eval/data-2021ZB/
@@ -58,6 +60,14 @@ data/tables/gittables/tables/
 data/tables/gittables/figures/
 
 data/tables/wikipages/tables/
+data/tables/wikipages/wikipages_dataset/
+data/tables/wikipages/wikipages_expanded_dataset/
+
+evaluation/wikipages/eval_over_labeled_ground_truth/
+evaluation/wikipages/eval_over_search_output/
+evaluation/wikipages/figures/
+
+Web-Table-Retrieval-Benchmark/data/
 
 
 # Custom Paths/Files to keep
