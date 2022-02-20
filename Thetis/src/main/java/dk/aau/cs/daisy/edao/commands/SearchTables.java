@@ -28,6 +28,7 @@ import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.utils;
 import dk.aau.cs.daisy.edao.utilities.HungarianAlgorithm;
 import dk.aau.cs.daisy.edao.utilities.ppr;
+import dk.aau.cs.daisy.edao.commands.parser.ParsingException;
 
 import org.neo4j.driver.exceptions.AuthenticationException;
 import org.neo4j.driver.exceptions.ServiceUnavailableException;
@@ -35,6 +36,12 @@ import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 
 import picocli.CommandLine;
 import me.tongfei.progressbar.*;
+
+import dk.aau.cs.daisy.edao.connector.DBDriver;
+import dk.aau.cs.daisy.edao.connector.SQLite;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 
 @picocli.CommandLine.Command(name = "search", description = "searched the index for tables matching the input tuples")
 public class SearchTables extends Command {
@@ -204,6 +211,11 @@ public class SearchTables extends Command {
     }
 
     private Neo4jEndpoint connector;
+
+    // Initialize a connection with the Entities Database
+    private static final String DB_NAME = "embeddings.db";
+    private static final String DB_PATH = "./";
+    SQLite entitiesDB = SQLite.init(DB_NAME, DB_PATH);
 
     @Override
     public Integer call() {
@@ -572,7 +584,7 @@ public class SearchTables extends Command {
     public boolean hasEmbeddingCoverage(List<String> queryEntities, Map<Integer, String> colIdToEntity, List<List<Integer>> tupleToColumnMappings, Integer queryTupleID) {       
         // Ensure that all query entities have an embedding
         for (String qEnt : queryEntities) {
-            if (!entityToEmbedding.containsKey(qEnt)) {
+            if (!entityExists(qEnt)) {
                 System.out.println("Missing query entity: " + qEnt);
                 hasEmbeddingCoverageFails += 1;
                 queryEntitiesMissingCoverage.add(qEnt);
@@ -597,7 +609,7 @@ public class SearchTables extends Command {
 
         // Loop over all relevant row entities and ensure there is a pre-trained embedding mapping for each one
         for (String rowEnt : relevant_row_ents) {
-            if (!entityToEmbedding.containsKey(rowEnt)) {
+            if (!entityExists(rowEnt)) {
                 hasEmbeddingCoverageFails += 1;
                 return false;
             }
@@ -741,11 +753,11 @@ public class SearchTables extends Command {
         }
 
         // Check if the `usePretrainedEmbeddings` mode is specified and if there are embeddings for both entities
-        if (usePretrainedEmbeddings && entityToEmbedding.containsKey(ent1) && entityToEmbedding.containsKey(ent2)) {
+        if (usePretrainedEmbeddings && entityExists(ent1) && entityExists(ent2)) {
             
             // Compute the appropriate score based on the specified EmbeddingSimFunction
             String embSimFunction = embeddingSimFunction.getEmbeddingSimFunction();
-            Double cosineSim = utils.cosineSimilarity(entityToEmbedding.get(ent1), entityToEmbedding.get(ent2));
+            Double cosineSim = utils.cosineSimilarity(getEmbeddingVector(ent1), getEmbeddingVector(ent2));
             Double simScore = 0.0;
             if (embSimFunction.equals("norm_cos")) {
                 simScore = (cosineSim + 1.0) / 2.0;
@@ -1154,5 +1166,42 @@ public class SearchTables extends Command {
         System.out.println("Finished constructing the filenameToScore.json file.");
     }
 
+    /**
+     * Returns true if the specified entity exists
+     */
+    public boolean entityExists(String entity) {
+        try {
+            ResultSet rs = entitiesDB.select("SELECT * FROM Embeddings WHERE entityIRI='" + entity + "' LIMIT 1;");
+            if (!rs.isBeforeFirst() ) {    
+                return false; 
+            }   
+            return true;
+        }
+        catch (SQLException exc) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns the embedding vector for the specified entity.
+     * 
+     * The entity specified must exist in the database! If it isn't then an uninitialized vector is returned
+     */
+    public List<Double> getEmbeddingVector(String entity) {
+        List<Double> embeddingVector = new ArrayList();
+
+        try {
+            ResultSet rs = entitiesDB.select("SELECT * FROM Embeddings WHERE entityIRI='" + entity + "' LIMIT 1;");
+            rs.next();
+            String[] embeddingVectorString = rs.getString(2).split(",");
+            for (String e : embeddingVectorString) {
+                embeddingVector.add(Double.parseDouble(e));
+            }
+            return embeddingVector;        
+        }
+        catch (SQLException exc) {
+            return embeddingVector;
+        }
+    }
 
 }
