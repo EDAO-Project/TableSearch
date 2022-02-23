@@ -13,7 +13,7 @@ import java.util.Date;
 public class LoadEmbedding extends Command
 {
     private static final String DB_NAME = "embeddings.db";
-    private static final String DB_PATH = "./";
+    private String dbPath = "./";
 
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
@@ -30,17 +30,30 @@ public class LoadEmbedding extends Command
         this.embeddingsFile = value;
     }
 
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output path of database instance")
+    public void setOutputPath(String path)
+    {
+        this.dbPath = path;
+    }
+
+    @CommandLine.Option(names = {"-db", "--disable-parsing"}, description = "Disables pre-parsing of embeddings file", defaultValue = "true")
+    private boolean doParse;
+
     @Override
     public Integer call()
     {
         try
         {
             EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile));
-            log("Parsing...");
-            parseFile(new FileInputStream(this.embeddingsFile));
-            log("Parsing complete");
 
-            SQLite db = SQLite.init(DB_NAME, DB_PATH);
+            if (this.doParse)
+            {
+                log("Parsing...");
+                parseFile(new FileInputStream(this.embeddingsFile));
+                log("Parsing complete");
+            }
+
+            SQLite db = SQLite.init(DB_NAME, this.dbPath);
             setupDBTable(db);
             int batchSize = 100, batchSizeCount = batchSize;
             double loaded = 0;

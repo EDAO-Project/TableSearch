@@ -11,7 +11,7 @@ public class SQLite implements DBDriver
 
     public static SQLite init(String dbName, String path)
     {
-        SQLite db = new SQLite(path + dbName);
+        SQLite db = new SQLite(path + (path.endsWith("/") ? "" : "/") + dbName);
 
         if (db.error)
             throw new RuntimeException("Could not open database: " + db.getError());
