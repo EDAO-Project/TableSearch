@@ -12,6 +12,7 @@ import java.util.Date;
 @picocli.CommandLine.Command(name = "embedding", description = "Loads embedding vectors into an SQLite database")
 public class LoadEmbedding extends Command
 {
+    private static final char DELIMITER = ' ';
     private static final String DB_NAME = "embeddings.db";
     private String dbPath = "./";
 
@@ -44,7 +45,7 @@ public class LoadEmbedding extends Command
     {
         try
         {
-            EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile));
+            EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile), DELIMITER);
 
             if (this.doParse)
             {
@@ -96,7 +97,7 @@ public class LoadEmbedding extends Command
 
     private static void parseFile(InputStream inputStream)
     {
-        EmbeddingsParser parser = new EmbeddingsParser(inputStream);
+        EmbeddingsParser parser = new EmbeddingsParser(inputStream, DELIMITER);
 
         while (parser.hasNext())
         {

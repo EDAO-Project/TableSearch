@@ -39,7 +39,7 @@ public class LoadEmbeddingTest
     @Test
     public void testParser()
     {
-        EmbeddingsParser parser = new EmbeddingsParser("http://dbpedia.org/property/seats6Title -0.2933714 0.539444 -0.32271475 -0.83340573 0.8849156 0.24414709 -0.107573666");
+        EmbeddingsParser parser = new EmbeddingsParser("http://dbpedia.org/property/seats6Title -0.2933714 0.539444 -0.32271475 -0.83340573 0.8849156 0.24414709 -0.107573666", ' ');
         assertTrue(parser.hasNext());
 
         EmbeddingsParser.EmbeddingToken t = parser.next();

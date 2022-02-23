@@ -4,6 +4,12 @@ import java.io.*;
 import java.text.ParseException;
 import java.util.List;
 
+/**
+ * Parsing of space-separated embeddings file
+ * Content is of the following format:
+ *     <IRI1> <embedding11> <embedding12> ... <IRI2> <embedding21> <embedding22> ... ...
+ * New lines are allowed before IRIs
+ */
 public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
 {
     public static final class EmbeddingToken
@@ -33,15 +39,17 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
     private InputStream input;
     private boolean isClosed = false;
     private EmbeddingToken prev = null;
+    private char delimiter;
 
-    public EmbeddingsParser(String content)
+    public EmbeddingsParser(String content, char delimiter)
     {
-        this.input = new ByteArrayInputStream(content.getBytes());
+        this(new ByteArrayInputStream(content.getBytes()), delimiter);
     }
 
-    public EmbeddingsParser(InputStream inputStream)
+    public EmbeddingsParser(InputStream inputStream, char delimiter)
     {
         this.input = inputStream;
+        this.delimiter = delimiter;
     }
 
     // Lex by space
@@ -83,11 +91,11 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
                 if (!readAnything && (Character.isLetter(c) || Character.isDigit(c) || c == '-' || c == '.' || c == '/' || c == ':'))
                     readAnything = true;
 
-                else if (readAnything && lexemeBuilder.length() > 0 && (c == ' ' || c == '\n') &&
+                else if (readAnything && lexemeBuilder.length() > 0 && (c == this.delimiter || c == '\n') &&
                         (parseDecimal(lexemeBuilder.toString()) || lexemeBuilder.toString().contains("://")))
                     break;
 
-                else if (!readAnything && (c == ' ' || c == '\n'))
+                else if (!readAnything && (c == this.delimiter || c == '\n'))
                     continue;
 
                 lexemeBuilder.append((char) c);
@@ -119,11 +127,12 @@ public class EmbeddingsParser implements Parser<EmbeddingsParser.EmbeddingToken>
 
         catch (IOException exception)
         {
+            this.isClosed = true;
             return null;
         }
     }
 
-    private static boolean parseDecimal(String lexeme)
+    protected static boolean parseDecimal(String lexeme)
     {
         try
         {

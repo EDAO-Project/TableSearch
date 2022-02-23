@@ -136,8 +136,8 @@ public class utils {
         return returnVector;
     }
 
-    public static Parser getEmbeddingsParser(String content)
+    public static Parser getEmbeddingsParser(String content, char delimiter)
     {
-        return new EmbeddingsParser(content);
+        return new EmbeddingsParser(content, delimiter);
     }
 }
