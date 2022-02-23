@@ -28,6 +28,7 @@ import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.utils;
 import dk.aau.cs.daisy.edao.utilities.HungarianAlgorithm;
 import dk.aau.cs.daisy.edao.utilities.ppr;
+import dk.aau.cs.daisy.edao.commands.parser.ParsingException;
 
 import org.neo4j.driver.exceptions.AuthenticationException;
 import org.neo4j.driver.exceptions.ServiceUnavailableException;
@@ -35,6 +36,12 @@ import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 
 import picocli.CommandLine;
 import me.tongfei.progressbar.*;
+
+import dk.aau.cs.daisy.edao.connector.DBDriver;
+import dk.aau.cs.daisy.edao.connector.SQLite;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 
 @picocli.CommandLine.Command(name = "search", description = "searched the index for tables matching the input tuples")
 public class SearchTables extends Command {
@@ -108,6 +115,10 @@ public class SearchTables extends Command {
 
     @CommandLine.Option(names = { "-upe", "--usePretrainedEmbeddings"}, description = "If specified, pre-trained embeddings are used to capture the similarity between two entities whenever possible")
     private boolean usePretrainedEmbeddings;
+
+    @CommandLine.Option(names = { "-ajs", "--adjustedJaccardSimilarity"}, description = "If specified, the Jaccard similarity between two entities can only be one if the two entities compared are identical. " + 
+        "If two different entities share the same types then assign an adjusted score of 0.95. ")
+    private boolean adjustedJaccardSimilarity;
 
     @CommandLine.Option(names = { "-wppr", "--weightedPPR"}, description = "If specified, the number of particles given to each query node depends on their number of edges and IDF scores.")
     private boolean weightedPPR;
@@ -200,6 +211,11 @@ public class SearchTables extends Command {
     }
 
     private Neo4jEndpoint connector;
+
+    // Initialize a connection with the Entities Database
+    private static final String DB_NAME = "embeddings.db";
+    private static final String DB_PATH = "./";
+    SQLite entitiesDB = SQLite.init(DB_NAME, DB_PATH);
 
     @Override
     public Integer call() {
@@ -568,7 +584,7 @@ public class SearchTables extends Command {
     public boolean hasEmbeddingCoverage(List<String> queryEntities, Map<Integer, String> colIdToEntity, List<List<Integer>> tupleToColumnMappings, Integer queryTupleID) {       
         // Ensure that all query entities have an embedding
         for (String qEnt : queryEntities) {
-            if (!entityToEmbedding.containsKey(qEnt)) {
+            if (!entityExists(qEnt)) {
                 System.out.println("Missing query entity: " + qEnt);
                 hasEmbeddingCoverageFails += 1;
                 queryEntitiesMissingCoverage.add(qEnt);
@@ -593,7 +609,7 @@ public class SearchTables extends Command {
 
         // Loop over all relevant row entities and ensure there is a pre-trained embedding mapping for each one
         for (String rowEnt : relevant_row_ents) {
-            if (!entityToEmbedding.containsKey(rowEnt)) {
+            if (!entityExists(rowEnt)) {
                 hasEmbeddingCoverageFails += 1;
                 return false;
             }
@@ -696,6 +712,11 @@ public class SearchTables extends Command {
      * However if 'usePretrainedEmbeddings' is specified and there exist embeddings for both entities 
      * then use the angular distance between the two embedding vectors as the score.
      * 
+     * If 'usePretrainedEmbeddings' is not specified but 'adjustedJaccardSimilarity' is specified then 
+     * an adjusted Jaccard similarity between two entities is used where the similarity score is 1 only if the two entities are identical.
+     * Otherwise a maximum similarity score is placed if the two entities are different 
+
+     * 
      * Returns a number between 0 and 1    
      */
     public double entitySimilarityScore(String ent1, String ent2) {
@@ -711,15 +732,32 @@ public class SearchTables extends Command {
                 entTypes2 = new HashSet<String>(entityTypes.get(ent2));
             }
 
-            return JaccardSimilarity.make(entTypes1, entTypes2).similarity();
+            if (adjustedJaccardSimilarity) {
+                if (ent1.equals(ent2)) {
+                    // The two entities compared are equal so return a score of 1.0
+                    return 1.0;
+                }
+                else {
+                    // The two entities compared are different. Impose a maximum possible score less than 1.0
+                    double max_score = 0.95;
+                    double score = JaccardSimilarity.make(entTypes1, entTypes2).similarity();
+                    if (score > max_score) {
+                        return max_score;
+                    }
+                    return score;
+                    }
+            }
+            else {
+                return JaccardSimilarity.make(entTypes1, entTypes2).similarity();
+            }
         }
 
         // Check if the `usePretrainedEmbeddings` mode is specified and if there are embeddings for both entities
-        if (usePretrainedEmbeddings && entityToEmbedding.containsKey(ent1) && entityToEmbedding.containsKey(ent2)) {
+        if (usePretrainedEmbeddings && entityExists(ent1) && entityExists(ent2)) {
             
             // Compute the appropriate score based on the specified EmbeddingSimFunction
             String embSimFunction = embeddingSimFunction.getEmbeddingSimFunction();
-            Double cosineSim = utils.cosineSimilarity(entityToEmbedding.get(ent1), entityToEmbedding.get(ent2));
+            Double cosineSim = utils.cosineSimilarity(getEmbeddingVector(ent1), getEmbeddingVector(ent2));
             Double simScore = 0.0;
             if (embSimFunction.equals("norm_cos")) {
                 simScore = (cosineSim + 1.0) / 2.0;
@@ -1128,5 +1166,42 @@ public class SearchTables extends Command {
         System.out.println("Finished constructing the filenameToScore.json file.");
     }
 
+    /**
+     * Returns true if the specified entity exists
+     */
+    public boolean entityExists(String entity) {
+        try {
+            ResultSet rs = entitiesDB.select("SELECT * FROM Embeddings WHERE entityIRI='" + entity + "' LIMIT 1;");
+            if (!rs.isBeforeFirst() ) {    
+                return false; 
+            }   
+            return true;
+        }
+        catch (SQLException exc) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns the embedding vector for the specified entity.
+     * 
+     * The entity specified must exist in the database! If it isn't then an uninitialized vector is returned
+     */
+    public List<Double> getEmbeddingVector(String entity) {
+        List<Double> embeddingVector = new ArrayList();
+
+        try {
+            ResultSet rs = entitiesDB.select("SELECT * FROM Embeddings WHERE entityIRI='" + entity + "' LIMIT 1;");
+            rs.next();
+            String[] embeddingVectorString = rs.getString(2).split(",");
+            for (String e : embeddingVectorString) {
+                embeddingVector.add(Double.parseDouble(e));
+            }
+            return embeddingVector;        
+        }
+        catch (SQLException exc) {
+            return embeddingVector;
+        }
+    }
 
 }
