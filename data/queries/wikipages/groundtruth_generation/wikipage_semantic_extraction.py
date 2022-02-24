@@ -155,7 +155,7 @@ if __name__ == "__main__":
     parser.add_argument('--output_dir', help='Path to where the output files will will be saved', required=True)
 
     parser.add_argument('--mode', choices=['categories', 'navigation_links', 'all'], default='categories', 
-        help='Path to where the output files will will be saved')
+        help='Mode used to extract semantic attributes given a wikipage.')
 
     args = parser.parse_args()
 

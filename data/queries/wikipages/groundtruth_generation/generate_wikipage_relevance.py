@@ -8,7 +8,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 '''
-Python script to compute the similarity scores between wikipages based on their identified categories
+Python script to compute the similarity scores between wikipages based on their identified categories or navigation links
 The similarity scores are used as the relevance scores for a given wikipage.
 A relevance scores ranking is produced for each wikipage 
 
@@ -16,9 +16,13 @@ python generate_wikipage_relevance.py --wikipages_df ../../../tables/wikipages/w
 --category_to_num_occurrences_path wikipage_relevance_scores/wikipages_expanded_dataset/category_to_num_occurrences.json \
 --wikipage_to_categories_path wikipage_relevance_scores/wikipages_expanded_dataset/wikipage_to_categories.json \
 --output_dir wikipage_relevance_scores/wikipages_expanded_dataset/jaccard/ --similarity_mode jaccard
+
+python generate_wikipage_relevance.py --wikipages_df ../../../tables/wikipages/wikipages_dataset/wikipages_df.pickle \
+--input_dir wikipage_relevance_scores/wikipages_dataset/ --mode navigation_links \
+--output_dir wikipage_relevance_scores/wikipages_dataset/weighted_navigation_links/ --similarity_mode weighted
 '''
 
-def get_score(a, b, wikipage_to_categories, category_to_num_occurrences, similarity_mode='jaccard'):
+def get_score(a, b, wikipage_to_attributes, attribute_to_num_occurrences, similarity_mode='jaccard'):
     '''
     Compute the similarity between sets of categories `a` and `b`
     '''
@@ -31,16 +35,16 @@ def get_score(a, b, wikipage_to_categories, category_to_num_occurrences, similar
             return 0
         return len(intersection) / len(union)
     elif similarity_mode == 'weighted':
-        num_wikipages = len(wikipage_to_categories)
+        num_wikipages = len(wikipage_to_attributes)
 
         numerator_score = 0
         denominator_score = 0
 
         # Compute the the weighted scores by incorporating the IDF score of each category 
         for category in intersection:
-            numerator_score += math.log2(num_wikipages / category_to_num_occurrences[category])
+            numerator_score += math.log2(num_wikipages / attribute_to_num_occurrences[category])
         for category in union:
-            denominator_score += math.log2(num_wikipages / category_to_num_occurrences[category])
+            denominator_score += math.log2(num_wikipages / attribute_to_num_occurrences[category])
 
         if denominator_score == 0:
             return 0
@@ -48,24 +52,27 @@ def get_score(a, b, wikipage_to_categories, category_to_num_occurrences, similar
         return numerator_score / denominator_score 
 
 
-def compute_similarity_scores(cur_wikipage, wikipage_to_categories, category_to_num_occurrences, similarity_mode):
+def compute_similarity_scores(cur_wikipage, wikipage_to_attributes, attribute_to_num_occurrences, similarity_mode):
     '''
     Returns a dictionary of the similarity scores of `cur_wikipage` with respect to all other wikipages
     in `wikipage_to_categories`.
     If the similarity score between `cur_wikipage` and another wikipage is 0 then it is omitted from the returned dictionary
     '''
     similarity_scores_dict = {}
-    cur_wikipage_categories = set(wikipage_to_categories[cur_wikipage])
+    cur_wikipage_categories = set(wikipage_to_attributes[cur_wikipage])
 
-    for wikipage in wikipage_to_categories:
-        wikipage_categories = set(wikipage_to_categories[wikipage])
+    for wikipage in wikipage_to_attributes:
+        wikipage_categories = set(wikipage_to_attributes[wikipage])
 
         score = get_score(
             a=cur_wikipage_categories, b=wikipage_categories,
-            wikipage_to_categories=wikipage_to_categories,
-            category_to_num_occurrences=category_to_num_occurrences, similarity_mode=similarity_mode)
+            wikipage_to_attributes=wikipage_to_attributes,
+            attribute_to_num_occurrences=attribute_to_num_occurrences,
+            similarity_mode=similarity_mode
+        )
 
         if score != 0:
+            # TODO: Maybe instead of checking if the score isn't zero check that it is above a minimum threshold value
             similarity_scores_dict[wikipage] = score   
 
     # Sort the `similarity_scores_dict` in descending order
@@ -75,10 +82,17 @@ def compute_similarity_scores(cur_wikipage, wikipage_to_categories, category_to_
 
 def main(args):
     df = pd.read_pickle(args.wikipages_df)
-    with open(args.category_to_num_occurrences_path) as fp:
-        category_to_num_occurrences = json.load(fp)
-    with open(args.wikipage_to_categories_path) as fp:
-        wikipage_to_categories = json.load(fp)
+
+    if args.mode == 'categories':
+        with open(args.input_dir + 'category_to_num_occurrences.json') as fp:
+            attribute_to_num_occurrences = json.load(fp)
+        with open(args.input_dir + 'wikipage_to_categories.json') as fp:
+            wikipage_to_attributes = json.load(fp)
+    elif args.mode == 'navigation_links':
+        with open(args.input_dir + 'link_to_num_occurrences.json') as fp:
+            attribute_to_num_occurrences = json.load(fp)
+        with open(args.input_dir + 'wikipage_to_links.json') as fp:
+            wikipage_to_attributes = json.load(fp)
 
     for _, row in tqdm(df.iterrows(), total=len(df.index)):
         wikipage_name = row['wikipage'].split('/')[-1]
@@ -87,11 +101,11 @@ def main(args):
         similarity_scores_dict = {}
 
         # Check if wikipage_name exists in `wikipage_to_categories` if not then only itself is marked as relevant with a score of 1
-        if wikipage_name in wikipage_to_categories:
+        if wikipage_name in wikipage_to_attributes:
             similarity_scores_dict = compute_similarity_scores(
                 cur_wikipage = wikipage_name,
-                wikipage_to_categories = wikipage_to_categories,
-                category_to_num_occurrences=category_to_num_occurrences,
+                wikipage_to_attributes = wikipage_to_attributes,
+                attribute_to_num_occurrences=attribute_to_num_occurrences,
                 similarity_mode=args.similarity_mode
             )          
 
@@ -107,14 +121,21 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--wikipages_df', help='Path to the wikipages_df file specifying all wikipages in the dataset.', required=True)
-    parser.add_argument('--category_to_num_occurrences_path', help='Path to the `category_to_num_occurrences.json` file', required=True)
-    parser.add_argument('--wikipage_to_categories_path', help='Path to the `wikipage_to_categories.json` file', required=True)
-
+    # parser.add_argument('--category_to_num_occurrences_path', help='Path to the `category_to_num_occurrences.json` file', required=True)
+    # parser.add_argument('--wikipage_to_categories_path', help='Path to the `wikipage_to_categories.json` file', required=True)
+   
+    parser.add_argument('--input_dir', help='Path to directory where the appropriate attribute dictionaries are stored \
+        (i.e., the directory containing the wikipage to categories or wikipage to navigation links dictionaries)', required=True)
     parser.add_argument('--output_dir', help='Path to where the relevance scores for each wikipage are stored', required=True)
+
+    # TODO: Add a third mode that combines information from both he categories and navigation links
+    parser.add_argument('--mode', choices=['categories', 'navigation_links'], default='categories', 
+        help='Mode used to extract semantic attributes given a wikipage.')
+
     parser.add_argument('--similarity_mode', choices=['jaccard', 'weighted'], default='jaccard', \
         help='Mode used for computing the similarity in attributes between two wikipages. \
-        If `jaccard` then the jaccard similarity between the categories between wikipages is used. \
-        If `weighted` then the weighted jaccard similarity based on the IDF scores of each category is used')
+        If `jaccard` then the jaccard similarity is used. \
+        If `weighted` then the weighted jaccard similarity based on the IDF scores of each attribute is used')
     
     args = parser.parse_args()
 
