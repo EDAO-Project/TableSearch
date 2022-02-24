@@ -12,10 +12,10 @@ Python script to compute the similarity scores between wikipages based on their 
 The similarity scores are used as the relevance scores for a given wikipage.
 A relevance scores ranking is produced for each wikipage 
 
-python generate_wikipage_relevance.py --wikipages_df ../query_dataframes/minTupleWidth_all_tuplesPerQuery_all.pickle \
---category_to_num_occurrences_path category_to_num_occurrences.json \
---wikipage_to_categories_path wikipage_to_categories.json \
---output_dir wikipage_relevance_scores/weighted/ --similarity_mode weighted
+python generate_wikipage_relevance.py --wikipages_df ../../../tables/wikipages/wikipages_expanded_dataset/wikipages_df.pickle \
+--category_to_num_occurrences_path wikipage_relevance_scores/wikipages_expanded_dataset/category_to_num_occurrences.json \
+--wikipage_to_categories_path wikipage_relevance_scores/wikipages_expanded_dataset/wikipage_to_categories.json \
+--output_dir wikipage_relevance_scores/wikipages_expanded_dataset/jaccard/ --similarity_mode jaccard
 '''
 
 def get_score(a, b, wikipage_to_categories, category_to_num_occurrences, similarity_mode='jaccard'):
@@ -106,7 +106,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--wikipages_df', help='Path to the wikipages_df file summarizing the wikipages to be used.', required=True)
+    parser.add_argument('--wikipages_df', help='Path to the wikipages_df file specifying all wikipages in the dataset.', required=True)
     parser.add_argument('--category_to_num_occurrences_path', help='Path to the `category_to_num_occurrences.json` file', required=True)
     parser.add_argument('--wikipage_to_categories_path', help='Path to the `wikipage_to_categories.json` file', required=True)
 

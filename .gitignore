@@ -18,10 +18,10 @@
 *.zip
 *.tar.gz
 *.rar
+**/__pycache__/
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
-
 
 # Custom Ignore Paths
 
@@ -68,6 +68,7 @@ evaluation/wikipages/eval_over_search_output/
 evaluation/wikipages/figures/
 
 Web-Table-Retrieval-Benchmark/data/
+Web-Table-Retrieval-Benchmark/elasticsearch-5.3.3
 
 
 # Custom Paths/Files to keep

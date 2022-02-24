@@ -177,7 +177,7 @@ python generate_queries.py --wikipages_df ../../tables/wikipages/wikipages_df.pi
 The following commands should be run inside docker
 ```bash
 # Construct the Index
-java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikipages/tables/ --output-dir /data/index/wikipages/
+java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_dataset/tables/ --output-dir /data/index/wikipages/
 
 
 ```
@@ -291,4 +291,4 @@ Attach to existing container (e.g., after detaching from a container use the fol
 # Useful Neo4j Commands
 
 Count the number of edges for node `http://dbpedia.org/resource/Harry_Potter`:
-* `bin/cypher-shell -u neo4j -p 'admin' "MATCH (a:Resource) WHERE a.uri in ['http://dbpedia.org/resource/Harry_Potter'] RETURN apoc.node.degree(a)`
+* `bin/cypher-shell -u neo4j -p 'admin' "MATCH (a:Resource) WHERE a.uri in ['http://dbpedia.org/resource/Harry_Potter'] RETURN apoc.node.degree(a)"`
