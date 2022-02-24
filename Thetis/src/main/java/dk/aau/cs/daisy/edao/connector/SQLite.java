@@ -3,7 +3,7 @@ package dk.aau.cs.daisy.edao.connector;
 import java.sql.*;
 import java.util.List;
 
-public class SQLite implements DBDriver
+public class SQLite implements DBDriver<ResultSet, String>
 {
     private String errorMsg = null;
     private boolean error = false;
@@ -111,6 +111,12 @@ public class SQLite implements DBDriver
             setError(e.getMessage());
             return false;
         }
+    }
+
+    @Override
+    public boolean drop(String query)
+    {
+        throw new UnsupportedOperationException("Dropping tables is not yet supported");
     }
 
     public boolean migrate(List<String> tableNames, String dbName, String path)
