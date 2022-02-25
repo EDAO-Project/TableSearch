@@ -10,7 +10,6 @@ import io.milvus.param.collection.*;
 import io.milvus.param.dml.InsertParam;
 import io.milvus.param.dml.QueryParam;
 import io.milvus.param.index.CreateIndexParam;
-import io.milvus.response.QueryResultsWrapper;
 
 import java.util.ArrayList;
 import java.util.List;

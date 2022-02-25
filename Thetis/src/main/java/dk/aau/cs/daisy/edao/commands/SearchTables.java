@@ -23,6 +23,8 @@ import com.google.gson.JsonElement;
 import com.google.common.reflect.TypeToken;
 import java.lang.reflect.Type;
 
+import dk.aau.cs.daisy.edao.commands.parser.EmbeddingsParser;
+import dk.aau.cs.daisy.edao.connector.EmbeddingStore;
 import dk.aau.cs.daisy.edao.similarity.JaccardSimilarity;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.utils;
@@ -138,6 +140,18 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = { "-topK", "--topK"}, description = "The top-k values to be returned when running PPR", defaultValue="100")
     private Integer topK;
 
+    @CommandLine.Option(names = {"-ep", "--embeddingsPath"}, description = "Path to embeddings database")
+    private String dbPath = null;
+
+    @CommandLine.Option(names = {"-mh", "--milvusHost"}, description = "Host name of running Milvus service")
+    private String milvusHost = null;
+
+    @CommandLine.Option(names = {"-mp", "--milvusPort"}, description = "Port of running Milvus service")
+    private int milvusPort = -1;
+
+    @CommandLine.Option(names = {"-ed", "--embeddingsDimension"}, description = "Dimension of embeddings vectors")
+    private int embeddingsDimension = -1;
+
     private File hashmapDir = null;
     @CommandLine.Option(names = { "-hd", "--hashmap-dir" }, paramLabel = "HASH_DIR", description = "Directory from which we load the hashmaps", defaultValue = "../data/index/wikitables/")
     public void setHashMapDirectory(File value) {
@@ -212,10 +226,8 @@ public class SearchTables extends Command {
 
     private Neo4jEndpoint connector;
 
-    // Initialize a connection with the Entities Database
-    private static final String DB_NAME = "embeddings.db";
-    private static final String DB_PATH = "./";
-    SQLite entitiesDB = SQLite.init(DB_NAME, DB_PATH);
+    // Initialize a connection with the embeddings Database
+    private EmbeddingStore store;
 
     @Override
     public Integer call() {
@@ -229,6 +241,9 @@ public class SearchTables extends Command {
         if (!outputDir.exists()) {
             outputDir.mkdirs();
         }
+
+        if (this.dbPath != null && this.milvusHost != null && this.milvusPort != -1 && this.embeddingsDimension != -1)
+            this.store = new EmbeddingStore(this.dbPath, this.milvusHost, this.milvusPort, this.embeddingsDimension);
 
         // Read off the queryEntities list from a json object
         queryEntities = this.parseQuery(queryFile);
@@ -1171,13 +1186,10 @@ public class SearchTables extends Command {
      */
     public boolean entityExists(String entity) {
         try {
-            ResultSet rs = entitiesDB.select("SELECT * FROM Embeddings WHERE entityIRI='" + entity + "' LIMIT 1;");
-            if (!rs.isBeforeFirst() ) {    
-                return false; 
-            }   
+            this.store.select(entity);
             return true;
         }
-        catch (SQLException exc) {
+        catch (IllegalArgumentException exc) {
             return false;
         }
     }
@@ -1185,22 +1197,14 @@ public class SearchTables extends Command {
     /**
      * Returns the embedding vector for the specified entity.
      * 
-     * The entity specified must exist in the database! If it isn't then an uninitialized vector is returned
+     * The entity specified must exist in the database! If it isn't then an empty vector is returned
      */
     public List<Double> getEmbeddingVector(String entity) {
-        List<Double> embeddingVector = new ArrayList();
-
         try {
-            ResultSet rs = entitiesDB.select("SELECT * FROM Embeddings WHERE entityIRI='" + entity + "' LIMIT 1;");
-            rs.next();
-            String[] embeddingVectorString = rs.getString(2).split(",");
-            for (String e : embeddingVectorString) {
-                embeddingVector.add(Double.parseDouble(e));
-            }
-            return embeddingVector;        
+            return this.store.select(entity);
         }
-        catch (SQLException exc) {
-            return embeddingVector;
+        catch (IllegalArgumentException exception) {
+            return List.of();
         }
     }
 
