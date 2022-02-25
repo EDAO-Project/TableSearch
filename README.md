@@ -53,11 +53,11 @@ Create a folder `embeddings` in `data`. Move the embeddings file `vectors.txt` i
     wget https://raw.githubusercontent.com/milvus-io/milvus/v2.0.1/configs/milvus.yaml
     ```
     
-2. Start Milvus
+2. Start Milvus in a tmux session
 
     ```
-    docker-compose up -d
-    docker compose up &
+    sudo docker-compose up -d
+    sudo docker compose up
     ```
     
 3. Check Milvus is running with `docker-compose ps`. You should now see the following output
@@ -76,7 +76,7 @@ Create a folder `embeddings` in `data`. Move the embeddings file `vectors.txt` i
    docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
    cd /src
    mvn package
-   java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o data/embeddings -h localhost -p 19530 -dim
+   java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o data/embeddings -h localhost -p 19530 -dim 200
    ```
 
    Add the option `-db` or `--disable-parsing` to skip pre-parsing the embeddings file before insertion.
