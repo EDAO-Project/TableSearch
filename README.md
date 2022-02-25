@@ -53,11 +53,11 @@ Create a folder `embeddings` in `data`. Move the embeddings file `vectors.txt` i
     wget https://raw.githubusercontent.com/milvus-io/milvus/v2.0.1/configs/milvus.yaml
     ```
     
-2. Start Milvus
+2. Start Milvus in a tmux session
 
     ```
     docker-compose up -d
-    docker compose up &
+    docker compose up
     ```
     
 3. Check Milvus is running with `docker-compose ps`. You should now see the following output
