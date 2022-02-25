@@ -41,6 +41,45 @@ The reference KG is DBpedia.
    
    Take a look at: https://gist.github.com/kuzeko/7ce71c6088c866b0639c50cf9504869a for more details on setting up Neo4J
 
+### Embeddings
+
+Generate RDF embeddings by following the steps in the README in the <a href="https://github.com/EDAO-Project/DBpediaEmbedding">DBpediaEmbedding</a> repository. 
+Create a folder `embeddings` in `data`. Move the embeddings file `vectors.txt` into the `data/embeddings` folder.
+
+1. Enter the `data/embeddings` directory and download the Milvus Docker Compose file and its configuration file
+
+    ```
+    wget https://github.com/milvus-io/milvus/releases/download/v2.0.1/milvus-standalone-docker-compose.yml -O docker-compose.yml
+    wget https://raw.githubusercontent.com/milvus-io/milvus/v2.0.1/configs/milvus.yaml
+    ```
+    
+2. Start Milvus
+
+    ```
+    docker-compose up -d
+    docker compose up &
+    ```
+    
+3. Check Milvus is running with `docker-compose ps`. You should now see the following output
+
+    ```
+          Name                     Command                  State                          Ports
+    ----------------------------------------------------------------------------------------------------------------
+    milvus-etcd         etcd -listen-peer-urls=htt ...   Up (healthy)   2379/tcp, 2380/tcp
+    milvus-minio        /usr/bin/docker-entrypoint ...   Up (healthy)   9000/tcp
+    milvus-standalone   /tini -- milvus run standalone   Up             0.0.0.0:19530->19530/tcp,:::19530->19530/tcp
+    ```
+
+4. Milvus is now accessible on port 19530. Enter the project root directory and load embeddings into a Milvus instance, which also requires using SQLite
+
+   ```
+   docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
+   cd /src
+   mvn package
+   java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o data/embeddings -h localhost -p 19530 -dim
+   ```
+
+   Add the option `-db` or `--disable-parsing` to skip pre-parsing the embeddings file before insertion.
 
 ### Table Datasets
 
@@ -264,21 +303,6 @@ Then once the server is running simply visit http://localhost:4567/ in your brow
   ```
 
 2. Run preprocessing script for indexing
-
-## DBpedia RDF Embeddings
-
-Generate RDF embeddings by following the steps in the README in the <a href="https://github.com/EDAO-Project/DBpediaEmbedding">DBpediaEmbedding</a> repository. 
-Create a folder `embeddings` in `data`. Move the embeddings file `vectors.txt` into the `data/embeddings` folder.
-
-The embeddings will be loaded into an SQLite database with a relation of two attributes in the working directory: _entityIRI_ of type string and _embedding_ of type float[] (float array).
-
-Build the project and run the _embedding_ command from within the container
-```
-docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
-cd /src
-mvn package
-java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt
-```
 
 # Useful Docker Commands
 
