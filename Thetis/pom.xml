@@ -117,6 +117,12 @@
       <version>3.15.1</version>
     </dependency>
 
+    <dependency>
+      <groupId>io.milvus</groupId>
+      <artifactId>milvus-sdk-java</artifactId>
+      <version>2.0.4</version>
+    </dependency>
+
   </dependencies>
 
   <build>
