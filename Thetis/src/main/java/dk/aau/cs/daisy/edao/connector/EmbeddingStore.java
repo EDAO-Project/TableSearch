@@ -166,7 +166,7 @@ public class EmbeddingStore implements DBDriver<List<Double>, String>
      * @param vectors List of vectors
      * @return True if batch insertion succeeded
      */
-    public boolean batchInsert(List<String> iris, List<List<Double>> vectors)
+    public boolean batchInsert(List<String> iris, List<List<Float>> vectors)
     {
         List<Long> ids = addIris(iris);
         InsertParam.Field idField = new InsertParam.Field("id", DataType.Int64, ids),
