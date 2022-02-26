@@ -5,6 +5,7 @@ import io.milvus.grpc.QueryResults;
 import io.milvus.param.collection.FieldType;
 import io.milvus.param.dml.InsertParam;
 import io.milvus.response.QueryResultsWrapper;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -156,6 +157,37 @@ public class EmbeddingStore implements DBDriver<List<Double>, String>
         {
             return -1;
         }
+    }
+
+    /**
+     * Batch insertion
+     * @param iris List of IRIs
+     * @param vectors List of vectors
+     * @return True if batch insertion succeeded
+     */
+    public boolean batchInsert(List<String> iris, List<List<Double>> vectors)
+    {
+        List<Long> ids = addIris(iris);
+        InsertParam.Field idField = new InsertParam.Field("id", DataType.Int64, ids),
+                embeddingField = new InsertParam.Field("embedding", DataType.FloatVector, vectors);
+        MilvusCommand command = Milvus.createCommand(MilvusCommand.Type.UPDATE, collectionName);
+        command.addProperty(idField);
+        command.addProperty(embeddingField);
+
+        return this.milvus.update(command);
+    }
+
+    private List<Long> addIris(List<String> iris)
+    {
+        List<Long> ids = new ArrayList<>();
+
+        for (String iri : iris)
+        {
+            this.sqlite.update("INSERT INTO " + tableName + " (iri) VALUES ('" + iri + "');");
+            ids.add(getIriId(iri));
+        }
+
+        return ids;
     }
 
     /**

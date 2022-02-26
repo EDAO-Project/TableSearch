@@ -7,7 +7,9 @@ import dk.aau.cs.daisy.edao.connector.EmbeddingStore;
 import picocli.CommandLine;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @picocli.CommandLine.Command(name = "embedding", description = "Loads embedding vectors into an SQLite database")
 public class LoadEmbedding extends Command
@@ -112,24 +114,19 @@ public class LoadEmbedding extends Command
         }
     }
 
-    private static void setupDBTable(DBDriver db)
-    {
-        db.update("CREATE TABLE Embeddings (" +
-                            "entityIRI VARCHAR(100) PRIMARY KEY," +
-                            "embedding VARCHAR(1000) NOT NULL);");
-    }
-
     private static int insertEmbeddings(EmbeddingStore db, EmbeddingsParser parser, int batchSize)
     {
         String entity = null;
-        StringBuilder embeddingBuilder = null;
+        List<List<Double>> vectors = new ArrayList<>(batchSize);
+        List<Double> embedding = new ArrayList<>();
+        List<String> iris = new ArrayList<>(batchSize);
         int count = 0, loaded = 0;
         EmbeddingsParser.EmbeddingToken prev = parser.prev(), token;
 
         if (prev != null && prev.getToken() == EmbeddingsParser.EmbeddingToken.Token.ENTITY)
         {
             entity = prev.getLexeme();
-            embeddingBuilder = new StringBuilder();
+            iris.add(entity);
             count++;
             loaded = entity.length() + 1;
         }
@@ -139,24 +136,23 @@ public class LoadEmbedding extends Command
             if (token.getToken() == EmbeddingsParser.EmbeddingToken.Token.ENTITY)
             {
                 if (entity != null)
-                {
-                    if (db.update(entity + " " + embeddingBuilder))
-                        loaded += entity.length() + 1;
-                }
+                    vectors.add(embedding);
 
                 entity = token.getLexeme();
-                embeddingBuilder = new StringBuilder();
+                iris.add(entity);
+                embedding.clear();
                 count++;
+                loaded += entity.length() + 1;
             }
 
             else
             {
                 String lexeme = token.getLexeme();
+                embedding.add(Double.parseDouble(lexeme));
                 loaded += lexeme.length() + 1;
-                embeddingBuilder.append(lexeme).append(",");
             }
         }
 
-        return loaded;
+        return db.batchInsert(iris, vectors) ? loaded : 0;
     }
 }
