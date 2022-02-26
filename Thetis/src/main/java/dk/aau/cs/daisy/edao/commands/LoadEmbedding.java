@@ -135,7 +135,7 @@ public class LoadEmbedding extends Command
             if (token.getToken() == EmbeddingsParser.EmbeddingToken.Token.ENTITY)
             {
                 if (entity != null)
-                    vectors.add(embedding);
+                    vectors.add(new ArrayList<>(embedding));
 
                 entity = token.getLexeme();
                 iris.add(entity);
