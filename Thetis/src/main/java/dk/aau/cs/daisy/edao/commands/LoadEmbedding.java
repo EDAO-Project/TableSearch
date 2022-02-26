@@ -116,8 +116,8 @@ public class LoadEmbedding extends Command
     private static int insertEmbeddings(EmbeddingStore db, EmbeddingsParser parser, int batchSize)
     {
         String entity = null;
-        List<List<Double>> vectors = new ArrayList<>(batchSize);
-        List<Double> embedding = new ArrayList<>();
+        List<List<Float>> vectors = new ArrayList<>(batchSize);
+        List<Float> embedding = new ArrayList<>();
         List<String> iris = new ArrayList<>(batchSize);
         int count = 0, loaded = 0;
         EmbeddingsParser.EmbeddingToken prev = parser.prev(), token;
@@ -147,7 +147,7 @@ public class LoadEmbedding extends Command
             else
             {
                 String lexeme = token.getLexeme();
-                embedding.add(Double.parseDouble(lexeme));
+                embedding.add(Float.parseFloat(lexeme));
                 loaded += lexeme.length() + 1;
             }
         }
