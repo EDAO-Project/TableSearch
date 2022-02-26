@@ -38,6 +38,7 @@ public class EmbeddingStore implements DBDriver<List<Double>, String>
 
     private void setup()
     {
+        drop(null);
         setupSqlite();
         setupMilvus();
     }

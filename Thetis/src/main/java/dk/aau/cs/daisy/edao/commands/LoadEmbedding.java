@@ -15,7 +15,6 @@ import java.util.List;
 public class LoadEmbedding extends Command
 {
     private static final char DELIMITER = ' ';
-    private static final String DB_NAME = "embeddings.db";
     private String dbPath = "./";
 
     @CommandLine.Spec
@@ -65,7 +64,6 @@ public class LoadEmbedding extends Command
 
             EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile), DELIMITER);
             EmbeddingStore store = new EmbeddingStore(this.dbPath, this.host, this.port, this.dimension);
-            store.drop(null);
             int batchSize = 100, batchSizeCount = batchSize;
             double loaded = 0;
 
