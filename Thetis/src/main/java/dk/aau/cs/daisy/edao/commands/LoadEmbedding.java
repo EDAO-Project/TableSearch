@@ -65,6 +65,7 @@ public class LoadEmbedding extends Command
 
             EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile), DELIMITER);
             EmbeddingStore store = new EmbeddingStore(this.dbPath, this.host, this.port, this.dimension);
+            store.drop(null);
             int batchSize = 100, batchSizeCount = batchSize;
             double loaded = 0;
 
@@ -152,6 +153,9 @@ public class LoadEmbedding extends Command
                 loaded += lexeme.length() + 1;
             }
         }
+
+        if (!iris.isEmpty())
+            iris.remove(iris.size() - 1);
 
         return db.batchInsert(iris, vectors) ? loaded : 0;
     }
