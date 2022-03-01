@@ -28,7 +28,7 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
 
             if (this.driver instanceof Postgres)
             {
-                if (!sql.update("CREATE TABLE " + COLLECTION_NAME + " (" +
+                if (!sql.update("CREATE TABLE IF NOT EXISTS " + COLLECTION_NAME + " (" +
                         IRI_FIELD + " VARCHAR(100) PRIMARY KEY, " +
                         EMBEDDING_FIELD + " FLOAT[] NOT NULL);"))
                     throw new RuntimeException("Setup failed: EmbeddingDBWrapper");
@@ -36,7 +36,7 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
 
             else
             {
-                if (!sql.update("CREATE TABLE Embeddings (" +
+                if (!sql.update("CREATE TABLE IF NOT EXISTS " + COLLECTION_NAME + " (" +
                         IRI_FIELD + " VARCHAR(100) PRIMARY KEY, " +
                         EMBEDDING_FIELD + " VARCHAR(1000) NOT NULL);"))
                     throw new RuntimeException("Setup failed: EmbeddingDBWrapper");

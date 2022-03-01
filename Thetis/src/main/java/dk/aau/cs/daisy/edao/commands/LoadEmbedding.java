@@ -148,7 +148,7 @@ public class LoadEmbedding extends Command
                 else
                     log("LOAD BATCH [" + batchSizeCount + "] - " + loaded + " mb");
 
-                batchSizeCount += batchSize;
+                batchSizeCount += bytes > 0 ? batchSize : 0;
             }
 
             wrapper.close();
