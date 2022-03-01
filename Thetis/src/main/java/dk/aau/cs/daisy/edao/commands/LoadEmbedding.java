@@ -2,8 +2,7 @@ package dk.aau.cs.daisy.edao.commands;
 
 import dk.aau.cs.daisy.edao.commands.parser.EmbeddingsParser;
 import dk.aau.cs.daisy.edao.commands.parser.ParsingException;
-import dk.aau.cs.daisy.edao.connector.DBDriver;
-import dk.aau.cs.daisy.edao.connector.EmbeddingStore;
+import dk.aau.cs.daisy.edao.connector.*;
 import picocli.CommandLine;
 
 import java.io.*;
@@ -32,23 +31,35 @@ public class LoadEmbedding extends Command
         this.embeddingsFile = value;
     }
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "Output path of database instance")
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output path of database instance (only required for SQLite and Milvus)")
     public void setOutputPath(String path)
     {
         this.dbPath = path;
     }
 
-    @CommandLine.Option(names = {"-db", "--disable-parsing"}, description = "Disables pre-parsing of embeddings file", defaultValue = "true")
+    @CommandLine.Option(names = {"-dp", "--disable-parsing"}, description = "Disables pre-parsing of embeddings file", defaultValue = "true")
     private boolean doParse;
 
-    @CommandLine.Option(names = {"-h", "--host"}, description = "Host name of running Milvus server", required = true)
-    private String host;
+    @CommandLine.Option(names = {"-h", "--host"}, description = "Host name of running Milvus or Postgres server")
+    private String host = null;
 
-    @CommandLine.Option(names = {"-p", "--port"}, description = "Port of running Milvus server", required = true)
-    private int port;
+    @CommandLine.Option(names = {"-p", "--port"}, description = "Port of running Milvus or Postgres server")
+    private int port = -1;
 
-    @CommandLine.Option(names = {"-dim", "--dimension"}, description = "Embeddings vector dimension", required = true)
-    private int dimension;
+    @CommandLine.Option(names = {"-dim", "--dimension"}, description = "Embeddings vector dimension (only required for Milvus)")
+    private int dimension = -1;
+
+    @CommandLine.Option(names = {"-db", "--database"}, description = "Type of database to store embeddings (sqlite, postgres, milvus)", required = true)
+    private String dbType;
+
+    @CommandLine.Option(names = {"-dbn", "--database-name"}, description = "Database name (only required for SQLite and Postgres)")
+    private String dbName = null;
+
+    @CommandLine.Option(names = {"-u", "--username"}, description = "Postgres username")
+    private String psUsername = null;
+
+    @CommandLine.Option(names = {"-pw", "--password"}, description = "Postgres password")
+    private String psPassword = null;
 
     @Override
     public Integer call()
@@ -62,14 +73,73 @@ public class LoadEmbedding extends Command
                 log("Parsing complete");
             }
 
+            DBDriver<?, ?> db;
             EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile), DELIMITER);
-            EmbeddingStore store = new EmbeddingStore(this.dbPath, this.host, this.port, this.dimension);
+
+            if (this.dbType.equals("sqlite"))
+            {
+                if (this.dbName == null)
+                {
+                    System.err.println("Missing DB name for SQLite");
+                    return 1;
+                }
+
+                db = SQLite.init(this.dbName, this.dbPath);
+            }
+
+            else if (this.dbType.equals("postgres"))
+            {
+                if (this.dbName == null)
+                {
+                    System.err.println("Missing DB name for Postgres");
+                    return 1;
+                }
+
+                else if (this.host == null || this.port == -1)
+                {
+                    System.err.println("Missing service info (hostname and/or port) for Postgres");
+                    return 1;
+                }
+
+                else if (this.psUsername == null || this.psPassword == null)
+                {
+                    System.err.println("Missing login info for Postgres");
+                    return 1;
+                }
+
+                db = Postgres.init(this.host, this.port, this.dbName, this.psUsername, this.psPassword);
+            }
+
+            else if (this.dbType.equals("milvus"))
+            {
+                if (this.host == null || this.port == -1)
+                {
+                    System.err.println("Missing service info (hostname and/or port) for Milvus");
+                    return 1;
+                }
+
+                else if (this.dimension == -1)
+                {
+                    System.err.println("Missing vector dimension");
+                    return 1;
+                }
+
+                db = new EmbeddingStore(this.dbPath, this.host, this.port, this.dimension);
+            }
+
+            else
+            {
+                System.err.println("Could not setup database instance");
+                return 1;
+            }
+
+            EmbeddingDBWrapper wrapper = new EmbeddingDBWrapper(db, true);
             int batchSize = 100, batchSizeCount = batchSize;
             double loaded = 0;
 
             while (parser.hasNext())
             {
-                int bytes = insertEmbeddings(store, parser, batchSize);
+                int bytes = insertEmbeddings(wrapper, parser, batchSize);
                 loaded += (double) bytes / Math.pow(1024, 2);
 
                 if (bytes == 0)
@@ -81,7 +151,7 @@ public class LoadEmbedding extends Command
                 batchSizeCount += batchSize;
             }
 
-            store.close();
+            wrapper.close();
             return 0;
         }
 
@@ -113,7 +183,7 @@ public class LoadEmbedding extends Command
         }
     }
 
-    private static int insertEmbeddings(EmbeddingStore db, EmbeddingsParser parser, int batchSize)
+    private static int insertEmbeddings(DBDriverEmbedding<?, ?> db, EmbeddingsParser parser, int batchSize)
     {
         String entity = null;
         List<List<Float>> vectors = new ArrayList<>(batchSize);
