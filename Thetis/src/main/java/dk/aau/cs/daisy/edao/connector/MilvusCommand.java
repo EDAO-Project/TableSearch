@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-final class MilvusCommand
+public final class MilvusCommand
 {
     public enum Type {QUERY, UPDATE, CREATE}
 

@@ -16,7 +16,7 @@ import java.util.List;
  * Storage of embedding in a Milvus instance
  * SQLite is used to bi-directional mapping between entityIRIs and IDs
  */
-public class EmbeddingStore implements DBDriver<List<Double>, String>
+public class EmbeddingStore implements DBDriverEmbedding<List<Double>, String>, ExplainableCause
 {
     private Milvus milvus;
     private SQLite sqlite;
@@ -45,8 +45,8 @@ public class EmbeddingStore implements DBDriver<List<Double>, String>
 
     private void setupSqlite()
     {
-        boolean val = this.sqlite.updateSchema("CREATE TABLE IF NOT EXISTS " + tableName +
-                                                            " (id INTEGER PRIMARY KEY AUTOINCREMENT," +
+        boolean val = this.sqlite.updateSchema("CREATE TABLE IF NOT EXISTS " + tableName + " " +
+                                                            "(id INTEGER PRIMARY KEY AUTOINCREMENT," +
                                                             "iri VARCHAR(100) NOT NULL);");
 
         if (!val)
@@ -166,6 +166,7 @@ public class EmbeddingStore implements DBDriver<List<Double>, String>
      * @param vectors List of vectors
      * @return True if batch insertion succeeded
      */
+    @Override
     public boolean batchInsert(List<String> iris, List<List<Float>> vectors)
     {
         List<Long> ids = addIris(iris);
@@ -224,5 +225,19 @@ public class EmbeddingStore implements DBDriver<List<Double>, String>
     public boolean drop(String query)
     {
         return this.milvus.drop(Milvus.createCommand(MilvusCommand.Type.UPDATE, collectionName));
+    }
+
+    @Override
+    public String getError()
+    {
+        String sqliteErr = this.sqlite.getError(), milvusErr = this.milvus.getError();
+        return (sqliteErr != null ? sqliteErr : "") + (milvusErr != null ? milvusErr : "");
+    }
+
+    @Override
+    public String getStackTrace()
+    {
+        String sqliteTrace = this.sqlite.getStackTrace(), milvusTrace = this.milvus.getStackTrace();
+        return (sqliteTrace != null ? sqliteTrace : "") + (milvusTrace != null ? milvusTrace : "");
     }
 }

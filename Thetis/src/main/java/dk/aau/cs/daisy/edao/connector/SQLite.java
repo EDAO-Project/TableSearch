@@ -3,9 +3,9 @@ package dk.aau.cs.daisy.edao.connector;
 import java.sql.*;
 import java.util.List;
 
-public class SQLite implements DBDriver<ResultSet, String>
+public class SQLite implements DBDriver<ResultSet, String>, ExplainableCause
 {
-    private String errorMsg = null;
+    private String errorMsg = null, stackTrace = null;
     private boolean error = false;
     private Connection connection;
 
@@ -41,15 +41,22 @@ public class SQLite implements DBDriver<ResultSet, String>
 
         catch (ClassNotFoundException | SQLException e)
         {
-            setError(e.getMessage());
+            setError(e.getMessage(), e.getStackTrace());
             return false;
         }
     }
 
     // Returns null of no error has occurred
+    @Override
     public String getError()
     {
         return this.error ? this.errorMsg : null;
+    }
+
+    @Override
+    public String getStackTrace()
+    {
+        return this.error ? this.stackTrace : null;
     }
 
     @Override
@@ -67,7 +74,7 @@ public class SQLite implements DBDriver<ResultSet, String>
 
         catch (SQLException e)
         {
-            setError(e.getMessage());
+            setError(e.getMessage(), e.getStackTrace());
             return false;
         }
     }
@@ -86,7 +93,7 @@ public class SQLite implements DBDriver<ResultSet, String>
 
         catch (SQLException e)
         {
-            setError(e.getMessage());
+            setError(e.getMessage(), e.getStackTrace());
             return null;
         }
     }
@@ -108,7 +115,7 @@ public class SQLite implements DBDriver<ResultSet, String>
 
         catch (SQLException e)
         {
-            setError(e.getMessage());
+            setError(e.getMessage(), e.getStackTrace());
             return false;
         }
     }
@@ -135,9 +142,9 @@ public class SQLite implements DBDriver<ResultSet, String>
             return true;
         }
 
-        catch (ClassNotFoundException |SQLException exc)
+        catch (ClassNotFoundException | SQLException exc)
         {
-            setError(exc.getMessage());
+            setError(exc.getMessage(), exc.getStackTrace());
             return false;
         }
     }
@@ -158,14 +165,20 @@ public class SQLite implements DBDriver<ResultSet, String>
 
         catch (SQLException exc)
         {
-            setError(exc.getMessage());
+            setError(exc.getMessage(), exc.getStackTrace());
             return false;
         }
     }
 
-    private void setError(String msg)
+    private void setError(String msg, StackTraceElement[] stackTrace)
     {
         this.error = true;
         this.errorMsg = msg;
+        this.stackTrace = "";
+
+        for (StackTraceElement elem : stackTrace)
+        {
+            this.stackTrace += elem.toString() + "\n";
+        }
     }
 }
