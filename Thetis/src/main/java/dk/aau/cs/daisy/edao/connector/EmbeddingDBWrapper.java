@@ -227,7 +227,7 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
         if (iris.size() != vectors.size())
             return false;
 
-        DBDriver<ResultSet, String> sqLite = (DBDriver<ResultSet, String>) this.driver;
+        DBDriver<ResultSet, String> db = (DBDriver<ResultSet, String>) this.driver;
         StringBuilder builder = new StringBuilder("INSERT INTO " + COLLECTION_NAME + " VALUES ");
 
         for (int i = 0; i < iris.size(); i++)
@@ -243,6 +243,6 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
         }
 
         builder.deleteCharAt(builder.length() - 1).deleteCharAt(builder.length() - 1);
-        return sqLite.update(builder.toString());
+        return db.update(builder.append(";").toString());
     }
 }
