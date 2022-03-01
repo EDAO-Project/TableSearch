@@ -143,7 +143,7 @@ public class LoadEmbedding extends Command
                 loaded += (double) bytes / Math.pow(1024, 2);
 
                 if (bytes == 0)
-                    log("INSERTION ERROR");
+                    log("INSERTION ERROR: " + wrapper.getError());
 
                 else
                     log("LOAD BATCH [" + batchSizeCount + "] - " + loaded + " mb");

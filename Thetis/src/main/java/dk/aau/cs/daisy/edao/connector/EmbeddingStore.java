@@ -16,7 +16,7 @@ import java.util.List;
  * Storage of embedding in a Milvus instance
  * SQLite is used to bi-directional mapping between entityIRIs and IDs
  */
-public class EmbeddingStore implements DBDriverEmbedding<List<Double>, String>
+public class EmbeddingStore implements DBDriverEmbedding<List<Double>, String>, ExplainableCause
 {
     private Milvus milvus;
     private SQLite sqlite;
@@ -225,5 +225,19 @@ public class EmbeddingStore implements DBDriverEmbedding<List<Double>, String>
     public boolean drop(String query)
     {
         return this.milvus.drop(Milvus.createCommand(MilvusCommand.Type.UPDATE, collectionName));
+    }
+
+    @Override
+    public String getError()
+    {
+        String sqliteErr = this.sqlite.getError(), milvusErr = this.milvus.getError();
+        return (sqliteErr != null ? sqliteErr : "") + (milvusErr != null ? milvusErr : "");
+    }
+
+    @Override
+    public String getStackTrace()
+    {
+        String sqliteTrace = this.sqlite.getStackTrace(), milvusTrace = this.milvus.getStackTrace();
+        return (sqliteTrace != null ? sqliteTrace : "") + (milvusTrace != null ? milvusTrace : "");
     }
 }

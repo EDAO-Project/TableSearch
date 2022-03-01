@@ -2,9 +2,11 @@ package dk.aau.cs.daisy.edao.connector;
 
 import java.sql.*;
 
-public class Postgres implements DBDriver<ResultSet, String>
+public class Postgres implements DBDriver<ResultSet, String>, ExplainableCause
 {
     private Connection connection;
+    private boolean error = false;
+    private String errorMsg, stackTrace;
 
     public static Postgres init(String host, int port, String dbName, String user, String password)
     {
@@ -24,6 +26,7 @@ public class Postgres implements DBDriver<ResultSet, String>
 
         catch (SQLException | ClassNotFoundException exception)
         {
+            setError(exception.getMessage(), exception.getStackTrace());
             throw new IllegalArgumentException("Exception when initializing Postgres: " + exception.getMessage());
         }
     }
@@ -45,6 +48,7 @@ public class Postgres implements DBDriver<ResultSet, String>
 
         catch (SQLException e)
         {
+            setError(e.getMessage(), e.getStackTrace());
             return null;
         }
     }
@@ -62,13 +66,15 @@ public class Postgres implements DBDriver<ResultSet, String>
             Statement stmt = this.connection.createStatement();
             stmt.executeUpdate(query);
             stmt.close();
-            this.connection.commit();
+            commit();
 
             return true;
         }
 
         catch (SQLException e)
         {
+            setError(e.getMessage(), e.getStackTrace());
+            commit();
             return false;
         }
     }
@@ -99,6 +105,7 @@ public class Postgres implements DBDriver<ResultSet, String>
 
         catch (SQLException e)
         {
+            setError(e.getMessage(), e.getStackTrace());
             return false;
         }
     }
@@ -112,5 +119,44 @@ public class Postgres implements DBDriver<ResultSet, String>
     public boolean drop(String query)
     {
         return update(query);
+    }
+
+    private boolean commit()
+    {
+        try
+        {
+            this.connection.commit();
+            return true;
+        }
+
+        catch (SQLException exception)
+        {
+            setError(exception.getMessage(), exception.getStackTrace());
+            return false;
+        }
+    }
+
+    private void setError(String msg, StackTraceElement[] stackTrace)
+    {
+        this.error = true;
+        this.errorMsg = msg;
+        this.stackTrace = "";
+
+        for (StackTraceElement elem : stackTrace)
+        {
+            this.stackTrace += elem.toString() + "\n";
+        }
+    }
+
+    @Override
+    public String getError()
+    {
+        return error ? this.errorMsg : null;
+    }
+
+    @Override
+    public String getStackTrace()
+    {
+        return error ? this.stackTrace : null;
     }
 }

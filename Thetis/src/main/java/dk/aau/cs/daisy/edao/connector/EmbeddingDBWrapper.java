@@ -5,7 +5,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, String>
+public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, String>, ExplainableCause
 {
     private Object driver;
     private static final String IRI_FIELD = "iri";
@@ -29,7 +29,7 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
             if (this.driver instanceof Postgres)
             {
                 if (!sql.update("CREATE TABLE IF NOT EXISTS " + COLLECTION_NAME + " (" +
-                        IRI_FIELD + " VARCHAR(500) PRIMARY KEY, " +
+                        IRI_FIELD + " VARCHAR(1000) PRIMARY KEY, " +
                         EMBEDDING_FIELD + " FLOAT[] NOT NULL);"))
                     throw new RuntimeException("Setup failed: EmbeddingDBWrapper");
             }
@@ -37,7 +37,7 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
             else
             {
                 if (!sql.update("CREATE TABLE IF NOT EXISTS " + COLLECTION_NAME + " (" +
-                        IRI_FIELD + " VARCHAR(500) PRIMARY KEY, " +
+                        IRI_FIELD + " VARCHAR(1000) PRIMARY KEY, " +
                         EMBEDDING_FIELD + " VARCHAR(1000) NOT NULL);"))
                     throw new RuntimeException("Setup failed: EmbeddingDBWrapper");
             }
@@ -244,5 +244,23 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
 
         builder.deleteCharAt(builder.length() - 1).deleteCharAt(builder.length() - 1);
         return db.update(builder.append(";").toString());
+    }
+
+    @Override
+    public String getError()
+    {
+        if (this.driver instanceof ExplainableCause)
+            return ((ExplainableCause) this.driver).getError();
+
+        return null;
+    }
+
+    @Override
+    public String getStackTrace()
+    {
+        if (this.driver instanceof ExplainableCause)
+            return ((ExplainableCause) this.driver).getStackTrace();
+
+        return null;
     }
 }

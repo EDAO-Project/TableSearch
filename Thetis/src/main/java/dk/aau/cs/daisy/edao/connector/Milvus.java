@@ -19,9 +19,12 @@ import java.util.Set;
 /**
  * This class should only be used to populate and search, since deletion is not supported
  */
-public class Milvus implements DBDriver<QueryResults, MilvusCommand>
+public class Milvus implements DBDriver<QueryResults, MilvusCommand>, ExplainableCause
 {
     private MilvusServiceClient client;
+    private boolean error = false;
+    private String errorMsg;
+    private StackTraceElement[] stackTrace;
 
     public Milvus(String host, int port)
     {
@@ -65,7 +68,11 @@ public class Milvus implements DBDriver<QueryResults, MilvusCommand>
         ).getStatus();
 
         if (status != R.Status.Success.getCode())
+        {
+            this.error = true;
+            this.errorMsg = "Failed loading collection";
             return null;
+        }
 
         QueryParam.Builder search = QueryParam.newBuilder().withCollectionName(query.getCollectionName());
         String expr = getExpr(query);
@@ -131,7 +138,11 @@ public class Milvus implements DBDriver<QueryResults, MilvusCommand>
         for (Map.Entry<Object, String> property : properties)
         {
             if (!(property.getKey() instanceof InsertParam.Field))
+            {
+                this.error = true;
+                this.errorMsg = "A command property is not of type 'InsertParam.Field'";
                 return false;
+            }
 
             fields.add((InsertParam.Field) property.getKey());
         }
@@ -158,7 +169,11 @@ public class Milvus implements DBDriver<QueryResults, MilvusCommand>
         for (Map.Entry<Object, String> property : properties)
         {
             if (!(property.getKey() instanceof FieldType))
+            {
+                this.error = true;
+                this.errorMsg = "A command property is not of type 'FieldType'";
                 return false;
+            }
 
             builder.addFieldType((FieldType) property.getKey());
         }
@@ -199,5 +214,27 @@ public class Milvus implements DBDriver<QueryResults, MilvusCommand>
                         .withSyncMode(true)
                         .build()
         ).getStatus() == R.Status.Success.getCode();
+    }
+
+    @Override
+    public String getError()
+    {
+        return this.error ? this.errorMsg : null;
+    }
+
+    @Override
+    public String getStackTrace()
+    {
+        if (!this.error)
+            return null;
+
+        StringBuilder builder = new StringBuilder();
+
+        for (StackTraceElement elem : this.stackTrace)
+        {
+            builder.append(elem.toString()).append("\n");
+        }
+
+        return builder.toString();
     }
 }
