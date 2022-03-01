@@ -46,6 +46,8 @@ The reference KG is DBpedia.
 Generate RDF embeddings by following the steps in the README in the <a href="https://github.com/EDAO-Project/DBpediaEmbedding">DBpediaEmbedding</a> repository. 
 Create a folder `embeddings` in `data`. Move the embeddings file `vectors.txt` into the `data/embeddings` folder.
 
+#### Milvus
+
 1. Enter the `data/embeddings` directory and download the Milvus Docker Compose file and its configuration file
 
     ```
@@ -76,10 +78,55 @@ Create a folder `embeddings` in `data`. Move the embeddings file `vectors.txt` i
    docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
    cd /src
    mvn package
-   java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o data/embeddings -h localhost -p 19530 -dim 200
+   java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o data/embeddings -h localhost -p 19530 -dim 200 -db milvus
    ```
 
-   Add the option `-db` or `--disable-parsing` to skip pre-parsing the embeddings file before insertion.
+   Add the option `-dp` or `--disable-parsing` to skip pre-parsing the embeddings file before insertion.
+
+#### SQLite
+
+Enter the project root directory. Start parsing and inserting embeddings into an SQLite instance
+
+```
+docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
+cd /src
+mvn package
+java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o data/embeddings -db sqlite -dbn embeddings
+```
+
+Add the option `-dp` or `--disable-parsing` to skip pre-parsing the embeddings file before insertion.
+
+#### Postgres
+
+Enter the project root directory. Pull the Postgress image and setup a database
+
+```
+docker pull postgres
+docker run -e POSTGRES_USER=<USERNAME> -e POSTGRES_PASSWORD=<PASSWORD> -e POSTGRES_DB=embeddings --name db -d postgres
+```
+
+Choose a username and password and substitute `<USERNAME>` and `<PASSWORD>` with them.
+
+Extract the IP address of the Postgress container
+
+```
+docker exec -it db bash
+hostname -I
+```
+
+Remember the IP address for later.
+The database `db` should now be visible running the command `\list` from within the Postgres CLI.
+Now, exit the Postgres CLI and start inserting embeddings into Postgres
+
+```
+docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim
+cd /src
+mvn package
+java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -db postgres -h <IP> -p 5432 -dbn embeddings -u <USERNAME> -pw <PASSWORD>
+```
+
+Insert the IP address from the previous step instead of `<IP>`.
+Add the option `-dp` or `--disable-parsing` to skip pre-parsing the embeddings file before insertion.
 
 ### Table Datasets
 

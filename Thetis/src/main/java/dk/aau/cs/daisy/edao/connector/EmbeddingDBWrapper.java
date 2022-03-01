@@ -29,7 +29,7 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
             if (this.driver instanceof Postgres)
             {
                 if (!sql.update("CREATE TABLE IF NOT EXISTS " + COLLECTION_NAME + " (" +
-                        IRI_FIELD + " VARCHAR(100) PRIMARY KEY, " +
+                        IRI_FIELD + " VARCHAR(500) PRIMARY KEY, " +
                         EMBEDDING_FIELD + " FLOAT[] NOT NULL);"))
                     throw new RuntimeException("Setup failed: EmbeddingDBWrapper");
             }
@@ -37,7 +37,7 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
             else
             {
                 if (!sql.update("CREATE TABLE IF NOT EXISTS " + COLLECTION_NAME + " (" +
-                        IRI_FIELD + " VARCHAR(100) PRIMARY KEY, " +
+                        IRI_FIELD + " VARCHAR(500) PRIMARY KEY, " +
                         EMBEDDING_FIELD + " VARCHAR(1000) NOT NULL);"))
                     throw new RuntimeException("Setup failed: EmbeddingDBWrapper");
             }
@@ -232,7 +232,7 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
 
         for (int i = 0; i < iris.size(); i++)
         {
-            builder.append("('").append(iris.get(i)).append("', ").append(vecStart);
+            builder.append("('").append(iris.get(i).replace("'", "''")).append("', ").append(vecStart);
 
             for (Float f : vectors.get(i))
             {
