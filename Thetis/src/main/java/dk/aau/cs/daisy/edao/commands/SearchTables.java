@@ -106,6 +106,24 @@ public class SearchTables extends Command {
         }
     }
 
+    public enum EmbeddingsInputMode {
+        FILE("file"), DATABASE("data"); 
+
+        private final String mode;
+        EmbeddingsInputMode(String mode){
+            this.mode = mode;
+        }
+
+        public final String getEmbeddingsInputMode(){
+            return this.mode;
+        }
+
+        @Override
+        public String toString() {
+            return this.mode;
+        }
+    }
+
     @CommandLine.Option(names = { "-sm", "--search-mode" }, description = "Must be one of {exact, analogous}", required = true)
     private SearchMode searchMode = null;
 
@@ -117,6 +135,9 @@ public class SearchTables extends Command {
 
     @CommandLine.Option(names = { "-upe", "--usePretrainedEmbeddings"}, description = "If specified, pre-trained embeddings are used to capture the similarity between two entities whenever possible")
     private boolean usePretrainedEmbeddings;
+
+    @CommandLine.Option(names = { "-pem", "--embeddingsInputMode" }, description = "Specifies the manner by which the preTrainedEmbeddings are loaded from. Must be one of {file, database}", defaultValue = "file")
+    private EmbeddingsInputMode embeddingsInputMode = null;
 
     @CommandLine.Option(names = { "-ajs", "--adjustedJaccardSimilarity"}, description = "If specified, the Jaccard similarity between two entities can only be one if the two entities compared are identical. " + 
         "If two different entities share the same types then assign an adjusted score of 0.95. ")
@@ -140,8 +161,8 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = { "-topK", "--topK"}, description = "The top-k values to be returned when running PPR", defaultValue="100")
     private Integer topK;
 
-    @CommandLine.Option(names = {"-ep", "--embeddingsPath"}, description = "Path to embeddings database")
-    private String dbPath = null;
+    @CommandLine.Option(names = {"-ep", "--embeddingsPath"}, description = "Path to embeddings database for file. Whichever is specified by the `preTrainedEmbeddingsMode` argument")
+    private String embeddingsPath = null;
 
     @CommandLine.Option(names = {"-mh", "--milvusHost"}, description = "Host name of running Milvus service")
     private String milvusHost = null;
@@ -242,8 +263,8 @@ public class SearchTables extends Command {
             outputDir.mkdirs();
         }
 
-        if (this.dbPath != null && this.milvusHost != null && this.milvusPort != -1 && this.embeddingsDimension != -1)
-            this.store = new EmbeddingStore(this.dbPath, this.milvusHost, this.milvusPort, this.embeddingsDimension);
+        if (this.embeddingsPath != null && this.milvusHost != null && this.milvusPort != -1 && this.embeddingsDimension != -1)
+            this.store = new EmbeddingStore(this.embeddingsPath, this.milvusHost, this.milvusPort, this.embeddingsDimension);
 
         // Read off the queryEntities list from a json object
         queryEntities = this.parseQuery(queryFile);
@@ -1052,7 +1073,8 @@ public class SearchTables extends Command {
             if (usePretrainedEmbeddings) {
                 Gson gson = new Gson();
                 // TODO: Make path a parameter
-                Reader reader = new FileReader("../data/embeddings/embeddings.json");
+                Reader reader = new FileReader(embeddingsPath);
+                // Reader reader = new FileReader("../data/embeddings/embeddings.json");
         
                 // convert JSON file to a hashmap and then extract the list of queries
                 Type type = new TypeToken<HashMap<String, List<Double>>>(){}.getType();
@@ -1183,29 +1205,50 @@ public class SearchTables extends Command {
 
     /**
      * Returns true if the specified entity exists
+     *
+     * If the `embeddingsInputMode` is "file" then it checks for existence using the `entityToEmbedding` hashmap
+     * If the `embeddingsInputMode` is "database" then it queries the database for existence
      */
     public boolean entityExists(String entity) {
-        try {
-            this.store.select(entity);
-            return true;
+        if (embeddingsInputMode.getEmbeddingsInputMode() == "file") {
+            if (entityToEmbedding.containsKey(entity)) {return true;}
+            else {return false;}
         }
-        catch (IllegalArgumentException exc) {
-            return false;
+        else if (embeddingsInputMode.getEmbeddingsInputMode() == "database") {
+            try {
+                this.store.select(entity);
+                return true;
+            }
+            catch (IllegalArgumentException exc) {
+                return false;
+            }
         }
+        return false; 
     }
 
     /**
      * Returns the embedding vector for the specified entity.
      * 
-     * The entity specified must exist in the database! If it isn't then an empty vector is returned
+     * The entity specified must exist! If it isn't then an empty vector is returned
+     *
+     * If the `embeddingsInputMode` is "file" then extract the embedding vector from the `entityToEmbedding` hashmap
+     * If the `embeddingsInputMode` is "database" then query he database to get the embedding vector
      */
     public List<Double> getEmbeddingVector(String entity) {
-        try {
-            return this.store.select(entity);
+        if (embeddingsInputMode.getEmbeddingsInputMode() == "file") {
+            if (entityToEmbedding.containsKey(entity)) {
+                return entityToEmbedding.get(entity);
+            }
         }
-        catch (IllegalArgumentException exception) {
-            return List.of();
+        else if (embeddingsInputMode.getEmbeddingsInputMode() == "database") {
+            try {
+                return this.store.select(entity);
+            }
+            catch (IllegalArgumentException exception) {
+                return List.of();
+            }
         }
+        return List.of();
     }
 
 }
