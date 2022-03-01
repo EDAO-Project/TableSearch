@@ -215,10 +215,11 @@ python generate_queries.py --wikipages_df ../../tables/wikipages/wikipages_df.pi
 ### WikiPages Indexing and Search
 The following commands should be run inside docker
 ```bash
-# Construct the Index
+# Construct the Index for the wikipages dataset
 java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_dataset/tables/ --output-dir /data/index/wikipages/
 
-
+# Construct the index for the expanded wikipages dataset
+java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_expanded_dataset/tables/ --output-dir /data/index/wikipages_expanded/
 ```
 
 
