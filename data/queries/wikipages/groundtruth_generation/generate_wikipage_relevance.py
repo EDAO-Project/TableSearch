@@ -12,14 +12,9 @@ Python script to compute the similarity scores between wikipages based on their 
 The similarity scores are used as the relevance scores for a given wikipage.
 A relevance scores ranking is produced for each wikipage 
 
-python generate_wikipage_relevance.py --wikipages_df ../../../tables/wikipages/wikipages_expanded_dataset/wikipages_df.pickle \
---category_to_num_occurrences_path wikipage_relevance_scores/wikipages_expanded_dataset/category_to_num_occurrences.json \
---wikipage_to_categories_path wikipage_relevance_scores/wikipages_expanded_dataset/wikipage_to_categories.json \
---output_dir wikipage_relevance_scores/wikipages_expanded_dataset/jaccard/ --similarity_mode jaccard
-
 python generate_wikipage_relevance.py --wikipages_df ../../../tables/wikipages/wikipages_dataset/wikipages_df.pickle \
 --input_dir wikipage_relevance_scores/wikipages_dataset/ --mode navigation_links \
---output_dir wikipage_relevance_scores/wikipages_dataset/weighted_navigation_links/ --similarity_mode weighted
+--output_dir wikipage_relevance_scores/wikipages_dataset/jaccard_navigation_links/ --similarity_mode jaccard
 '''
 
 def get_score(a, b, wikipage_to_attributes, attribute_to_num_occurrences, similarity_mode='jaccard'):
@@ -52,11 +47,11 @@ def get_score(a, b, wikipage_to_attributes, attribute_to_num_occurrences, simila
         return numerator_score / denominator_score 
 
 
-def compute_similarity_scores(cur_wikipage, wikipage_to_attributes, attribute_to_num_occurrences, similarity_mode):
+def compute_similarity_scores(cur_wikipage, wikipage_to_attributes, attribute_to_num_occurrences, similarity_mode, min_threshold=0.01):
     '''
     Returns a dictionary of the similarity scores of `cur_wikipage` with respect to all other wikipages
     in `wikipage_to_categories`.
-    If the similarity score between `cur_wikipage` and another wikipage is 0 then it is omitted from the returned dictionary
+    If the similarity score between `cur_wikipage` and another wikipage is less than small specified threshold then it is omitted from the returned dictionary
     '''
     similarity_scores_dict = {}
     cur_wikipage_categories = set(wikipage_to_attributes[cur_wikipage])
@@ -71,8 +66,8 @@ def compute_similarity_scores(cur_wikipage, wikipage_to_attributes, attribute_to
             similarity_mode=similarity_mode
         )
 
-        if score != 0:
-            # TODO: Maybe instead of checking if the score isn't zero check that it is above a minimum threshold value
+        if score > min_threshold:
+            # Check if the score with respect to `wikipage` is above a minimum threshold value to add in the list of relevant wikipages
             similarity_scores_dict[wikipage] = score   
 
     # Sort the `similarity_scores_dict` in descending order
@@ -121,8 +116,6 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--wikipages_df', help='Path to the wikipages_df file specifying all wikipages in the dataset.', required=True)
-    # parser.add_argument('--category_to_num_occurrences_path', help='Path to the `category_to_num_occurrences.json` file', required=True)
-    # parser.add_argument('--wikipage_to_categories_path', help='Path to the `wikipage_to_categories.json` file', required=True)
    
     parser.add_argument('--input_dir', help='Path to directory where the appropriate attribute dictionaries are stored \
         (i.e., the directory containing the wikipage to categories or wikipage to navigation links dictionaries)', required=True)
