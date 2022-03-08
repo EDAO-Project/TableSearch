@@ -115,8 +115,9 @@ hostname -I
 ```
 
 Remember the IP address for later.
-The database `db` should now be visible running the command `\list` from within the Postgres CLI.
-Now, exit the Postgres CLI and start inserting embeddings into Postgres
+With the command `docker exec -it db psql -U thetis embeddings`, you can connect to the `embeddings` database and modify and query it as you like.
+
+Now, exit the Docker interactive mode and start inserting embeddings into Postgres
 
 ```
 docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim
