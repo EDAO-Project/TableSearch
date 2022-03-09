@@ -110,8 +110,7 @@ Choose a username and password and substitute `<USERNAME>` and `<PASSWORD>` with
 Extract the IP address of the Postgress container
 
 ```
-docker exec -it db bash
-hostname -I
+docker exec -it db hostname -I
 ```
 
 Remember the IP address for later.
