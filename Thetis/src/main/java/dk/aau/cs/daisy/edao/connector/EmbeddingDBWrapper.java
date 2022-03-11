@@ -74,7 +74,7 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
         SQLite sqlite = (SQLite) this.driver;
         ResultSet rs = sqlite.select("SELECT " + EMBEDDING_FIELD +
                 " FROM " + COLLECTION_NAME +
-                " WHERE " + IRI_FIELD + " LIKE " + iri + ";");
+                " WHERE " + IRI_FIELD + " LIKE '" + iri + "';");
 
         try
         {
@@ -103,7 +103,7 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
         Postgres postgres = (Postgres) this.driver;
         ResultSet rs = postgres.select("SELECT " + EMBEDDING_FIELD +
                 " FROM " + COLLECTION_NAME +
-                " WHERE " + IRI_FIELD + " LIKE " + iri + ";");
+                " WHERE " + IRI_FIELD + " LIKE '" + iri + "';");
 
         try
         {
