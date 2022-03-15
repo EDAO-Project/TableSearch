@@ -24,7 +24,9 @@ import com.google.common.reflect.TypeToken;
 import java.lang.reflect.Type;
 
 import dk.aau.cs.daisy.edao.commands.parser.EmbeddingsParser;
-import dk.aau.cs.daisy.edao.connector.EmbeddingStore;
+import dk.aau.cs.daisy.edao.connector.*;
+import dk.aau.cs.daisy.edao.connector.embeddings.EmbeddingDBWrapper;
+import dk.aau.cs.daisy.edao.connector.embeddings.EmbeddingStore;
 import dk.aau.cs.daisy.edao.similarity.JaccardSimilarity;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.utils;
@@ -34,13 +36,10 @@ import dk.aau.cs.daisy.edao.commands.parser.ParsingException;
 
 import org.neo4j.driver.exceptions.AuthenticationException;
 import org.neo4j.driver.exceptions.ServiceUnavailableException;
-import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 
 import picocli.CommandLine;
 import me.tongfei.progressbar.*;
 
-import dk.aau.cs.daisy.edao.connector.DBDriver;
-import dk.aau.cs.daisy.edao.connector.SQLite;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -164,13 +163,28 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = {"-ep", "--embeddingsPath"}, description = "Path to embeddings database for file. Whichever is specified by the `preTrainedEmbeddingsMode` argument")
     private String embeddingsPath = null;
 
-    @CommandLine.Option(names = {"-mh", "--milvusHost"}, description = "Host name of running Milvus service")
-    private String milvusHost = null;
+    @CommandLine.Option(names = {"-h", "--host"}, description = "Host name of running Milvus or Postgres service")
+    private String host = null;
 
-    @CommandLine.Option(names = {"-mp", "--milvusPort"}, description = "Port of running Milvus service")
-    private int milvusPort = -1;
+    @CommandLine.Option(names = {"-p", "--port"}, description = "Port of running Milvus or Postgres service")
+    private int port = -1;
 
-    @CommandLine.Option(names = {"-ed", "--embeddingsDimension"}, description = "Dimension of embeddings vectors")
+    @CommandLine.Option(names = {"-u", "--username"}, description = "Postgres username")
+    private String username = null;
+
+    @CommandLine.Option(names = {"-pw", "--password"}, description = "Postgres password")
+    private String password = null;
+
+    @CommandLine.Option(names = {"-dn", "--db-name"}, description = "Name of database (for SQLite and Postgres)")
+    private String dbName = null;
+
+    @CommandLine.Option(names = {"-dt", "db-type"}, description = "Which database (sqlite, postgres, milvus)")
+    private String dbType = null;
+
+    @CommandLine.Option(names = {"-dp", "--db-path"}, description = "Path to SQLite instance")
+    private String dbPath = null;
+
+    @CommandLine.Option(names = {"-ed", "--embeddings-dimension"}, description = "Dimension of embeddings vectors")
     private int embeddingsDimension = -1;
 
     private File hashmapDir = null;
@@ -248,7 +262,7 @@ public class SearchTables extends Command {
     private Neo4jEndpoint connector;
 
     // Initialize a connection with the embeddings Database
-    private EmbeddingStore store;
+    private EmbeddingDBWrapper store;
 
     @Override
     public Integer call() {
@@ -263,8 +277,21 @@ public class SearchTables extends Command {
             outputDir.mkdirs();
         }
 
-        if (this.embeddingsPath != null && this.milvusHost != null && this.milvusPort != -1 && this.embeddingsDimension != -1)
-            this.store = new EmbeddingStore(this.embeddingsPath, this.milvusHost, this.milvusPort, this.embeddingsDimension);
+        if (this.embeddingsInputMode == EmbeddingsInputMode.DATABASE) {
+            if (this.dbType.equals("sqlite"))
+                this.store = Factory.wrap(Factory.makeRelational(this.dbPath, dbName), false);
+
+            else if (this.dbType.equals("postgres"))
+                this.store = Factory.wrap(Factory.makeRelational(this.host, this.port, this.dbName, this.username, this.password), false);
+
+            else if (this.dbType.equals("milvus"))
+                this.store = Factory.wrap(Factory.makeVectorized(this.host, this.port, this.dbPath, this.embeddingsDimension), false);
+
+            else {
+                System.err.println("Un-recognized DB choice");
+                return 1;
+            }
+        }
 
         // Read off the queryEntities list from a json object
         queryEntities = this.parseQuery(queryFile);
@@ -306,6 +333,7 @@ public class SearchTables extends Command {
                 break;
         }
 
+        this.store.close();
         return 1;
     }
 
@@ -1216,8 +1244,7 @@ public class SearchTables extends Command {
         }
         else if (embeddingsInputMode.getEmbeddingsInputMode() == "database") {
             try {
-                this.store.select(entity);
-                return true;
+                return this.store.select(entity) != null;
             }
             catch (IllegalArgumentException exc) {
                 return false;

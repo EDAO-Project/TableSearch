@@ -1,11 +1,13 @@
-package dk.aau.cs.daisy.edao.connector;
+package dk.aau.cs.daisy.edao.connector.embeddings;
+
+import dk.aau.cs.daisy.edao.connector.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, String>, ExplainableCause
+public class EmbeddingDBWrapper implements DBDriverBatch<List<Double>, String>, ExplainableCause, Setup
 {
     private Object driver;
     private static final String IRI_FIELD = "iri";
@@ -20,8 +22,12 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
             setup();
     }
 
-    private void setup()
+    @Override
+    public void setup()
     {
+        if (this.driver instanceof Setup)
+            ((Setup) this.driver).setup();
+
         if (this.driver instanceof SQLite || this.driver instanceof Postgres)
         {
             DBDriver<ResultSet, String> sql = (DBDriver<ResultSet, String>) this.driver;
@@ -32,6 +38,9 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
                         IRI_FIELD + " VARCHAR(1000) PRIMARY KEY, " +
                         EMBEDDING_FIELD + " FLOAT[] NOT NULL);"))
                     throw new RuntimeException("Setup failed: EmbeddingDBWrapper");
+
+                if (!sql.update("CREATE INDEX hash_idx ON " + COLLECTION_NAME + " using hash (" + IRI_FIELD + ");"))
+                    throw new RuntimeException("Creating hash index failed: EmbeddingDBWrapper\n" + ((Postgres) sql).getError());
             }
 
             else
@@ -210,8 +219,8 @@ public class EmbeddingDBWrapper implements DBDriverEmbedding<List<Double>, Strin
     @Override
     public boolean batchInsert(List<String> iris, List<List<Float>> vectors)
     {
-        if (this.driver instanceof EmbeddingStore)
-            return ((EmbeddingStore) this.driver).batchInsert(iris, vectors);
+        if (this.driver instanceof DBDriverBatch)
+            return ((DBDriverBatch<?, ?>) this.driver).batchInsert(iris, vectors);
 
         else if (this.driver instanceof SQLite)
             return relationalBatchInsert(iris, vectors, "'", "'");

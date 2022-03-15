@@ -1,5 +1,6 @@
-package dk.aau.cs.daisy.edao.connector;
+package dk.aau.cs.daisy.edao.connector.embeddings;
 
+import dk.aau.cs.daisy.edao.connector.*;
 import io.milvus.grpc.DataType;
 import io.milvus.grpc.QueryResults;
 import io.milvus.param.collection.FieldType;
@@ -16,7 +17,7 @@ import java.util.List;
  * Storage of embedding in a Milvus instance
  * SQLite is used to bi-directional mapping between entityIRIs and IDs
  */
-public class EmbeddingStore implements DBDriverEmbedding<List<Double>, String>, ExplainableCause
+public class EmbeddingStore implements DBDriverBatch<List<Double>, String>, ExplainableCause, Setup
 {
     private Milvus milvus;
     private SQLite sqlite;
@@ -33,10 +34,10 @@ public class EmbeddingStore implements DBDriverEmbedding<List<Double>, String>, 
         this.sqlite = SQLite.init(sqliteName, dbPath);
         this.milvus = new Milvus(milvusHost, milvusPort);
         this.embeddingDimension = embeddingDimension;
-        setup();
     }
 
-    private void setup()
+    @Override
+    public void setup()
     {
         drop(null);
         setupSqlite();
