@@ -37,7 +37,7 @@ def update_df_with_stats(df, full_df, categories_relevance_scores_dir, navigatio
     df['navigation_links_expansion_ratio'] = np.nan
 
     # Loop over each wikipedia page in `df` and populate the newly added columns
-    for idx, row in tqdm(df.head(20).iterrows(), total=len(df.index)):
+    for idx, row in tqdm(df.iterrows(), total=len(df.index)):
         if categories_relevance_scores_dir != None:
             # Read the categories relevance scores file
             with open(categories_relevance_scores_dir+str(row['wikipage_id'])+'.json', 'r') as fp:
