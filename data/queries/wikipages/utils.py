@@ -115,19 +115,24 @@ def get_query_entities(path):
 
     return entities
 
-def get_query_containment(df, filename_to_entities_dict, queries_dir):
+def get_query_containment(df, filename_to_entities_dict, queries_dir, relevance_scores_dir):
     '''
     Updates the `df` dataframe with a new column `avg_query_containment`
     '''
 
-    for idx, row in tqdm(df.iterrows(), total=len(df.index)):
+    for idx, row in tqdm(df.head(5).iterrows(), total=len(df.index)):
         selected_table = row['selected_table']
 
         query_path = queries_dir + 'wikipage_' + str(row['wikipage_id'])+'.json'
         if Path(query_path).is_file():
             query_entities = get_query_entities(query_path)
 
-            relevant_tables = row['tables'].copy()
+            # Select the relevant tables
+            # TODO: get_relevant_tables should use a different dataframe that includes all mappings otherwise it may return an incomplete list
+            relevant_tables = get_relevant_tables(
+                df=df, wikipage_id=row['wikipage_id'],
+                relevance_scores_dir=relevance_scores_dir
+            )
             relevant_tables.remove(selected_table)
 
             containment_scores = []
