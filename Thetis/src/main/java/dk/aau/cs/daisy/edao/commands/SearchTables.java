@@ -1244,8 +1244,7 @@ public class SearchTables extends Command {
         }
         else if (embeddingsInputMode.getEmbeddingsInputMode() == "database") {
             try {
-                this.store.select(entity);
-                return true;
+                return this.store.select(entity) != null;
             }
             catch (IllegalArgumentException exc) {
                 return false;
