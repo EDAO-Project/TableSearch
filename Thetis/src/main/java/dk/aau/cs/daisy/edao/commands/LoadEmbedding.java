@@ -3,6 +3,8 @@ package dk.aau.cs.daisy.edao.commands;
 import dk.aau.cs.daisy.edao.commands.parser.EmbeddingsParser;
 import dk.aau.cs.daisy.edao.commands.parser.ParsingException;
 import dk.aau.cs.daisy.edao.connector.*;
+import dk.aau.cs.daisy.edao.connector.embeddings.EmbeddingDBWrapper;
+import dk.aau.cs.daisy.edao.connector.embeddings.EmbeddingStore;
 import picocli.CommandLine;
 
 import java.io.*;
@@ -49,7 +51,7 @@ public class LoadEmbedding extends Command
     @CommandLine.Option(names = {"-dim", "--dimension"}, description = "Embeddings vector dimension (only required for Milvus)")
     private int dimension = -1;
 
-    @CommandLine.Option(names = {"-db", "--database"}, description = "Type of database to store embeddings (sqlite, postgres, milvus)", required = true)
+    @CommandLine.Option(names = {"-db", "--database"}, description = "Type of database to store embeddings (sqlite, postgres, milvus, relational_wrap)", required = true)
     private String dbType;
 
     @CommandLine.Option(names = {"-dbn", "--database-name"}, description = "Database name (only required for SQLite and Postgres)")
@@ -73,59 +75,17 @@ public class LoadEmbedding extends Command
                 log("Parsing complete");
             }
 
-            DBDriver<?, ?> db;
             EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile), DELIMITER);
+            EmbeddingDBWrapper wrapper;
 
             if (this.dbType.equals("sqlite"))
-            {
-                if (this.dbName == null)
-                {
-                    System.err.println("Missing DB name for SQLite");
-                    return 1;
-                }
-
-                db = SQLite.init(this.dbName, this.dbPath);
-            }
+                wrapper = Factory.wrap(Factory.makeRelational(this.dbPath, dbName), true);
 
             else if (this.dbType.equals("postgres"))
-            {
-                if (this.dbName == null)
-                {
-                    System.err.println("Missing DB name for Postgres");
-                    return 1;
-                }
-
-                else if (this.host == null || this.port == -1)
-                {
-                    System.err.println("Missing service info (hostname and/or port) for Postgres");
-                    return 1;
-                }
-
-                else if (this.psUsername == null || this.psPassword == null)
-                {
-                    System.err.println("Missing login info for Postgres");
-                    return 1;
-                }
-
-                db = Postgres.init(this.host, this.port, this.dbName, this.psUsername, this.psPassword);
-            }
+                wrapper = Factory.wrap(Factory.makeRelational(this.host, this.port, this.dbName, this.psUsername, this.psPassword), true);
 
             else if (this.dbType.equals("milvus"))
-            {
-                if (this.host == null || this.port == -1)
-                {
-                    System.err.println("Missing service info (hostname and/or port) for Milvus");
-                    return 1;
-                }
-
-                else if (this.dimension == -1)
-                {
-                    System.err.println("Missing vector dimension");
-                    return 1;
-                }
-
-                db = new EmbeddingStore(this.dbPath, this.host, this.port, this.dimension);
-            }
+                wrapper = Factory.wrap(Factory.makeVectorized(this.host, this.port, this.dbPath, this.dimension), true);
 
             else
             {
@@ -133,7 +93,6 @@ public class LoadEmbedding extends Command
                 return 1;
             }
 
-            EmbeddingDBWrapper wrapper = new EmbeddingDBWrapper(db, true);
             int batchSize = 100, batchSizeCount = batchSize;
             double loaded = 0;
 
@@ -183,7 +142,7 @@ public class LoadEmbedding extends Command
         }
     }
 
-    private static int insertEmbeddings(DBDriverEmbedding<?, ?> db, EmbeddingsParser parser, int batchSize)
+    private static int insertEmbeddings(DBDriverBatch<?, ?> db, EmbeddingsParser parser, int batchSize)
     {
         String entity = null;
         List<List<Float>> vectors = new ArrayList<>(batchSize);
