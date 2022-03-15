@@ -279,13 +279,13 @@ public class SearchTables extends Command {
 
         if (this.embeddingsInputMode == EmbeddingsInputMode.DATABASE) {
             if (this.dbType.equals("sqlite"))
-                this.store = Factory.wrap(Factory.makeRelational(this.dbPath, dbName), true);
+                this.store = Factory.wrap(Factory.makeRelational(this.dbPath, dbName), false);
 
             else if (this.dbType.equals("postgres"))
-                this.store = Factory.wrap(Factory.makeRelational(this.host, this.port, this.dbName, this.username, this.password), true);
+                this.store = Factory.wrap(Factory.makeRelational(this.host, this.port, this.dbName, this.username, this.password), false);
 
             else if (this.dbType.equals("milvus"))
-                this.store = Factory.wrap(Factory.makeVectorized(this.host, this.port, this.dbPath, this.embeddingsDimension), true);
+                this.store = Factory.wrap(Factory.makeVectorized(this.host, this.port, this.dbPath, this.embeddingsDimension), false);
 
             else {
                 System.err.println("Un-recognized DB choice");
