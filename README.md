@@ -254,9 +254,18 @@ From each selected Wikipedia page we choose the table with the largest horizonta
 
 ```bash
 cd /data/queries/wikipages/
+
+# Generate the queries for the wikipages dataset
 python generate_queries.py --wikipages_df ../../tables/wikipages/wikipages_df.pickle \
 --tables_dir ../../tables/wikipages/tables/ --q_output_dir queries/ \
 --wikilink_to_entity ../../index/wikitables/wikipediaLinkToEntity.json --tuples_per_query all
+
+# Generate the queries for the expanded wikipages dataset
+python generate_queries.py --wikipages_df ../../tables/wikipages/wikipages_expanded_dataset/wikipages_df.pickle \
+--tables_dir ../../tables/wikipages/wikipages_expanded_dataset/tables/ \
+--q_output_dir queries/expanded_wikipages/minTupleWidth_all_tuplesPerQuery_all/ \
+--wikilink_to_entity ../../index/wikipages_expanded/wikipediaLinkToEntity.json \
+--output_query_df query_dataframes/expanded_wikipages/minTupleWidth_all_tuplesPerQuery_all.pickle
 ```
 
 ### WikiPages Indexing and Search
