@@ -115,12 +115,15 @@ def get_query_entities(path):
 
     return entities
 
-def get_query_containment(df, filename_to_entities_dict, queries_dir, relevance_scores_dir):
+def get_query_containment(df, full_df, filename_to_entities_dict, queries_dir, relevance_scores_dir):
     '''
     Updates the `df` dataframe with a new column `avg_query_containment`
+
+    The mappings of all wikipage to tables are specified in the `full_df` dataframe which is used by 
+    the get_relevant_tables() function 
     '''
 
-    for idx, row in tqdm(df.head(5).iterrows(), total=len(df.index)):
+    for idx, row in tqdm(df.iterrows(), total=len(df.index)):
         selected_table = row['selected_table']
 
         query_path = queries_dir + 'wikipage_' + str(row['wikipage_id'])+'.json'
@@ -128,19 +131,25 @@ def get_query_containment(df, filename_to_entities_dict, queries_dir, relevance_
             query_entities = get_query_entities(query_path)
 
             # Select the relevant tables
-            # TODO: get_relevant_tables should use a different dataframe that includes all mappings otherwise it may return an incomplete list
             relevant_tables = get_relevant_tables(
-                df=df, wikipage_id=row['wikipage_id'],
+                df=full_df, wikipage_id=row['wikipage_id'],
                 relevance_scores_dir=relevance_scores_dir
             )
-            relevant_tables.remove(selected_table)
-
+            if selected_table in relevant_tables:
+                relevant_tables.remove(selected_table)
+            else:
+                print("Selected table:", selected_table, "from wikipage", row['wikipage_id'], "not found in the relevant tables!")
+            
+            # Compute the query containment to each relevant wikipage in the ground truth
             containment_scores = []
-            for table in relevant_tables:
-                table_ents = filename_to_entities_dict[table]
+            if len(query_entities) > 0:
+                for table in relevant_tables:
+                    table_ents = filename_to_entities_dict[table]
 
-                containment = len(table_ents & query_entities) / len(query_entities)
-                containment_scores.append(containment)
+                    containment = len(table_ents & query_entities) / len(query_entities)
+                    containment_scores.append(containment)
+            else:
+                containment_scores = [0]
 
             df.loc[idx, 'avg_query_containment'] = np.array(containment_scores).mean()
 
