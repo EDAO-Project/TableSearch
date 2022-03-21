@@ -5,6 +5,7 @@ import dk.aau.cs.daisy.edao.commands.parser.ParsingException;
 import dk.aau.cs.daisy.edao.connector.*;
 import dk.aau.cs.daisy.edao.connector.embeddings.EmbeddingDBWrapper;
 import dk.aau.cs.daisy.edao.connector.embeddings.EmbeddingStore;
+import dk.aau.cs.daisy.edao.system.Configuration;
 import picocli.CommandLine;
 
 import java.io.*;
@@ -68,6 +69,9 @@ public class LoadEmbedding extends Command
     {
         try
         {
+            saveParams();
+            log(Configuration.getDB());
+
             if (this.doParse)
             {
                 log("Parsing...");
@@ -76,33 +80,17 @@ public class LoadEmbedding extends Command
             }
 
             EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile), DELIMITER);
-            EmbeddingDBWrapper wrapper;
-
-            if (this.dbType.equals("sqlite"))
-                wrapper = Factory.wrap(Factory.makeRelational(this.dbPath, dbName), true);
-
-            else if (this.dbType.equals("postgres"))
-                wrapper = Factory.wrap(Factory.makeRelational(this.host, this.port, this.dbName, this.psUsername, this.psPassword), true);
-
-            else if (this.dbType.equals("milvus"))
-                wrapper = Factory.wrap(Factory.makeVectorized(this.host, this.port, this.dbPath, this.dimension), true);
-
-            else
-            {
-                System.err.println("Could not setup database instance");
-                return 1;
-            }
-
+            DBDriverBatch<List<Double>, String> db = Factory.fromConfig(true);
             int batchSize = 100, batchSizeCount = batchSize;
             double loaded = 0;
 
             while (parser.hasNext())
             {
-                int bytes = insertEmbeddings(wrapper, parser, batchSize);
+                int bytes = insertEmbeddings(db, parser, batchSize);
                 loaded += (double) bytes / Math.pow(1024, 2);
 
                 if (bytes == 0)
-                    log("INSERTION ERROR: " + wrapper.getError());
+                    log("INSERTION ERROR: " + ((ExplainableCause) db).getError());
 
                 else
                     log("LOAD BATCH [" + batchSizeCount + "] - " + loaded + " mb");
@@ -110,7 +98,7 @@ public class LoadEmbedding extends Command
                 batchSizeCount += bytes > 0 ? batchSize : 0;
             }
 
-            wrapper.close();
+            db.close();
             return 0;
         }
 
@@ -130,6 +118,30 @@ public class LoadEmbedding extends Command
     private static void log(String message)
     {
         System.out.println(new Date() + ": " + message);
+    }
+
+    private void saveParams()
+    {
+        Configuration.setDB(this.dbType);
+        Configuration.setDBPath(this.dbPath);
+
+        if (this.host != null)
+            Configuration.setDBHost(this.host);
+
+        if (this.port != -1)
+            Configuration.setDBPort(this.port);
+
+        if (this.dimension != -1)
+            Configuration.setEmbeddingsDimension(this.dimension);
+
+        if (this.dbName != null)
+            Configuration.setDBName(this.dbName);
+
+        if (this.psUsername != null)
+            Configuration.setDBUsername(this.psUsername);
+
+        if (this.psPassword != null)
+            Configuration.setDBPassword(this.psPassword);
     }
 
     private static void parseFile(InputStream inputStream)
