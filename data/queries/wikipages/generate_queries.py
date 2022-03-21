@@ -172,7 +172,7 @@ if __name__ == "__main__":
     parser.add_argument('--tables_dir', help='Path to the parsed table json files', required=True)
     parser.add_argument('--q_output_dir', help="Path to the directory where the generated query entity tuples are stored", required=True)
     parser.add_argument('--wikilink_to_entity', help="Path to the wikipediaLinkToEntity.json file", required=True)
-    parser.add_argument('--output_query_df', help='Path to where the updated query dataframe should be saved', required=True)
+    parser.add_argument('--output_query_df', help='Path to where the updated query dataframe should be saved. The path to that directory must exist', required=True)
 
     parser.add_argument('--min_tuple_width', type=int, help='The minimum width of a query tuple to be considered. \
         If a wikipage has no table that can match the specified `min_tuple_width` then that wikipage \
