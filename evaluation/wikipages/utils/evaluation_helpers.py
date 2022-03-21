@@ -18,10 +18,10 @@ def get_gt_tables_to_relevance_scores_dict(full_df, wikipage_id, groundtruth_rel
     
     # Extract the tables from each relevant wikipage
     for wikipage in gt_relevance:
-        if ('https://en.wikipedia.org/wiki/' + wikipage) in full_df['wikipage']:
+        if ('https://en.wikipedia.org/wiki/' + wikipage) in full_df['wikipage'].values:
             wikipage_tables = full_df[full_df['wikipage'] == 'https://en.wikipedia.org/wiki/' + wikipage]['tables'].tolist()[0]
             relevance_score = gt_relevance[wikipage]
-        
+
             for table in wikipage_tables:
                 if table in gt_tables_to_relevance_scores_dict:
                     # Update the score of existing table in the dictionary because a higher relevance for the same table was discovered
