@@ -5,6 +5,7 @@ import dk.aau.cs.daisy.edao.connector.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class EmbeddingDBWrapper implements DBDriverBatch<List<Double>, String>, ExplainableCause, Setup
@@ -119,15 +120,7 @@ public class EmbeddingDBWrapper implements DBDriverBatch<List<Double>, String>, 
             if (!rs.next())
                 return null;
 
-            float[] floatVector = (float[]) rs.getArray(1).getArray();
-            List<Double> doubleVector = new ArrayList<>(floatVector.length);
-
-            for (float e : floatVector)
-            {
-                doubleVector.add((double) e);
-            }
-
-            return doubleVector;
+            return Arrays.asList((Double[]) rs.getArray(1).getArray());
         }
 
         catch (SQLException e)
