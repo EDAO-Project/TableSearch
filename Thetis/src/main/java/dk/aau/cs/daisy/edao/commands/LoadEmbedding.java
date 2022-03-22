@@ -3,8 +3,6 @@ package dk.aau.cs.daisy.edao.commands;
 import dk.aau.cs.daisy.edao.commands.parser.EmbeddingsParser;
 import dk.aau.cs.daisy.edao.commands.parser.ParsingException;
 import dk.aau.cs.daisy.edao.connector.*;
-import dk.aau.cs.daisy.edao.connector.embeddings.EmbeddingDBWrapper;
-import dk.aau.cs.daisy.edao.connector.embeddings.EmbeddingStore;
 import dk.aau.cs.daisy.edao.system.Configuration;
 import picocli.CommandLine;
 
@@ -70,7 +68,6 @@ public class LoadEmbedding extends Command
         try
         {
             saveParams();
-            log(Configuration.getDB());
 
             if (this.doParse)
             {
