@@ -163,30 +163,6 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = {"-ep", "--embeddingsPath"}, description = "Path to embeddings database for file. Whichever is specified by the `preTrainedEmbeddingsMode` argument")
     private String embeddingsPath = null;
 
-    @CommandLine.Option(names = {"-h", "--host"}, description = "Host name of running Milvus or Postgres service")
-    private String host = null;
-
-    @CommandLine.Option(names = {"-p", "--port"}, description = "Port of running Milvus or Postgres service")
-    private int port = -1;
-
-    @CommandLine.Option(names = {"-u", "--username"}, description = "Postgres username")
-    private String username = null;
-
-    @CommandLine.Option(names = {"-pw", "--password"}, description = "Postgres password")
-    private String password = null;
-
-    @CommandLine.Option(names = {"-dn", "--db-name"}, description = "Name of database (for SQLite and Postgres)")
-    private String dbName = null;
-
-    @CommandLine.Option(names = {"-dt", "db-type"}, description = "Which database (sqlite, postgres, milvus)")
-    private String dbType = null;
-
-    @CommandLine.Option(names = {"-dp", "--db-path"}, description = "Path to SQLite instance")
-    private String dbPath = null;
-
-    @CommandLine.Option(names = {"-ed", "--embeddings-dimension"}, description = "Dimension of embeddings vectors")
-    private int embeddingsDimension = -1;
-
     private File hashmapDir = null;
     @CommandLine.Option(names = { "-hd", "--hashmap-dir" }, paramLabel = "HASH_DIR", description = "Directory from which we load the hashmaps", defaultValue = "../data/index/wikitables/")
     public void setHashMapDirectory(File value) {
@@ -262,7 +238,7 @@ public class SearchTables extends Command {
     private Neo4jEndpoint connector;
 
     // Initialize a connection with the embeddings Database
-    private EmbeddingDBWrapper store;
+    private DBDriverBatch<List<Double>, String> store;
 
     @Override
     public Integer call() {
@@ -277,21 +253,8 @@ public class SearchTables extends Command {
             outputDir.mkdirs();
         }
 
-        if (this.embeddingsInputMode == EmbeddingsInputMode.DATABASE) {
-            if (this.dbType.equals("sqlite"))
-                this.store = Factory.wrap(Factory.makeRelational(this.dbPath, dbName), false);
-
-            else if (this.dbType.equals("postgres"))
-                this.store = Factory.wrap(Factory.makeRelational(this.host, this.port, this.dbName, this.username, this.password), false);
-
-            else if (this.dbType.equals("milvus"))
-                this.store = Factory.wrap(Factory.makeVectorized(this.host, this.port, this.dbPath, this.embeddingsDimension), false);
-
-            else {
-                System.err.println("Un-recognized DB choice");
-                return 1;
-            }
-        }
+        if (this.embeddingsInputMode == EmbeddingsInputMode.DATABASE)
+            this.store = Factory.fromConfig(false);
 
         // Read off the queryEntities list from a json object
         queryEntities = this.parseQuery(queryFile);
