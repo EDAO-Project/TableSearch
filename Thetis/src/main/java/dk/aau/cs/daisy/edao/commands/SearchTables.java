@@ -142,6 +142,10 @@ public class SearchTables extends Command {
         "If two different entities share the same types then assign an adjusted score of 0.95. ")
     private boolean adjustedJaccardSimilarity;
 
+    @CommandLine.Option(names = { "-wjs", "--weightedJaccardSimilarity"}, description = "If specified, the a weighted Jaccard similarity between two entities is performed. " + 
+        "The weights for each entity type correspond to their respective IDF scores")
+    private boolean weightedJaccardSimilarity;
+
     @CommandLine.Option(names = { "-wppr", "--weightedPPR"}, description = "If specified, the number of particles given to each query node depends on their number of edges and IDF scores.")
     private boolean weightedPPR;
 
@@ -296,7 +300,9 @@ public class SearchTables extends Command {
                 break;
         }
 
-        this.store.close();
+        if (this.embeddingsInputMode == EmbeddingsInputMode.DATABASE)
+            this.store.close();
+        
         return 1;
     }
 
@@ -328,6 +334,9 @@ public class SearchTables extends Command {
     // Maps each entity to its IDF score. The idf score of an entity is given by log(N/(1+n_t)) + 1 where N is the number of filenames/tables in the repository
     // and n_t is the number of tables that contain the entity in question.
     private Map<String, Double> entityToIDF = new HashMap<>();
+
+    // Maps each entity type to its IDF score. This Hashmap is only used if `weightedJaccardSimilarity` is used
+    public static Map<String, Double> entityTypeToIDF = new HashMap<>();
 
     // Maps an entity to it's pre-trained embedding.
     private Map<String, List<Double>> entityToEmbedding = new HashMap<>();
@@ -510,18 +519,29 @@ public class SearchTables extends Command {
             return false;
         }
 
+        String filename = path.getFileName().toString();
+        Map<String, Object> statisticsMap = new HashMap<>();
+
         // If each query entity needs to map to only one column find the best mapping
         List<List<Integer>> tupleToColumnMappings = new ArrayList<>();
         if (singleColumnPerQueryEntity) {
             tupleToColumnMappings = getQueryToColumnMapping(table);
-        }
 
-        String filename = path.getFileName().toString();
+            // Log in the `statisticsMap` the column names aligned with each query tuple
+            List<List<String>> tuple_query_to_column_names = new ArrayList<>();
+            for (Integer tupleId=0; tupleId<tupleToColumnMappings.size();tupleId++) {
+                tuple_query_to_column_names.add(new ArrayList<String>());
+                for (Integer entityId=0; entityId<tupleToColumnMappings.get(tupleId).size(); entityId++) {
+                    Integer aligned_col_num = tupleToColumnMappings.get(tupleId).get(entityId);
+                    tuple_query_to_column_names.get(tupleId).add(table.headers.get(aligned_col_num).text);
+                }
+            }
+            statisticsMap.put("tuple_query_alignment", tuple_query_to_column_names);
+        }
 
         // Map each row number of the table to each query tuple and its respective similarity vector
         Map<Integer, Map<Integer, List<Double>>> rowTupleIDVectorMap = new HashMap<>();
 
-        Map<String, Object> statisticsMap = new HashMap<>();
         Integer numEntityMappedRows = 0;    // Number of rows in a table that have at least one cell mapping ot a known entity
 
         // Loop over each query entity. TODO: Treat this on a tuple by tuple basis
@@ -758,6 +778,15 @@ public class SearchTables extends Command {
             if (entityTypes.containsKey(ent2)) {
                 entTypes2 = new HashSet<String>(entityTypes.get(ent2));
             }
+            
+            Double jaccard_score = 0.0;
+            if (weightedJaccardSimilarity) {
+                // Run weighted Jaccard Similarity
+                jaccard_score = JaccardSimilarity.make(entTypes1, entTypes2, true).similarity();
+            }
+            else {
+                jaccard_score = JaccardSimilarity.make(entTypes1, entTypes2).similarity();
+            }
 
             if (adjustedJaccardSimilarity) {
                 if (ent1.equals(ent2)) {
@@ -767,16 +796,15 @@ public class SearchTables extends Command {
                 else {
                     // The two entities compared are different. Impose a maximum possible score less than 1.0
                     double max_score = 0.95;
-                    double score = JaccardSimilarity.make(entTypes1, entTypes2).similarity();
-                    if (score > max_score) {
+                    // double score = JaccardSimilarity.make(entTypes1, entTypes2).similarity();
+                    if (jaccard_score > max_score) {
                         return max_score;
                     }
-                    return score;
-                    }
+                    return jaccard_score;
+                }
             }
-            else {
-                return JaccardSimilarity.make(entTypes1, entTypes2).similarity();
-            }
+            
+            return jaccard_score;
         }
 
         // Check if the `usePretrainedEmbeddings` mode is specified and if there are embeddings for both entities
@@ -1039,13 +1067,6 @@ public class SearchTables extends Command {
                 fileIn.close();
                 System.out.println("Deserialized entityTypes");
 
-                // fileIn = new FileInputStream(path+"/entityToFilename.ser");
-                // in = new ObjectInputStream(fileIn);
-                // entityToFilename = (HashMap) in.readObject();
-                // in.close();
-                // fileIn.close();
-                // System.out.println("Deserialized entityToFilename");
-
                 fileIn = new FileInputStream(path+"/entityInFilenameToTableLocations.ser");
                 in = new ObjectInputStream(fileIn);
                 entityInFilenameToTableLocations = (HashMap) in.readObject();
@@ -1053,19 +1074,11 @@ public class SearchTables extends Command {
                 fileIn.close();
                 System.out.println("Deserialized entityInFilenameToTableLocations");
 
-                // fileIn = new FileInputStream(path+"/entityToIDF.ser");
-                // in = new ObjectInputStream(fileIn);
-                // entityToIDF = (HashMap) in.readObject();
-                // in.close();
-                // fileIn.close();
-                // System.out.println("Deserialized entityToIDF");
             }
 
             if (usePretrainedEmbeddings) {
                 Gson gson = new Gson();
-                // TODO: Make path a parameter
                 Reader reader = new FileReader(embeddingsPath);
-                // Reader reader = new FileReader("../data/embeddings/embeddings.json");
         
                 // convert JSON file to a hashmap and then extract the list of queries
                 Type type = new TypeToken<HashMap<String, List<Double>>>(){}.getType();
@@ -1074,6 +1087,16 @@ public class SearchTables extends Command {
                 reader.close();
 
                 System.out.println("Read pre-trained embeddings into a HashMap");
+            }
+
+            if (weightedJaccardSimilarity) {
+                // Read the entityTypeToIDF.ser file
+                fileIn = new FileInputStream(path+"/entityTypeToIDF.ser");
+                in = new ObjectInputStream(fileIn);
+                entityTypeToIDF = (HashMap) in.readObject();
+                in.close();
+                fileIn.close();
+                System.out.println("Deserialized entityTypeToIDF");
             }
 
             return true;
@@ -1155,6 +1178,10 @@ public class SearchTables extends Command {
                 tmp.addProperty("numEntityMappedRows", filenameToStatistics.get(file).get("numEntityMappedRows").toString());
                 tmp.addProperty("fractionOfEntityMappedRows", filenameToStatistics.get(file).get("fractionOfEntityMappedRows").toString());
                 tmp.addProperty("tupleScores", filenameToStatistics.get(file).get("tupleScores").toString());
+            }
+
+            if (singleColumnPerQueryEntity) {
+                tmp.addProperty("tuple_query_alignment", filenameToStatistics.get(file).get("tuple_query_alignment").toString());
             }
 
             innerObjs.add(tmp);
