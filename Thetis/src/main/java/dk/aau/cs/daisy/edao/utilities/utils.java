@@ -140,4 +140,11 @@ public class utils {
     {
         return new EmbeddingsParser(content, delimiter);
     }
+
+    /**
+     * Computes the logarithm of `val` in base 2
+     */
+    public static double log2(double val) {
+        return Math.log(val) / Math.log(2);
+    }
 }
