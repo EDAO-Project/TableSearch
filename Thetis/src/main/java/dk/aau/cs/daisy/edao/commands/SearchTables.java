@@ -146,6 +146,9 @@ public class SearchTables extends Command {
         "The weights for each entity type correspond to their respective IDF scores")
     private boolean weightedJaccardSimilarity;
 
+    @CommandLine.Option(names = { "--useMaxSimilarityPerColumn"}, description = "If specified, instead of taking the average similarity across columns as a score the maximum value is used")
+    private boolean useMaxSimilarityPerColumn;
+
     @CommandLine.Option(names = { "-wppr", "--weightedPPR"}, description = "If specified, the number of particles given to each query node depends on their number of edges and IDF scores.")
     private boolean weightedPPR;
 
@@ -864,7 +867,7 @@ public class SearchTables extends Command {
                     }
                 }
             }
-            
+           
             // Compute the weighted vector (i.e. considers IDF scores of query entities) for each query tuple
             Map<Integer, List<Double>> tupleIDToWeightVector = new HashMap<>();
             for (Integer tupleID=0; tupleID < queryEntities.size(); tupleID++) {
@@ -874,6 +877,9 @@ public class SearchTables extends Command {
                 }
                 tupleIDToWeightVector.put(tupleID, utils.normalizeVector(curTupleIDFScores));
             }
+
+            // 2D List mapping each tupleID to the similarity scores chosen across the aligned columns
+            List<List<Double>> tupleVectors = new ArrayList<>();
             
             // Compute a score for the current file with respect to each query tuple
             // The score takes into account the weight vector associated with each tuple
@@ -884,21 +890,31 @@ public class SearchTables extends Command {
 
                     // ensure that the current tupleID has at least one similarity vector with some row
                     if (tupleIDToListOfSimVectors.containsKey(tupleID)) {                   
-                        List<Double> curTupleAvgVec = utils.getAverageVector(tupleIDToListOfSimVectors.get(tupleID));
-                        List<Double> identityVector = new ArrayList<Double>(Collections.nCopies(curTupleAvgVec.size(), 1.0));
+                        List<Double> curTupleVec = new ArrayList<Double>();
+                        if (useMaxSimilarityPerColumn) {
+                            // Use the maximum similarity score per column as the tuple vector
+                            curTupleVec = utils.getMaxPerColumnVector(tupleIDToListOfSimVectors.get(tupleID));
+                        }
+                        else {
+                            curTupleVec = utils.getAverageVector(tupleIDToListOfSimVectors.get(tupleID));
+                        }
+                        List<Double> identityVector = new ArrayList<Double>(Collections.nCopies(curTupleVec.size(), 1.0));
                         Double score = 0.0;
 
                         if (vec_similarity_measure == "cosine") {
                             // Note: Cosine similarity doesn't make sense if we are operating in a vector similarity space
-                            score = utils.cosineSimilarity(curTupleAvgVec, identityVector);
+                            score = utils.cosineSimilarity(curTupleVec, identityVector);
                         }
                         else if (vec_similarity_measure == "euclidean") {
-                            // Perform weighted euclidean distance between the `curTupleAvgVec` and `identityVector` vectors where the weights are specified by `tupleIDToWeightVector.get(tupleID)`
-                            score = utils.euclideanDistance(curTupleAvgVec, identityVector, tupleIDToWeightVector.get(tupleID));
+                            // Perform weighted euclidean distance between the `curTupleVec` and `identityVector` vectors where the weights are specified by `tupleIDToWeightVector.get(tupleID)`
+                            score = utils.euclideanDistance(curTupleVec, identityVector, tupleIDToWeightVector.get(tupleID));
                             // Convert euclidean distance to similarity, high similarity (i.e. close to 1) means euclidean distance is small
                             score = 1 / (score + 1);
                         }
                         tupleIDToScore.put(tupleID, score);
+
+                        // Update the tupleVectors array
+                        tupleVectors.add(curTupleVec);
                     }
                 }
                 else {
@@ -907,20 +923,20 @@ public class SearchTables extends Command {
                 }
             }
 
-            // TODO: Each tuple is weighted equality. Maybe add extra weighting per tuple when taking average?
+            // TODO: Each tuple currently weighted equally. Maybe add extra weighting per tuple when taking average?
             // Get a single score for the current filename that is averaged across all query tuple scores
             if (!tupleIDToScore.isEmpty()) {
                 List<Double> tupleIDScores = new ArrayList<Double>(tupleIDToScore.values()); 
                 Double fileScore = utils.getAverageOfVector(tupleIDScores);
                 filenameToScore.put(filename, fileScore);
                 filenameToStatistics.get(filename).put("tupleScores", tupleIDScores);
+                filenameToStatistics.get(filename).put("tupleVectors", tupleVectors);
             }
             else {
                 filenameToScore.put(filename, 0.0);
                 filenameToStatistics.get(filename).put("tupleScores", Arrays.asList(0.0));
+                filenameToStatistics.get(filename).put("tupleVectors", Arrays.asList(0.0));
             }
-
-            // Update Statistics
         } 
 
         System.out.println("Elapsed time: " + (System.nanoTime() - startTime) /(1e9) + " seconds\n");
@@ -938,6 +954,7 @@ public class SearchTables extends Command {
             }
         }
     }
+
 
     public int ppr() {
         // Initialize the connector
@@ -1178,6 +1195,7 @@ public class SearchTables extends Command {
                 tmp.addProperty("numEntityMappedRows", filenameToStatistics.get(file).get("numEntityMappedRows").toString());
                 tmp.addProperty("fractionOfEntityMappedRows", filenameToStatistics.get(file).get("fractionOfEntityMappedRows").toString());
                 tmp.addProperty("tupleScores", filenameToStatistics.get(file).get("tupleScores").toString());
+                tmp.addProperty("tupleVectors", filenameToStatistics.get(file).get("tupleVectors").toString());
             }
 
             if (singleColumnPerQueryEntity) {
