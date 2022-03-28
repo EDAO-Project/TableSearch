@@ -15,7 +15,7 @@ def get_gt_tables_to_relevance_scores_dict(full_df, wikipage_id, groundtruth_rel
     # Get the set of relevant wikipages and their 
     with open(groundtruth_relevance_scores_dir + str(wikipage_id) + '.json', 'r') as fp:
         gt_relevance = json.load(fp)
-    
+   
     # Extract the tables from each relevant wikipage
     for wikipage in gt_relevance:
         if ('https://en.wikipedia.org/wiki/' + wikipage) in full_df['wikipage'].values:
@@ -59,7 +59,7 @@ def get_ndcg_scores_bm25(full_df, scores_df, tables_list, k=10, groundtruth_rele
 
             gt_relevance = np.array([gt_relevance])
             predicted_relevance = np.array([list(pred_tables_to_relevance_scores_dict.values())])
-
+            
             score = ndcg_score(gt_relevance, predicted_relevance, k=k)
             wikipage_id_to_ndcg_score[int(wikipage_id)] = score
 

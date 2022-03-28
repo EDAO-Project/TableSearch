@@ -536,7 +536,10 @@ public class SearchTables extends Command {
                 tuple_query_to_column_names.add(new ArrayList<String>());
                 for (Integer entityId=0; entityId<tupleToColumnMappings.get(tupleId).size(); entityId++) {
                     Integer aligned_col_num = tupleToColumnMappings.get(tupleId).get(entityId);
-                    tuple_query_to_column_names.get(tupleId).add(table.headers.get(aligned_col_num).text);
+                    if ((table.headers.size() > aligned_col_num) && (aligned_col_num >= 0)) {
+                        // Ensure that `table` has headers that we can index them
+                        tuple_query_to_column_names.get(tupleId).add(table.headers.get(aligned_col_num).text);
+                    }
                 }
             }
             statisticsMap.put("tuple_query_alignment", tuple_query_to_column_names);
