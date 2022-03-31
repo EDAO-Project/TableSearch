@@ -304,13 +304,13 @@ public class SearchTables extends Command {
     //********************* Global Variables *********************//
 
     // A doubly nested list of strings containing the entities for each tuple. If the query mode is entities the array is still doubly nested but there is only one row with the list of entities.
-    private List<List<String>> queryEntities = new ArrayList<>();
+    private List<List<String>> queryEntities = new Vector<>();
 
     // Map a wikipedia uri to a dbpedia uri (e.g. https://en.wikipedia.org/wiki/Yellow_Yeiyah -> http://dbpedia.org/resource/Yellow_Yeiyah)
     private Map<String, String> wikipediaLinkToEntity = new HashMap<>(100000);
 
     // Map a dbpedia uri to its list of rdf__types (e.g. http://dbpedia.org/resource/Yellow_Yeiyah -> [http://dbpedia.org/ontology/Swimmer, http://dbpedia.org/ontology/Person,  http://dbpedia.org/ontology/Athlete])
-    private Map<String, List<String>> entityTypes = new HashMap<>();
+    private Map<String, List<String>> entityTypes = Collections.synchronizedMap(new HashMap<>());
 
     // Map an entity (i.e. dbpedia uri) to the list of filenames it is found.  
     // e.g. entityToFilename.get("http://dbpedia.org/resource/Yellow_Yeiyah") = [table-316-3.json, ...]
@@ -321,14 +321,14 @@ public class SearchTables extends Command {
     private Map<String, List<List<Integer>>> entityInFilenameToTableLocations = new HashMap<>();
 
     // A triple nested map corresponding to a tablename, rowNumber and query tuple number and mapping to its maximal similarity vector 
-    private Map<String, Map<Integer, Map<Integer, List<Double>>>> similarityVectorMap = new HashMap<>();
+    private Map<String, Map<Integer, Map<Integer, List<Double>>>> similarityVectorMap = Collections.synchronizedMap(new HashMap<>());
 
     // Maps each filename to its relevance score according to the query
-    private Map<String, Double> filenameToScore = new HashMap<>();
+    private Map<String, Double> filenameToScore = Collections.synchronizedMap(new HashMap<>());
 
     // Maps each entity to its IDF score. The idf score of an entity is given by log(N/(1+n_t)) + 1 where N is the number of filenames/tables in the repository
     // and n_t is the number of tables that contain the entity in question.
-    private Map<String, Double> entityToIDF = new HashMap<>();
+    private Map<String, Double> entityToIDF = Collections.synchronizedMap(new HashMap<>());
 
     // Maps each entity type to its IDF score. This Hashmap is only used if `weightedJaccardSimilarity` is used
     public static Map<String, Double> entityTypeToIDF = new HashMap<>();
@@ -340,7 +340,7 @@ public class SearchTables extends Command {
 
     private Double elapsedTime = 0.0;
 
-    private Map<String, Map<String, Object>> filenameToStatistics = new HashMap<>();
+    private Map<String, Map<String, Object>> filenameToStatistics = Collections.synchronizedMap(new HashMap<>());
 
     private Integer numEmbeddingSimComparisons = 0;
     private Integer numNonEmbeddingSimComparisons = 0;
@@ -468,7 +468,7 @@ public class SearchTables extends Command {
                 parsed.add(future);
             }
 
-            long done = 0, prev = -1;
+            long done = 1, prev = 0;
 
             while (done != file_paths_list.size()) {
                 done = parsed.stream().filter(Future::isDone).count();
@@ -579,7 +579,7 @@ public class SearchTables extends Command {
                     }
                 }
             }
-            
+
             // Compute similarity vectors only for rows that map to at least one entity
             if (!colIdToEntity.isEmpty()) {
                 numEntityMappedRows += 1;
@@ -593,7 +593,7 @@ public class SearchTables extends Command {
                          || !usePretrainedEmbeddings) {
                     
                         // Initialize the maximum vector for the current tuple, to a zero vector of size equal to the query tuple size.
-                        List<Double> maximumTupleVector = new ArrayList<Double>(Collections.nCopies(queryEntities.get(tupleID).size(), 0.0));
+                        List<Double> maximumTupleVector = new ArrayList<>(Collections.nCopies(queryEntities.get(tupleID).size(), 0.0));
 
                         for (Integer queryEntityID=0; queryEntityID<queryEntities.get(tupleID).size(); queryEntityID++) {
                             String queryEntity = queryEntities.get(tupleID).get(queryEntityID);
@@ -840,12 +840,12 @@ public class SearchTables extends Command {
                 simScore = 1 - Math.acos(cosineSim) / Math.PI;
             }
             
-            numEmbeddingSimComparisons += 1;
+            numEmbeddingSimComparisons += 1;    // TODO: This must be surrounded by mutex lock
             return simScore;
         }
         else {
             // No mapped pre-trained embeddings found for both `ent1` and `ent2` so we skip this comparison and return 0
-            numNonEmbeddingSimComparisons += 1;
+            numNonEmbeddingSimComparisons += 1; // TODO: Mutex here as well
             return 0.0;
         }
 
@@ -1177,7 +1177,8 @@ public class SearchTables extends Command {
     /**
      * Saves the data of the filenameToScore Hashmap into the "filenameToScore.json" file at the specified output directory
      */
-    public void saveFilenameScores(File outputDir) {
+    // TODO: Wrap this in RAII for better control
+    public synchronized void saveFilenameScores(File outputDir) {
 
         File saveDir = new File(outputDir, "/search_output/");
         if (!saveDir.exists()){
