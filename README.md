@@ -78,7 +78,7 @@ Create a folder `embeddings` in `data`. Move the embeddings file `vectors.txt` i
    docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
    cd /src
    mvn package
-   java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o data/embeddings -h localhost -p 19530 -dim 200 -db milvus
+   java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o /data/embeddings -h localhost -p 19530 -dim 200 -db milvus
    ```
 
    Add the option `-dp` or `--disable-parsing` to skip pre-parsing the embeddings file before insertion.
@@ -91,7 +91,7 @@ Enter the project root directory. Start parsing and inserting embeddings into an
 docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
 cd /src
 mvn package
-java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o data/embeddings -db sqlite -dbn embeddings
+java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o /data/embeddings -db sqlite -dbn embeddings
 ```
 
 Add the option `-dp` or `--disable-parsing` to skip pre-parsing the embeddings file before insertion.

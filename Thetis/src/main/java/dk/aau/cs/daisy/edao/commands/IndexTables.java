@@ -33,6 +33,7 @@ import com.google.gson.stream.JsonReader;
 
 // import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
+import dk.aau.cs.daisy.edao.utilities.utils;
 
 import picocli.CommandLine;
 
@@ -102,7 +103,7 @@ public class IndexTables extends Command {
 
         if(!value.exists()){
             throw new CommandLine.ParameterException(spec.commandLine(),
-                    String.format("Invalid value '%s' for option '--table-dir': " +
+                    String.format("InvaRoyaltylid value '%s' for option '--table-dir': " +
                             "the directory does not exists.", value));
         }
 
@@ -121,7 +122,7 @@ public class IndexTables extends Command {
 
         if(!value.exists()){
             throw new CommandLine.ParameterException(spec.commandLine(),
-                    String.format("Invalid value '%s' for option '--table-dir': " +
+                    String.format("Invalid value '%s' for option '--output-dir': " +
                             "the directory does not exists.", value));
         }
 
@@ -237,6 +238,15 @@ public class IndexTables extends Command {
 
     private int cellsWithLinks = 0;
 
+    // Maps each entity type to its IDF score. The idf score of an entity is given by log(N/n_t) + 1 where N is the number of entities in the repository
+    // and n_t is the number of entities that contain the entity type in question.
+    private final Map<String,Double> entityTypeToIDF = new HashMap<>();
+
+
+    // List of entity types to be ignored when extracting the set of types of an entity.
+    // Usually these correspond to types that are very generic and not informative to keep
+    private final List<String> entity_types_to_remove = Arrays.asList("http://www.w3.org/2002/07/owl#Thing", "http://www.wikidata.org/entity/Q5"); 
+
     public long indexWikiTables(){
 
         // Open table directory
@@ -284,12 +294,16 @@ public class IndexTables extends Command {
             entityToIDF.put(s, idfScore);
         }
 
+        // Compute the IDF scores for each entity type in the repository
+        this.computeEntityTypeToIDF();
+
         // Save the produced hashmaps to disk
         if (this.saveData(outputDir)) {
             System.out.println("Successfully serialized all hashmaps!\n");
         }
 
         System.out.printf("Found an approximate total of %d  unique entity mentions across %d cells %n", this.filter.approximateElementCount(), this.cellsWithLinks);
+        System.out.println("There are in total " + entityTypeToIDF.size() + " unique entity types across all discovered entities.");
 
         return parsedTables;
     }
@@ -371,7 +385,7 @@ public class IndexTables extends Command {
 
                                 // Retrieve a list of rdf__types of the entity (filter them appropriately) and save them, in entityTypes map
                                 List<String> entity_types_uris = connector.searchTypes(entity);
-                                List<String> entity_types_to_remove = Arrays.asList("http://www.w3.org/2002/07/owl#Thing"); 
+                                // TODO: Perform smarter removal of types (maybe ignore types from certain domain names)
                                 for (String ent_for_removal : entity_types_to_remove) {
                                     entity_types_uris.remove(ent_for_removal);
                                 }
@@ -563,6 +577,13 @@ public class IndexTables extends Command {
             fileOut.close();
             System.out.println("Serialized entityToIDF hashmap");
 
+            fileOut = new FileOutputStream(path+"/entityTypeToIDF.ser");
+            out = new ObjectOutputStream(fileOut);
+            out.writeObject(entityTypeToIDF);
+            out.close();
+            fileOut.close();
+            System.out.println("Serialized entityTypeToIDF hashmap");
+
             Writer writer = new FileWriter(path+"/entityToIDF.json");
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             gson.toJson(entityToIDF, writer);
@@ -574,6 +595,18 @@ public class IndexTables extends Command {
             gson.toJson(wikipediaLinkToEntity, writer);
             writer.close();
             System.out.println("Wrote wikipediaLinkToEntity.json");
+
+            writer = new FileWriter(path+"/entityTypes.json");
+            gson = new GsonBuilder().setPrettyPrinting().create();
+            gson.toJson(entityTypes, writer);
+            writer.close();
+            System.out.println("Wrote entityTypes.json");
+
+            writer = new FileWriter(path+"/entityTypeToIDF.json");
+            gson = new GsonBuilder().setPrettyPrinting().create();
+            gson.toJson(entityTypeToIDF, writer);
+            writer.close();
+            System.out.println("Wrote entityTypeToIDF.json");
 
             return true;
 
@@ -648,9 +681,32 @@ public class IndexTables extends Command {
         }
     }
 
-
-
-
+    /**
+     * Computes the IDF scores for each entity type (i.e., populates the entityTypeToIDF hashmap)
+     */
+    public void computeEntityTypeToIDF() {
+        System.out.println("Computing IDF scores for each entity type...\n");
+        // Construct a mapping of each entity type to its frequency
+        Map<String,Integer> entityTypeToFrequency = new HashMap<>();
+        for (String uri : entityTypes.keySet()) {
+            for (String entityType : entityTypes.get(uri)) {
+                if (entityTypeToFrequency.containsKey(entityType)) {
+                    entityTypeToFrequency.put(entityType, entityTypeToFrequency.get(entityType) + 1);
+                } 
+                else {
+                    entityTypeToFrequency.put(entityType, 1);
+                }
+            }
+        }
+        // Compute the IDF scores for each entity type discovered (i.e., in how many entities out of all entities is a type shared)
+        Double total_num_entities = Double.valueOf(entityToFilename.size());
+        for (String entityType : entityTypeToFrequency.keySet()) {
+            Double numEntitiesToEntityTypeFrequencyRatio = total_num_entities / entityTypeToFrequency.get(entityType);
+            Double idfScore = utils.log2(numEntitiesToEntityTypeFrequencyRatio);
+            // Double idfScore = Math.log10(total_num_entities / entityTypeToFrequency.get(entityType));
+            entityTypeToIDF.put(entityType, idfScore);
+        }
+    }
 
 
 

@@ -89,6 +89,26 @@ public class utils {
     }
 
     /**
+     * Returns a list with the maximum value for each column in `arr`.
+     * Note that `arr` is a 2D list of doubles
+     */
+    public static List<Double> getMaxPerColumnVector(List<List<Double>> arr) {
+        Integer numColumns = arr.get(0).size();
+        List<Double> maxColumnVec = new ArrayList<Double>(Collections.nCopies(numColumns, 0.0));
+
+        for (Integer rowNum=0; rowNum<arr.size(); rowNum++) {
+            for (Integer colNum=0; colNum<numColumns; colNum++) {
+                if (arr.get(rowNum).get(colNum) > maxColumnVec.get(colNum)) {
+                    maxColumnVec.set(colNum, arr.get(rowNum).get(colNum));
+                }
+            }
+        } 
+
+        return maxColumnVec;
+    }
+
+
+    /**
      * Returns the cosine similarity between two lists
      */
     public static double cosineSimilarity(List<Double> vectorA, List<Double> vectorB) {
@@ -139,5 +159,12 @@ public class utils {
     public static Parser getEmbeddingsParser(String content, char delimiter)
     {
         return new EmbeddingsParser(content, delimiter);
+    }
+
+    /**
+     * Computes the logarithm of `val` in base 2
+     */
+    public static double log2(double val) {
+        return Math.log(val) / Math.log(2);
     }
 }
