@@ -9,10 +9,7 @@ import java.nio.file.Files;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -454,7 +451,6 @@ public class SearchTables extends Command {
     public int analogousSearch() {
 
         // Loop over each table in the tables directory
-        long parsedTables = 0;
         try {
             // Get a list of all the files from the specified directory
             Stream<Path> file_stream = Files.find(this.tableDir.toPath(), Integer.MAX_VALUE,
@@ -474,20 +470,35 @@ public class SearchTables extends Command {
 
                     return false;
                 });
+                parsed.add(future);
+            }
 
-                if ((i % 100) == 0) {
-                    System.out.println("Processed " + i + "/" + file_paths_list.size() + " files...");
+            long done = 0, prev = -1;
+
+            while (done != file_paths_list.size()) {
+                done = parsed.stream().filter(Future::isDone).count();
+
+                if (done != prev) {
+                    if (done - prev >= 100)
+                        System.out.println("Processed " + done + "/" + file_paths_list.size() + " files...");
+
+                    prev = done;
                 }
             }
 
-            if (!threadPool.awaitTermination(1, TimeUnit.HOURS))
-                throw new IllegalThreadStateException("Search threads timeout");
+            elapsedTime = (System.nanoTime() - startTime) / 1e9;
+            long parsedTables = parsed.stream().filter(f -> {
+                try {
+                    return f.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e.getMessage());
+                }
+            }).count();
 
             System.out.println("A total of " + parsedTables + " tables were parsed.");
-            elapsedTime = (System.nanoTime() - startTime) / 1e9;
-            System.out.println("Elapsed time: " + elapsedTime + " seconds\n");    
+            System.out.println("Elapsed time: " + elapsedTime + " seconds\n");
         } 
-        catch (IOException | InterruptedException | RuntimeException e) {
+        catch (IOException | RuntimeException e) {
             e.printStackTrace();
             return -1;
         }
