@@ -9,40 +9,32 @@ import java.nio.file.Files;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.gson.JsonObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.TypeAdapter;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.common.reflect.TypeToken;
 import java.lang.reflect.Type;
 
-import dk.aau.cs.daisy.edao.commands.parser.EmbeddingsParser;
 import dk.aau.cs.daisy.edao.connector.*;
-import dk.aau.cs.daisy.edao.connector.embeddings.EmbeddingDBWrapper;
-import dk.aau.cs.daisy.edao.connector.embeddings.EmbeddingStore;
 import dk.aau.cs.daisy.edao.similarity.JaccardSimilarity;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.utils;
 import dk.aau.cs.daisy.edao.utilities.HungarianAlgorithm;
 import dk.aau.cs.daisy.edao.utilities.ppr;
-import dk.aau.cs.daisy.edao.commands.parser.ParsingException;
 
 import org.neo4j.driver.exceptions.AuthenticationException;
 import org.neo4j.driver.exceptions.ServiceUnavailableException;
 
 import picocli.CommandLine;
 import me.tongfei.progressbar.*;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 
 @picocli.CommandLine.Command(name = "search", description = "searched the index for tables matching the input tuples")
 public class SearchTables extends Command {
@@ -234,6 +226,9 @@ public class SearchTables extends Command {
         }
         configFile = value;
     }
+
+    @CommandLine.Option(names = {"-t", "--threads"}, description = "Number of threads", required = true, defaultValue = "1")
+    private int threads;
 
     private Neo4jEndpoint connector;
 
@@ -455,21 +450,32 @@ public class SearchTables extends Command {
             List<Path> file_paths_list = file_stream.collect(Collectors.toList());
             System.out.println("There are " + file_paths_list.size() + " files to be processed.");
 
-            long startTime = System.nanoTime();    
+            long startTime = System.nanoTime();
+            ExecutorService threadPool = Executors.newFixedThreadPool(this.threads);
+            List<Future<Boolean>> parsed = new ArrayList<>(file_paths_list.size());
             // Parse each file (TODO: Maybe parallelise this process? How can the global variables be shared?)
             for (int i=0; i < file_paths_list.size(); i++) {
-                if (this.searchTable(file_paths_list.get(i).toAbsolutePath())) {
-                    parsedTables += 1;
-                }
+                Path filePath = file_paths_list.get(i).toAbsolutePath();
+                Future<Boolean> future = threadPool.submit(() -> {
+                    if (this.searchTable(filePath))
+                        return true;
+
+                    return false;
+                });
+
                 if ((i % 100) == 0) {
                     System.out.println("Processed " + i + "/" + file_paths_list.size() + " files...");
                 }
             }
+
+            if (!threadPool.awaitTermination(1, TimeUnit.HOURS))
+                throw new IllegalThreadStateException("Search threads timeout");
+
             System.out.println("A total of " + parsedTables + " tables were parsed.");
             elapsedTime = (System.nanoTime() - startTime) / 1e9;
             System.out.println("Elapsed time: " + elapsedTime + " seconds\n");    
         } 
-        catch (IOException e) {
+        catch (IOException | InterruptedException | RuntimeException e) {
             e.printStackTrace();
             return -1;
         }
