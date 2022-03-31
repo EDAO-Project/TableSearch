@@ -464,12 +464,7 @@ public class SearchTables extends Command {
             // Parse each file (TODO: Maybe parallelise this process? How can the global variables be shared?)
             for (int i=0; i < file_paths_list.size(); i++) {
                 Path filePath = file_paths_list.get(i).toAbsolutePath();
-                Future<Boolean> future = threadPool.submit(() -> {
-                    if (this.searchTable(filePath))
-                        return true;
-
-                    return false;
-                });
+                Future<Boolean> future = threadPool.submit(() -> this.searchTable(filePath));
                 parsed.add(future);
             }
 
@@ -478,10 +473,8 @@ public class SearchTables extends Command {
             while (done != file_paths_list.size()) {
                 done = parsed.stream().filter(Future::isDone).count();
 
-                if (done != prev) {
-                    if (done - prev >= 100)
-                        System.out.println("Processed " + done + "/" + file_paths_list.size() + " files...");
-
+                if (done - prev >= 100) {
+                    System.out.println("Processed " + done + "/" + file_paths_list.size() + " files...");
                     prev = done;
                 }
             }
