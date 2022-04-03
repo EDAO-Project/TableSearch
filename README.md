@@ -373,3 +373,6 @@ Attach to existing container (e.g., after detaching from a container use the fol
 
 Count the number of edges for node `http://dbpedia.org/resource/Harry_Potter`:
 * `bin/cypher-shell -u neo4j -p 'admin' "MATCH (a:Resource) WHERE a.uri in ['http://dbpedia.org/resource/Harry_Potter'] RETURN apoc.node.degree(a)"`
+
+Compile project in maven without running the tests:
+* `mvn package -DskipTests`

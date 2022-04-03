@@ -124,6 +124,9 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = { "-upe", "--usePretrainedEmbeddings"}, description = "If specified, pre-trained embeddings are used to capture the similarity between two entities whenever possible")
     private boolean usePretrainedEmbeddings;
 
+    @CommandLine.Option(names = { "--hungarianAlgorithmSameAlignmentAcrossTuples"}, description = "If specified, the Hungarian algorithm uses the same alignment of columns to query entities across all query tuples")
+    private boolean hungarianAlgorithmSameAlignmentAcrossTuples;
+
     @CommandLine.Option(names = { "-pem", "--embeddingsInputMode" }, description = "Specifies the manner by which the preTrainedEmbeddings are loaded from. Must be one of {file, database}", defaultValue = "file")
     private EmbeddingsInputMode embeddingsInputMode = null;
 
@@ -733,6 +736,15 @@ public class SearchTables extends Command {
 
         // Find the best mapping between a query entity and a column for each query tuple.
         List<List<Integer>> tupleToColumnMappings = getBestMatchFromScores(entityToColumnScore);
+        if (hungarianAlgorithmSameAlignmentAcrossTuples) {
+            // TODO: Maybe perform a voting procedure instead of choosing to keep the alignment of the first query tuple 
+
+            // Modify tupleToColumnMappings so that the same column alignments are used across all query tuples
+            for (Integer tupleID=1; tupleID<tupleToColumnMappings.size(); tupleID++) {
+                tupleToColumnMappings.set(tupleID, tupleToColumnMappings.get(0));
+            }
+        }
+
         return tupleToColumnMappings;
     }
 
