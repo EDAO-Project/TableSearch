@@ -75,7 +75,7 @@ Create a folder `embeddings` in `data`. Move the embeddings file `vectors.txt` i
 4. Milvus is now accessible on port 19530. Enter the project root directory and load embeddings into a Milvus instance, which also requires using SQLite
 
    ```
-   docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
+   docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17  
    cd /src
    mvn package
    java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o /data/embeddings -h localhost -p 19530 -dim 200 -db milvus
@@ -88,7 +88,7 @@ Create a folder `embeddings` in `data`. Move the embeddings file `vectors.txt` i
 Enter the project root directory. Start parsing and inserting embeddings into an SQLite instance
 
 ```
-docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
+docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17 
 cd /src
 mvn package
 java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o /data/embeddings -db sqlite -dbn embeddings
@@ -119,7 +119,7 @@ With the command `docker exec -it db psql -U thetis embeddings`, you can connect
 Now, exit the Docker interactive mode and start inserting embeddings into Postgres
 
 ```
-docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim
+docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17
 cd /src
 mvn package
 java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -db postgres -h <IP> -p 5432 -dbn embeddings -u <USERNAME> -pw <PASSWORD>
@@ -174,7 +174,7 @@ We use the WikiTables corpus as provided in the STR paper (this is the same corp
 3. Run preprocessing script for indexing. Notice that we first create a docker container and then run all commands within it
 
    ```bash
-   docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
+   docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17
    cd /src
    mvn package
    
