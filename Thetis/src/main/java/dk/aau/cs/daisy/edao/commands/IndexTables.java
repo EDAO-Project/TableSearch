@@ -134,7 +134,7 @@ public class IndexTables extends Command {
                     System.err.println( "Indexing of '"+TableType.TT.getName() + "' is not supported yet!" );
                     break;
                 case WIKI:
-                    System.out.println("Starting index of '"+TableType.WIKI.getName()+"'");
+                    System.out.println("Starting indexing of '"+TableType.WIKI.getName()+"'");
                     parsedTables = this.indexWikiTables(this.tableDir.toPath(), this.outputDir, connector);
                     System.out.printf("Indexed %d tables%n", parsedTables );
                     break;

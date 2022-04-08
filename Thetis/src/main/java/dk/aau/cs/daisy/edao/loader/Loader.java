@@ -147,7 +147,7 @@ public class Loader
                             String entity = this.linker.mapTo(link);
                             Id entityId = this.linker.getDictionary().get(entity);
                             List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> tableLocation =
-                                    List.of(new dk.aau.cs.daisy.edao.structures.Pair<>(rowId, collId));
+                                    Arrays.asList(new dk.aau.cs.daisy.edao.structures.Pair<>(rowId, collId));
                             String fileName = file.getFileName().toString();
                             this.entityTableLink.addLocation(entityId, fileName, tableLocation);
                         }
