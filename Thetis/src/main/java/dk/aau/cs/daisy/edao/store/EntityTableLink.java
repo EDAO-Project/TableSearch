@@ -73,12 +73,15 @@ public class EntityTableLink implements Index<Id, List<String>>
         if (this.idx.containsKey(key))
         {
             if (this.idx.get(key).containsKey(fileName))
-                locations.forEach(l -> this.idx.get(key).get(fileName).add(l));
+                Collections.addAll(this.idx.get(key).get(fileName),
+                        (Pair<Integer, Integer>[]) locations.toArray());
 
             else
             {
                 this.idx.get(key).put(fileName, new ArrayList<>(locations.size()));
                 locations.forEach(l -> this.idx.get(key).get(fileName).add(l));
+                Collections.addAll(this.idx.get(key).get(fileName),
+                        (Pair<Integer, Integer>[]) locations.toArray());
             }
         }
 

@@ -136,7 +136,7 @@ public class IndexTables extends Command {
                 case WIKI:
                     System.out.println("Starting indexing of '"+TableType.WIKI.getName()+"'");
                     parsedTables = this.indexWikiTables(this.tableDir.toPath(), this.outputDir, connector);
-                    System.out.printf("Indexed %d tables%n", parsedTables );
+                    System.out.printf("Indexed %d tables%n", parsedTables);
                     break;
             }
         } catch(AuthenticationException ex){
@@ -199,6 +199,7 @@ public class IndexTables extends Command {
 
             System.out.printf("Found an approximate total of %d  unique entity mentions across %d cells %n", loader.getApproximateEntityMentions(), loader.cellsWithLinks());
             System.out.println("There are in total " + entityTypes.size() + " unique entity types across all discovered entities.");
+            System.out.println("Indexing took " + loader.elapsedTime() + " ns");
 
             return loader.loadedTables();
         }
