@@ -58,6 +58,47 @@ public class Configuration
 
     private static final File CONF_FILE = new File(".config.conf");
 
+    static
+    {
+        addDefaults();
+    }
+
+    public Configuration()
+    {
+        addDefaults();
+    }
+
+    private static void addDefaults()
+    {
+        Properties props = readProperties();
+
+        if (!props.contains("EntityTable"))
+            props.setProperty("EntityTable", "entity_table.ser");
+
+        if (!props.contains("EntityLinker"))
+            props.setProperty("EntityLinker", "entity_linker.ser");
+
+        if (!props.contains("EntityToTables"))
+            props.setProperty("EntityToTables", "entity_to_tables.ser");
+
+        if (!props.contains("TableToEntities"))
+            props.setProperty("TableToEntities", "tableIDToEntities.ttl");
+
+        if (!props.contains("TableToTypes"))
+            props.setProperty("TableToTypes", "tableIDToTypes.ttl");
+
+        if (!props.contains("WikiLinkToEntitiesFrequency"))
+            props.setProperty("WikiLinkToEntitiesFrequency", "wikilinkToNumEntitiesFrequency.json");
+
+        if (!props.contains("CellToNumLinksFrequency"))
+            props.setProperty("CellToNumLinksFrequency", "cellToNumLinksFrequency.json");
+
+        if (!props.contains("TableStats"))
+            props.setProperty("TableStats", "perTableStats.json");
+
+        writeProperties(props);
+    }
+
     private static Properties readProperties()
     {
         try
@@ -166,5 +207,55 @@ public class Configuration
     public static String getDBPassword()
     {
         return readProperties().getProperty("DBPassword");
+    }
+
+    public static void setLargestId(String id)
+    {
+        addProperty("LargestID", id);
+    }
+
+    public static String getLargestId()
+    {
+        return readProperties().getProperty("LargestID");
+    }
+
+    public static String getEntityTableFile()
+    {
+        return readProperties().getProperty("EntityTable");
+    }
+
+    public static String getEntityLinkerFile()
+    {
+        return readProperties().getProperty("EntityLinker");
+    }
+
+    public static String getEntityToTablesFile()
+    {
+        return readProperties().getProperty("EntityToTables");
+    }
+
+    public static String getTableToEntitiesFile()
+    {
+        return readProperties().getProperty("TableToEntities");
+    }
+
+    public static String getTableToTypesFile()
+    {
+        return readProperties().getProperty("TableToTypes");
+    }
+
+    public static String getWikiLinkToEntitiesFrequencyFile()
+    {
+        return readProperties().getProperty("WikiLinkToEntitiesFrequency");
+    }
+
+    public static String getCellToNumLinksFrequencyFile()
+    {
+        return readProperties().getProperty("CellToNumLinksFrequency");
+    }
+
+    public static String getTableStatsFile()
+    {
+        return readProperties().getProperty("TableStats");
     }
 }

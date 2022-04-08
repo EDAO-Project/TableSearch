@@ -1,0 +1,53 @@
+package dk.aau.cs.daisy.edao.store;
+
+import dk.aau.cs.daisy.edao.structures.graph.Entity;
+import dk.aau.cs.daisy.edao.structures.Id;
+import dk.aau.cs.daisy.edao.structures.graph.Type;
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.junit.Assert.*;
+
+public class EntityTableTest
+{
+    private final EntityTable entTable = new EntityTable();
+    private final Id id1 = Id.alloc(), id2 = Id.alloc(), id3 = Id.alloc();
+    Entity ent1 = new Entity("uri1", new Type("type1"), new Type("type2"), new Type("type3")),
+            ent2 = new Entity("uri2", new Type("type2"), new Type("type3")),
+            ent3 = new Entity("uri3", new Type("type1"), new Type("type2"));
+
+    @Before
+    public void init()
+    {
+        this.entTable.insert(this.id1, this.ent1);
+        this.entTable.insert(this.id2, this.ent2);
+        this.entTable.insert(this.id3, this.ent3);
+    }
+
+    @Test
+    public void testContains()
+    {
+        assertTrue(this.entTable.contains(this.id1));
+        assertTrue(this.entTable.contains(this.id2));
+        assertTrue(this.entTable.contains(this.id3));
+        assertFalse(this.entTable.contains(Id.alloc()));
+    }
+
+    @Test
+    public void testRemove()
+    {
+        assertTrue(this.entTable.remove(this.id1));
+        assertTrue(this.entTable.remove(this.id3));
+        assertTrue(this.entTable.contains(this.id2));
+        assertFalse(this.entTable.contains(this.id1));
+        assertFalse(this.entTable.contains(this.id3));
+    }
+
+    @Test
+    public void testFind()
+    {
+        assertEquals(this.ent1, this.entTable.find(this.id1));
+        assertEquals(this.ent2, this.entTable.find(this.id2));
+        assertEquals(this.ent3, this.entTable.find(this.id3));
+    }
+}
