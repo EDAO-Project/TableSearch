@@ -198,11 +198,14 @@ public class Loader
             {
                 List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> locations = this.entityTableLink.getLocations(entityId, tableFileName);
 
-                for (Pair<Integer, Integer> location : locations)
+                if (locations != null)
                 {
-                    numEntitiesPerRow.set(location.getFirst(), numEntitiesPerRow.get(location.getFirst()) + 1);
-                    numEntitiesPerCol.set(location.getSecond(), numEntitiesPerCol.get(location.getSecond()) + 1);
-                    numCellToEntityMatches++;
+                    for (Pair<Integer, Integer> location : locations)
+                    {
+                        numEntitiesPerRow.set(location.getFirst(), numEntitiesPerRow.get(location.getFirst()) + 1);
+                        numEntitiesPerCol.set(location.getSecond(), numEntitiesPerCol.get(location.getSecond()) + 1);
+                        numCellToEntityMatches++;
+                    }
                 }
             }
         }
@@ -384,7 +387,7 @@ public class Loader
             for (String table : tables)
             {
                 writer.write("<http://thetis.edao.eu/wikitables/\"" + table +
-                        "> <https://schema.org/mentions> <" + entity + "> .\n");
+                        "> <https://schema.org/mentions> <" + entity + "> ...\n");
             }
         }
 
