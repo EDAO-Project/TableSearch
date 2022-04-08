@@ -70,20 +70,23 @@ public class EntityTableLink implements Index<Id, List<String>>
      */
     public void addLocation(Id key, String fileName, List<Pair<Integer, Integer>> locations)
     {
-        List<Pair<Integer, Integer>> locationsCopy = new ArrayList<>(locations);
-
         if (this.idx.containsKey(key))
         {
             if (this.idx.get(key).containsKey(fileName))
-                this.idx.get(key).get(fileName).addAll(locationsCopy);
+                locations.forEach(l -> this.idx.get(key).get(fileName).add(l));
 
             else
-                this.idx.get(key).put(fileName, locations);
+            {
+                this.idx.get(key).put(fileName, new ArrayList<>(locations.size()));
+                locations.forEach(l -> this.idx.get(key).get(fileName).add(l));
+            }
         }
 
         else
         {
             Map<String, List<Pair<Integer, Integer>>> fileNamesLocations = new HashMap<>();
+            List<Pair<Integer, Integer>> locationsCopy = new ArrayList<>(locations.size());
+            locations.forEach(l -> locationsCopy.add(l));
             fileNamesLocations.put(fileName, locationsCopy);
             this.idx.put(key, fileNamesLocations);
         }
