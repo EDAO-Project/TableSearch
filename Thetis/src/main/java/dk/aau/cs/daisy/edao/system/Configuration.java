@@ -94,7 +94,7 @@ public class Configuration
             props.setProperty("CellToNumLinksFrequency", "cellToNumLinksFrequency.json");
 
         if (!props.contains("TableStats"))
-            props.setProperty("TableStats", "perTableStats.json");
+            props.setProperty("TableStats", "statistics/perTableStats.json");
 
         writeProperties(props);
     }
