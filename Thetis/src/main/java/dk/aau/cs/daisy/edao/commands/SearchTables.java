@@ -20,8 +20,22 @@ import com.google.gson.JsonArray;
 import com.google.common.reflect.TypeToken;
 import java.lang.reflect.Type;
 
+import dk.aau.cs.daisy.edao.commands.parser.TableParser;
 import dk.aau.cs.daisy.edao.connector.*;
+import dk.aau.cs.daisy.edao.loader.IndexReader;
+import dk.aau.cs.daisy.edao.search.ExactSearch;
+import dk.aau.cs.daisy.edao.search.Result;
+import dk.aau.cs.daisy.edao.search.Search;
 import dk.aau.cs.daisy.edao.similarity.JaccardSimilarity;
+import dk.aau.cs.daisy.edao.store.EntityLinking;
+import dk.aau.cs.daisy.edao.store.EntityTable;
+import dk.aau.cs.daisy.edao.store.EntityTableLink;
+import dk.aau.cs.daisy.edao.structures.Id;
+import dk.aau.cs.daisy.edao.structures.IdDictionary;
+import dk.aau.cs.daisy.edao.structures.Pair;
+import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
+import dk.aau.cs.daisy.edao.structures.table.SimpleTable;
+import dk.aau.cs.daisy.edao.structures.table.Table;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.utils;
 import dk.aau.cs.daisy.edao.utilities.HungarianAlgorithm;
@@ -159,20 +173,20 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = {"-ep", "--embeddingsPath"}, description = "Path to embeddings database for file. Whichever is specified by the `preTrainedEmbeddingsMode` argument")
     private String embeddingsPath = null;
 
-    private File hashmapDir = null;
-    @CommandLine.Option(names = { "-hd", "--hashmap-dir" }, paramLabel = "HASH_DIR", description = "Directory from which we load the hashmaps", defaultValue = "../data/index/wikitables/")
+    private File indexDir = null;
+    @CommandLine.Option(names = { "-i", "--index-dir" }, paramLabel = "INDEX_DIR", description = "Directory of loaded indexes", defaultValue = "../data/index/wikitables/")
     public void setHashMapDirectory(File value) {
         if(!value.exists()){
             throw new CommandLine.ParameterException(spec.commandLine(),
-                String.format("Invalid value '%s' for option '--hashmap-dir': " + "the directory does not exists.", value));
+                String.format("Invalid value '%s' for option '--index-dir': " + "the directory does not exists.", value));
         }
 
         if (!value.isDirectory()) {
             throw new CommandLine.ParameterException(spec.commandLine(),
-                    String.format("Invalid value '%s' for option '--hashmap-dir': " + "the path does not point to a directory.", value));
+                    String.format("Invalid value '%s' for option '--index-dir': " + "the path does not point to a directory.", value));
         }
 
-        hashmapDir = value;
+        this.indexDir = value;
     }
 
     private File queryFile = null;
@@ -241,11 +255,11 @@ public class SearchTables extends Command {
 
     @Override
     public Integer call() {
-        System.out.println("Hashmap Directory: " + hashmapDir);
-        System.out.println("Query File: " + queryFile);
-        System.out.println("Table Directory: " + tableDir);
-        System.out.println("Output Directory: " + outputDir);
-        System.out.println("Single Column per Query Entity: " + singleColumnPerQueryEntity);
+        System.out.println("Hashmap Directory: " + this.indexDir);
+        System.out.println("Query File: " + this.queryFile);
+        System.out.println("Table Directory: " + this.tableDir);    // TODO: Make this redundant - necessary info should be found in indexes
+        System.out.println("Output Directory: " + this.outputDir);
+        System.out.println("Single Column per Query Entity: " + this.singleColumnPerQueryEntity);
 
         // Create output directory if it doesn't exist
         if (!outputDir.exists()) {
@@ -256,49 +270,68 @@ public class SearchTables extends Command {
             this.store = Factory.fromConfig(false);
 
         // Read off the queryEntities list from a json object
-        queryEntities = this.parseQuery(queryFile);
+        Table<String> queryTable = TableParser.toTable(this.queryFile);
+
+        if (queryTable == null)
+        {
+            System.out.println("Query file '" + this.queryFile + "' could not be parsed");
+            return -1;
+        }
+
         System.out.println("Query Entities: " + queryEntities + "\n");
 
-        // Perform De-Serialization of the indices
-        long startTime = System.nanoTime();    
-        if (this.deserializeHashMaps(hashmapDir)) {
-            System.out.println("Deserialization successful!\n");
-            System.out.println("Elapsed time for deserialization: " + (System.nanoTime() - startTime)/(1e9) + " seconds\n");
+        try
+        {
+            // Perform De-Serialization of the indices
+            long startTime = System.nanoTime();
+            IndexReader indexReader = new IndexReader(this.indexDir, true);
+            indexReader.performIO();
+
+            long elapsedTime = System.nanoTime() - startTime;
+            System.out.println("Indexes loaded from disk in " + elapsedTime / 1e9 + " seconds\n");
+
+            EntityLinking linker = indexReader.getLinker();
+            EntityTable entityTable = indexReader.getEntityTable();
+            EntityTableLink entityTableLink = indexReader.getEntityTableLink();
+
+            // Ensure all query entities are mappable
+            if (this.ensureQueryEntitiesMapping(queryTable, linker.getDictionary(), entityTableLink))
+                System.out.println("All query entities are mappable!\n\n");
+
+            else
+            {
+                System.out.println("NOT all query entities are mappable!");
+                return -1;
+            }
+
+            // Perform search according to the specified `search-mode`
+            System.out.println("Search mode: " + this.searchMode.getMode());
+
+            switch (this.searchMode){
+                case EXACT:
+                    exactSearch(queryTable, linker, entityTable, entityTableLink);
+                    break;
+
+                case ANALOGOUS:
+                    analogousSearch();
+                    break;
+
+                case PPR:
+                    ppr();
+                    break;
+            }
+
+            if (this.embeddingsInputMode == EmbeddingsInputMode.DATABASE)
+                this.store.close();
+
+            return 1;
         }
-        else {
-            System.out.println("de-serialization Failed!\n");
+
+        catch (IOException e)
+        {
+            System.out.println("Failed to load indexes from disk");
             return -1;
         }
-
-        // Ensure all query entities are mappable
-        if (this.ensureQueryEntitiesMapping()) {
-            System.out.println("All query entities are mappable!\n\n");
-        }
-        else {
-            System.out.println("NOT all query entities are mappable!");
-            return -1;
-        }
-
-        // Perform search according to the specified `search-mode`
-        switch (this.searchMode){
-            case EXACT:
-                System.out.println("Search mode: " + searchMode.getMode());
-                this.exactSearch();
-                break;
-            case ANALOGOUS:
-                System.out.println("Search mode: " + searchMode.getMode());
-                this.analogousSearch();
-                break;
-            case PPR:
-                System.out.println("Search mode: " + searchMode.getMode());
-                this.ppr();
-                break;
-        }
-
-        if (this.embeddingsInputMode == EmbeddingsInputMode.DATABASE)
-            this.store.close();
-        
-        return 1;
     }
 
     //********************* Global Variables *********************//
@@ -350,97 +383,82 @@ public class SearchTables extends Command {
     private Set<String> queryEntitiesMissingCoverage = new HashSet<String>();
 
 
-    public boolean ensureQueryEntitiesMapping() {
-        // Ensure that all queryEntities are searchable over the index
-        System.out.println("\nIDF scores for each entity:");
-        for (Integer i=0; i<queryEntities.size(); i++) {
-            System.out.println("Query Tuple: " + i);
-            for (String entity : queryEntities.get(i)) {
-                if (!entityToFilename.containsKey(entity)) {
-                    System.out.println(entity + " does not map to any known entity in the constructed index");
+    public boolean ensureQueryEntitiesMapping(Table<String> query, IdDictionary<String> entityDict, EntityTableLink tableLink)
+    {
+        int rows = query.rowCount();
+
+        for (int i = 0; i < rows; i++)
+        {
+            Table.Row<String> row = query.getRow(i);
+            int rowSize = row.size();
+
+            for (int j = 0; j < rowSize; j++)
+            {
+                Id entityId = entityDict.get(row.get(j));
+
+                if (!tableLink.contains(entityId))
                     return false;
-                }
-                else {
-                    System.out.println(entity + ": " + entityToIDF.get(entity));
-                }
             }
-            System.out.println("\n");
         }
+
         return true;
     }
 
-    public void exactSearch() {
+    public void exactSearch(Table<String> query, EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink)
+    {
+        Iterator<String> entityIter = linker.getDictionary().keys().asIterator();
 
-        for (Integer i=0; i<queryEntities.size(); i++) {
-            for (String entity : queryEntities.get(i)) {
-                if (entityToFilename.containsKey(entity)) {
-                    System.out.println("There are " + entityToFilename.get(entity).size() + " files that contain the entity: " + entity);
-                }
-                else {
-                    System.out.println(entity + " does not map to any known entity in the constructed index.");
-                }
-            }
+        while (entityIter.hasNext())
+        {
+            String entity = entityIter.next();
+            Id entityId = linker.getDictionary().get(entity);
+            List<String> tableFiles = entityTableLink.find(entityId);
+
+            if (tableFiles == null || tableFiles.isEmpty())
+                System.out.println("'" + entity + "' does not map to any known entity in the constructed index");
+
+            else
+                System.out.println("There are " + tableFiles.size() + " files that contain the entity '" + entity + "'");
         }
 
-        // Currently treat queryEntities as a set of entities not tuples
-        // TODO: Allow for tuple query functionality
+        Search search = new ExactSearch(linker, entityTable, entityTableLink);
+        Iterator<Pair<String, Double>> resIter = search.search(query).getResults();
 
-        List<String> queryEntitiesFlat = queryEntities.stream().flatMap(Collection::stream).collect(Collectors.toList());
-
-        // Find exact tuple matches from the query
-        this.exactTupleMatches(queryEntitiesFlat);
+        while (resIter.hasNext())
+        {
+            Pair<String, Double> result = resIter.next();
+            System.out.println("For filename '" + result.getFirst() + "', there are " + result.getSecond() + " matching tuples");
+        }
 
         // Analyze all pairwise combinations of query entities
+        List<String> flattenedQueryTable = new ArrayList<>();
+        int rows = query.rowCount();
+
+        for (int i = 0; i < rows; i++)
+        {
+            Table.Row<String> row = query.getRow(i);
+            int columns = row.size();
+
+            for (int j = 0; j < columns; j++)
+            {
+                flattenedQueryTable.add(row.get(j));
+            }
+        }
+
+        int tableEntities = flattenedQueryTable.size();
         System.out.println("\n2-entities analysis:");
-        for(int i = 0 ; i < queryEntitiesFlat.size(); i++){
-            for(int j = i+1 ; j < queryEntitiesFlat.size(); j++){
-                List<String> queryEntitiesPair = new ArrayList<>();
-                queryEntitiesPair.add(queryEntitiesFlat.get(i));
-                queryEntitiesPair.add(queryEntitiesFlat.get(j));
-                System.out.println("\nPair: " + queryEntitiesPair);
-                this.exactTupleMatches(queryEntitiesPair);    
-            }
-        }
-    }
 
-    public void exactTupleMatches(List<String> queryEntities) {
-        // Find the set of files that are found in all queryEntities
+        for (int i = 0; i < tableEntities; i++)
+        {
+            for (int j = 0; j < tableEntities; j++)
+            {
+                resIter = search.search(new DynamicTable<>(List.of(flattenedQueryTable))).getResults();
 
-        List<Set<String>> filenameSetsList = new ArrayList<>();
-
-        for (String entity : queryEntities) {
-            filenameSetsList.add(new HashSet<String>(entityToFilename.get(entity)));
-        }
-
-        // Initialize the filename intersection set to the first element in the filenameSetsList
-        Set<String> sharedFilenameSet = new HashSet<String>();
-        sharedFilenameSet = filenameSetsList.get(0);
-        for (Integer i=1; i < filenameSetsList.size(); i++) {
-            sharedFilenameSet.retainAll(filenameSetsList.get(i));
-        }
-        System.out.println("Query Entities share the following " + sharedFilenameSet.size() + " filenames:" + sharedFilenameSet);
-
-        // Find the number of tuples with all entitites for each filename
-        for (String filename : sharedFilenameSet) {
-            List<Set<Integer>> rowIdsSetList = new ArrayList<>();
-            // Populate the rowIdsList for each queryEntity
-            for (String entity : queryEntities) {
-                List<List<Integer>> coordinates =  entityInFilenameToTableLocations.get(entity + "__" + filename);
-                List<Integer> rowIdsList = new ArrayList<>();
-                for (List<Integer> coordinate : coordinates) {
-                    rowIdsList.add(coordinate.get(0));
+                while (resIter.hasNext())
+                {
+                    Pair<String, Double> result = resIter.next();
+                    System.out.println("For filename '" + result.getFirst() + "', there are " + result.getSecond() + " matching tuples");
                 }
-                rowIdsSetList.add(new HashSet<Integer>(rowIdsList));
-            }
-
-            // Find the set of rowIds that are common for all queryEntities
-            Set<Integer> sharedRowIdsSet = new HashSet<Integer>();
-            sharedRowIdsSet = rowIdsSetList.get(0);
-            for (Integer i=1; i < rowIdsSetList.size(); i++) {
-                sharedRowIdsSet.retainAll(rowIdsSetList.get(i));
-            }
-            if (sharedRowIdsSet.size() > 0) {
-                System.out.println("For filename: " + filename + " there are " + sharedRowIdsSet.size() + " matching tuples");
             }
         }
     }

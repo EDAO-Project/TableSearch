@@ -23,7 +23,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.*;
 
-public class Loader
+public class IndexWriter implements IndexIO
 {
     private List<Path> files;
     private File outputPath;
@@ -44,7 +44,7 @@ public class Loader
     private static final List<String> DISALLOWED_ENTITY_TYPES =
             Arrays.asList("http://www.w3.org/2002/07/owl#Thing", "http://www.wikidata.org/entity/Q5");
 
-    public Loader(List<Path> files, File outputDir, Neo4jEndpoint neo4j, int threads)
+    public IndexWriter(List<Path> files, File outputDir, Neo4jEndpoint neo4j, int threads)
     {
         if (!outputDir.exists())
             outputDir.mkdirs();
@@ -62,9 +62,10 @@ public class Loader
     }
 
     /**
-     * Loading of tables
+     * Loading of tables to disk
      */
-    public void load() throws IOException
+    @Override
+    public void performIO() throws IOException
     {
         if (this.loadedTables > 0)
             throw new RuntimeException("Loading has already complete");

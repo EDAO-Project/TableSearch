@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import dk.aau.cs.daisy.edao.loader.Loader;
+import dk.aau.cs.daisy.edao.loader.IndexWriter;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.graph.Entity;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
@@ -182,26 +182,26 @@ public class IndexTables extends Command {
             System.out.println("\nThere are " + filePaths.size() + " files to be processed.");
 
             long startTime = System.nanoTime();
-            Loader loader = new Loader(filePaths, outputDir, connector, 1);
-            loader.load();
+            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, 1);
+            indexWriter.performIO();
 
             long elapsedTime = System.nanoTime() - startTime;
             System.out.println("Elapsed time: " + elapsedTime / (1e9) + " seconds\n");
 
             Set<Type> entityTypes = new HashSet<>();
-            Iterator<Id> idIter = loader.getEntityLinker().getDictionary().elements().asIterator();
+            Iterator<Id> idIter = indexWriter.getEntityLinker().getDictionary().elements().asIterator();
 
             while (idIter.hasNext())
             {
-                Entity entity = loader.getEntityTable().find(idIter.next());
+                Entity entity = indexWriter.getEntityTable().find(idIter.next());
                 entityTypes.addAll(entity.getTypes());
             }
 
-            System.out.printf("Found an approximate total of %d  unique entity mentions across %d cells %n", loader.getApproximateEntityMentions(), loader.cellsWithLinks());
+            System.out.printf("Found an approximate total of %d  unique entity mentions across %d cells %n", indexWriter.getApproximateEntityMentions(), indexWriter.cellsWithLinks());
             System.out.println("There are in total " + entityTypes.size() + " unique entity types across all discovered entities.");
-            System.out.println("Indexing took " + loader.elapsedTime() + " ns");
+            System.out.println("Indexing took " + indexWriter.elapsedTime() + " ns");
 
-            return loader.loadedTables();
+            return indexWriter.loadedTables();
         }
 
         catch (IOException e)
