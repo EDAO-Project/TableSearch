@@ -81,7 +81,7 @@ public class IndexWriter implements IndexIO
         }
 
         loadIDFs();
-        flushToDisk();
+        flushToDisk();  // TODO: We can optimize memory consumption by writing when processing each file
         writeStats();
         this.elapsed = System.nanoTime() - startTime;
     }
@@ -172,28 +172,29 @@ public class IndexWriter implements IndexIO
             rowId++;
         }
 
-        saveStats(table, file.getFileName().toString(),
-                Set.copyOf(IteratorUtils.toList(this.linker.getDictionary().keys().asIterator())), entityMatches);
+        saveStats(table, file.getFileName().toString(), this.linker.getDictionary().keys().asIterator(), entityMatches);
         return true;
     }
 
-    private void saveStats(JsonTable jTable, String tableFileName, Set<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
+    private void saveStats(JsonTable jTable, String tableFileName, Iterator<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
     {
         Stats stats = collectStats(jTable, tableFileName, entities, entityMatches);
         this.tableStats.put(tableFileName, stats);
     }
 
-    private Stats collectStats(JsonTable jTable, String tableFileName, Set<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
+    private Stats collectStats(JsonTable jTable, String tableFileName, Iterator<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
     {
         List<Integer> numEntitiesPerRow = new ArrayList<>(Collections.nCopies(jTable.numDataRows, 0));
         List<Integer> numEntitiesPerCol = new ArrayList<>(Collections.nCopies(jTable.numCols, 0));
         List<Integer> numCellToEntityMatchesPerCol = new ArrayList<Integer>(Collections.nCopies(jTable.numCols, 0));
         List<Boolean> tableColumnsIsNumeric = new ArrayList<Boolean>(Collections.nCopies(jTable.numCols, false));
         long numCellToEntityMatches = 0L; // Specifies the total number (bag semantics) of entities all cells map to
+        int entityCount = 0;
 
-        for (String entity : entities)
+        while (entities.hasNext())
         {
-            Id entityId = this.linker.getDictionary().get(entity);
+            Id entityId = this.linker.getDictionary().get(entities.next());
+            entityCount++;
 
             if (entityId != null)
             {
@@ -237,12 +238,11 @@ public class IndexWriter implements IndexIO
                 .rows(jTable.numDataRows)
                 .columns(jTable.numCols)
                 .cells(jTable.numDataRows * jTable.numCols)
-                .entities(entities.size())
+                .entities(entityCount)
                 .mappedCells(entityMatches.size())
                 .entitiesPerRow(numEntitiesPerRow)
                 .entitiesPerColumn(numEntitiesPerCol)
                 .cellToEntityMatches(numCellToEntityMatches)
-                .entities(entities)
                 .cellToEntityMatchesPerCol(numCellToEntityMatchesPerCol)
                 .numericTableColumns(tableColumnsIsNumeric)
                 .finish();
