@@ -15,7 +15,7 @@ import java.util.concurrent.Future;
 
 public class IndexReader implements IndexIO
 {
-    private boolean multithreaded;
+    private boolean multithreaded, logProgress;
     private File indexDir;
 
     // Indexes
@@ -24,7 +24,7 @@ public class IndexReader implements IndexIO
     private EntityTableLink entityTableLink;
     private static final int INDEX_COUNT = 3;
 
-    public IndexReader(File indexDir, boolean isMultithreaded)
+    public IndexReader(File indexDir, boolean isMultithreaded, boolean logProgress)
     {
         if (!indexDir.isDirectory())
             throw new IllegalArgumentException("'" + indexDir + "' is not a directory");
@@ -34,6 +34,7 @@ public class IndexReader implements IndexIO
 
         this.indexDir = indexDir;
         this.multithreaded = isMultithreaded;
+        this.logProgress = logProgress;
     }
 
     /**
@@ -47,8 +48,18 @@ public class IndexReader implements IndexIO
         Future<?> f1 = threadPoolService.submit(this::loadEntityLinker);
         Future<?> f2 = threadPoolService.submit(this::loadEntityTable);
         Future<?> f3 = threadPoolService.submit(this::loadEntityTableLink);
+        int completed = 0;
 
-        while (!f1.isDone() || !f2.isDone() || !f3.isDone());
+        while (!f1.isDone() || !f2.isDone() || !f3.isDone())
+        {
+            int tmpCompleted = (f1.isDone() ? 1 : 0) + (f2.isDone() ? 1 : 0) + (f3.isDone() ? 1 : 0);
+
+            if (this.logProgress && tmpCompleted != completed)
+            {
+                System.out.println("Loading indexes " + 1 + "/3");
+                completed = tmpCompleted;
+            }
+        }
     }
 
     private void loadEntityLinker()

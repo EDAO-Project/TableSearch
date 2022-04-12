@@ -183,7 +183,7 @@ public class IndexTables extends Command {
             System.out.println("\nThere are " + filePaths.size() + " files to be processed.");
 
             long startTime = System.nanoTime();
-            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads);
+            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads, true);
             indexWriter.performIO();
 
             long elapsedTime = System.nanoTime() - startTime;

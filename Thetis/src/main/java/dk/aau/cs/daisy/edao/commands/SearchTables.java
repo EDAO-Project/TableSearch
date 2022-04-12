@@ -282,7 +282,7 @@ public class SearchTables extends Command {
         {
             // Perform De-Serialization of the indices
             long startTime = System.nanoTime();
-            IndexReader indexReader = new IndexReader(this.indexDir, true);
+            IndexReader indexReader = new IndexReader(this.indexDir, true, true);
             indexReader.performIO();
 
             long elapsedTime = System.nanoTime() - startTime;

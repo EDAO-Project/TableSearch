@@ -29,6 +29,7 @@ import java.util.concurrent.Future;
 public class IndexWriter implements IndexIO
 {
     private List<Path> files;
+    private boolean logProgress;
     private File outputPath;
     private int threads, loadedTables = 0, cellsWithLinks = 0;
     private final Object lock = new Object();
@@ -48,7 +49,7 @@ public class IndexWriter implements IndexIO
     private static final List<String> DISALLOWED_ENTITY_TYPES =
             Arrays.asList("http://www.w3.org/2002/07/owl#Thing", "http://www.wikidata.org/entity/Q5");
 
-    public IndexWriter(List<Path> files, File outputDir, Neo4jEndpoint neo4j, int threads)
+    public IndexWriter(List<Path> files, File outputDir, Neo4jEndpoint neo4j, int threads, boolean logProgress)
     {
         if (!outputDir.exists())
             outputDir.mkdirs();
@@ -57,6 +58,7 @@ public class IndexWriter implements IndexIO
             throw new IllegalArgumentException("Output directory '" + outputDir + "' is not a directory");
 
         this.files = files;
+        this.logProgress = logProgress;
         this.outputPath = outputDir;
         this.neo4j = neo4j;
         this.threads = threads;
@@ -74,7 +76,7 @@ public class IndexWriter implements IndexIO
         if (this.loadedTables > 0)
             throw new RuntimeException("Loading has already complete");
 
-        int size = files.size();
+        int size = this.files.size();
         long startTime = System.nanoTime();
         List<Future<Boolean>> futures = new ArrayList<>();
         ExecutorService pool = Executors.newFixedThreadPool(this.threads);
@@ -89,6 +91,9 @@ public class IndexWriter implements IndexIO
             try
             {
                 this.loadedTables += f.get() ? 1 : 0;
+
+                if (this.logProgress)
+                    System.out.println("Processed " + this.tableStats.size() + "/" + size);
             }
 
             catch (InterruptedException | ExecutionException ignored) {}
