@@ -92,7 +92,7 @@ public class IndexWriter implements IndexIO
             {
                 this.loadedTables += f.get() ? 1 : 0;
 
-                if (this.logProgress)
+                if (this.logProgress && this.tableStats.size() % (0.01 * this.tableStats.size()) == 0)
                     System.out.println("Processed " + this.tableStats.size() + "/" + size);
             }
 

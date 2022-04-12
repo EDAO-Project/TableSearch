@@ -53,7 +53,7 @@ public class IndexTables extends Command {
     @CommandLine.Option(names = { "-tt", "--table-type" }, description = "Table types: ${COMPLETION-CANDIDATES}", required = true)
     private TableType tableType = null;
 
-    @CommandLine.Option(names = {"-r", "--threads"}, description = "Number of threads", required = false, defaultValue = "1")
+    @CommandLine.Option(names = {"-t", "--threads"}, description = "Number of threads", required = false, defaultValue = "1")
     private int threads;
 
     private File configFile = null;
