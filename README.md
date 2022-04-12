@@ -179,7 +179,7 @@ We use the WikiTables corpus as provided in the STR paper (this is the same corp
    mvn package
    
    # From inside docker
-   java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables/files/wikitables_parsed/tables_10_MAX/ --output-dir /data/index/wikitables/
+   java -jar target/Thetis.0.1.jar index --table-type wikitables --table-dir  /data/tables/wikitables/files/wikitables_parsed/tables_10_MAX/ --output-dir /data/index/wikitables/ -t 4
    ```
 
 4. Materialize table to entity edges in the Graph
@@ -272,10 +272,10 @@ python generate_queries.py --wikipages_df ../../tables/wikipages/wikipages_expan
 The following commands should be run inside docker
 ```bash
 # Construct the Index for the wikipages dataset
-java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_dataset/tables/ --output-dir /data/index/wikipages/
+java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_dataset/tables/ --output-dir /data/index/wikipages/ -t 4
 
 # Construct the index for the expanded wikipages dataset
-java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_expanded_dataset/tables/ --output-dir /data/index/wikipages_expanded/
+java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_expanded_dataset/tables/ --output-dir /data/index/wikipages_expanded/ -t 4
 ```
 
 

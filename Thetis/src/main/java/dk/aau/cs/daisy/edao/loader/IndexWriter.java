@@ -16,18 +16,22 @@ import dk.aau.cs.daisy.edao.structures.graph.Type;
 import dk.aau.cs.daisy.edao.system.Configuration;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.utils;
-import org.apache.commons.collections.IteratorUtils;
 
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class IndexWriter implements IndexIO
 {
     private List<Path> files;
     private File outputPath;
     private int threads, loadedTables = 0, cellsWithLinks = 0;
+    private final Object lock = new Object();
     private long elapsed = -1;
     private Map<Integer, Integer> cellToNumLinksFrequency = new HashMap<>();
     private Map<Integer, Integer> linkToNumEntitiesFrequency = new HashMap<>();
@@ -72,23 +76,38 @@ public class IndexWriter implements IndexIO
 
         int size = files.size();
         long startTime = System.nanoTime();
+        List<Future<Boolean>> futures = new ArrayList<>();
+        ExecutorService pool = Executors.newFixedThreadPool(this.threads);
 
-        // TODO: Maybe parallelize this process
         for (int i = 0; i < size; i++)
         {
-            if (load(files.get(i).toAbsolutePath()))
-                this.loadedTables++;
+            int index = i;
+            futures.add(pool.submit(() -> load(files.get(index).toAbsolutePath())));
         }
 
+        futures.forEach(f -> {
+            try
+            {
+                this.loadedTables += f.get() ? 1 : 0;
+            }
+
+            catch (InterruptedException | ExecutionException ignored) {}
+        });
+
         loadIDFs();
-        flushToDisk();  // TODO: We can optimize memory consumption by writing when processing each file
+        flushToDisk();
         writeStats();
         this.elapsed = System.nanoTime() - startTime;
     }
 
     private boolean load(Path file)
     {
-        JsonTable table = TableParser.parse(file);
+        JsonTable table;
+
+        synchronized (this.lock)
+        {
+            table = TableParser.parse(file);
+        }
 
         if (table == null || table._id  == null || table.rows == null)
             return false;
@@ -109,8 +128,12 @@ public class IndexWriter implements IndexIO
                 if (!cell.links.isEmpty())
                 {
                     List<String> matchedUris = new ArrayList<>();
-                    this.cellsWithLinks++;
-                    this.cellToNumLinksFrequency.merge(cell.links.size(), 1, Integer::sum);
+
+                    synchronized (this.lock)
+                    {
+                        this.cellsWithLinks++;
+                        this.cellToNumLinksFrequency.merge(cell.links.size(), 1, Integer::sum);
+                    }
 
                     for(String link : cell.links)
                     {
@@ -127,19 +150,23 @@ public class IndexWriter implements IndexIO
                             {
                                 String entity = tempLinks.get(0);
                                 matchedUris.add(entity);
-                                this.linker.addMapping(link, entity);
-                                this.linkToNumEntitiesFrequency.merge(tempLinks.size(), 1, Integer::sum);
 
-                                List<String> entityTypesUris = this.neo4j.searchTypes(entity);
-
-                                for (String type : DISALLOWED_ENTITY_TYPES)
+                                synchronized (this.lock)
                                 {
-                                    entityTypesUris.remove(type);
-                                }
+                                    this.linker.addMapping(link, entity);
+                                    this.linkToNumEntitiesFrequency.merge(tempLinks.size(), 1, Integer::sum);
 
-                                List<Type> types = new ArrayList<>(entityTypesUris.size());
-                                entityTypesUris.forEach(t -> types.add(new Type(t)));
-                                this.entityTable.insert(this.linker.getDictionary().get(entity), new Entity(entity, types));
+                                    List<String> entityTypesUris = this.neo4j.searchTypes(entity);
+
+                                    for (String type : DISALLOWED_ENTITY_TYPES)
+                                    {
+                                        entityTypesUris.remove(type);
+                                    }
+
+                                    List<Type> types = new ArrayList<>(entityTypesUris.size());
+                                    entityTypesUris.forEach(t -> types.add(new Type(t)));
+                                    this.entityTable.insert(this.linker.getDictionary().get(entity), new Entity(entity, types));
+                                }
                             }
                         }
 
@@ -148,18 +175,25 @@ public class IndexWriter implements IndexIO
                             String entity = this.linker.mapTo(link);
                             Id entityId = this.linker.getDictionary().get(entity);
                             List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> tableLocation =
-                                    Arrays.asList(new dk.aau.cs.daisy.edao.structures.Pair<>(rowId, collId));
+                                    List.of(new Pair<>(rowId, collId));
                             String fileName = file.getFileName().toString();
-                            this.entityTableLink.addLocation(entityId, fileName, tableLocation);
+
+                            synchronized (this.lock)
+                            {
+                                this.entityTableLink.addLocation(entityId, fileName, tableLocation);
+                            }
                         }
                     }
 
                     if (!matchedUris.isEmpty())
                     {
-                        for (String entity : matchedUris)
+                        synchronized (this.lock)
                         {
-                            this.filter.put(entity);
-                            setOfEntities.add(entity);
+                            for (String entity : matchedUris)
+                            {
+                                this.filter.put(entity);
+                                setOfEntities.add(entity);
+                            }
                         }
 
                         entityMatches.put(new Pair<>(rowId, collId), matchedUris);
@@ -179,7 +213,11 @@ public class IndexWriter implements IndexIO
     private void saveStats(JsonTable jTable, String tableFileName, Iterator<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
     {
         Stats stats = collectStats(jTable, tableFileName, entities, entityMatches);
-        this.tableStats.put(tableFileName, stats);
+
+        synchronized (this.lock)
+        {
+            this.tableStats.put(tableFileName, stats);
+        }
     }
 
     private Stats collectStats(JsonTable jTable, String tableFileName, Iterator<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
@@ -219,7 +257,7 @@ public class IndexWriter implements IndexIO
         }
 
         if (jTable.numNumericCols == jTable.numCols)
-            tableColumnsIsNumeric = new ArrayList<Boolean>(Collections.nCopies(jTable.numCols, true));
+            tableColumnsIsNumeric = new ArrayList<>(Collections.nCopies(jTable.numCols, true));
 
         else
         {

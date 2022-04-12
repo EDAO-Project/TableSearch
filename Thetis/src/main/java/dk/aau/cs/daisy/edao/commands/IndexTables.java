@@ -53,7 +53,8 @@ public class IndexTables extends Command {
     @CommandLine.Option(names = { "-tt", "--table-type" }, description = "Table types: ${COMPLETION-CANDIDATES}", required = true)
     private TableType tableType = null;
 
-
+    @CommandLine.Option(names = {"-r", "--threads"}, description = "Number of threads", required = false, defaultValue = "1")
+    private int threads;
 
     private File configFile = null;
     @CommandLine.Option(names = { "-cf", "--config"}, paramLabel = "CONF", description = "configuration file", required = true, defaultValue = "./config.properties" )
@@ -135,7 +136,7 @@ public class IndexTables extends Command {
                     break;
                 case WIKI:
                     System.out.println("Starting indexing of '"+TableType.WIKI.getName()+"'");
-                    parsedTables = this.indexWikiTables(this.tableDir.toPath(), this.outputDir, connector);
+                    parsedTables = this.indexWikiTables(this.tableDir.toPath(), this.outputDir, connector, this.threads);
                     System.out.printf("Indexed %d tables%n", parsedTables);
                     break;
             }
@@ -164,7 +165,7 @@ public class IndexTables extends Command {
      * @param connector Neo4J connector instance
      * @return Number of successfully loaded tables
      */
-    public long indexWikiTables(Path tableDir, File outputDir, Neo4jEndpoint connector){
+    public long indexWikiTables(Path tableDir, File outputDir, Neo4jEndpoint connector, int threads){
 
         // Open table directory
         // Iterate each table (each table is a JSON file)
@@ -182,7 +183,7 @@ public class IndexTables extends Command {
             System.out.println("\nThere are " + filePaths.size() + " files to be processed.");
 
             long startTime = System.nanoTime();
-            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, 1);
+            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads);
             indexWriter.performIO();
 
             long elapsedTime = System.nanoTime() - startTime;
