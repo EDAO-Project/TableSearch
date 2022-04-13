@@ -84,7 +84,7 @@ public class IndexWriter implements IndexIO
         for (int i = 0; i < size; i++)
         {
             int index = i;
-            futures.add(pool.submit(() -> load(files.get(index).toAbsolutePath())));
+            futures.add(pool.submit(() -> load(this.files.get(index).toAbsolutePath())));
         }
 
         futures.forEach(f -> {
@@ -107,12 +107,7 @@ public class IndexWriter implements IndexIO
 
     private boolean load(Path file)
     {
-        JsonTable table;
-
-        synchronized (this.lock)
-        {
-            table = TableParser.parse(file);
-        }
+        JsonTable table = TableParser.parse(file);
 
         if (table == null || table._id  == null || table.rows == null)
             return false;
