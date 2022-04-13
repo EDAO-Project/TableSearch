@@ -2,7 +2,6 @@ package dk.aau.cs.daisy.edao.commands.parser;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
@@ -41,7 +40,6 @@ public class TableParser
     public static JsonTable parse(Path path)
     {
         JsonTable table;
-        Gson gson = new GsonBuilder().serializeNulls().create();
 
         // Tries to parse the JSON file, it fails if file not found or JSON is not well formatted
         TypeAdapter<JsonTable> strictGsonObjectAdapter = new Gson().getAdapter(JsonTable.class);

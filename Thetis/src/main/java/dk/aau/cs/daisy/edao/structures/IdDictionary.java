@@ -5,6 +5,7 @@ import java.util.*;
 public class IdDictionary<K> extends Dictionary<K, Id>
 {
     private Map<K, Id> map;
+    private Map<Id, K> inverse;
 
     public IdDictionary(boolean ordered)
     {
@@ -14,10 +15,16 @@ public class IdDictionary<K> extends Dictionary<K, Id>
     public IdDictionary(boolean ordered, int initialCapacity)
     {
         if (ordered)
+        {
             this.map = new TreeMap<>();
+            this.inverse = new TreeMap<>();
+        }
 
         else
-            this.map = new HashMap<>();
+        {
+            this.map = new HashMap<>(initialCapacity);
+            this.inverse = new HashMap<>(initialCapacity);
+        }
     }
 
     @Override
@@ -50,15 +57,23 @@ public class IdDictionary<K> extends Dictionary<K, Id>
         return this.map.get(key);
     }
 
+    public K get(Id value)
+    {
+        return this.inverse.get(value);
+    }
+
     @Override
     public Id put(K key, Id id)
     {
+        this.inverse.put(id, key);
         return this.map.put(key, id);
     }
 
     @Override
     public Id remove(Object key)
     {
-        return this.map.remove(key);
+        Id removed = this.map.remove(key);
+        this.inverse.remove(removed);
+        return removed;
     }
 }

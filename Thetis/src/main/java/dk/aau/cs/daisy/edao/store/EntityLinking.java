@@ -4,23 +4,23 @@ import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.IdDictionary;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 /**
  * Mapping from Wikipedia link to KG entity URI
- * Warning: This can be slow!
  * A trie is maybe better, where leafs contain IDs and no duplicate bidirectional mapping.
  */
 public class EntityLinking implements Linker<String, String>
 {
     private IdDictionary<String> dict;
-    private Map<Id, Id> mapping;    // Wikipedia link to entity URI
+    private Map<Id, Id> wikiLinkToUri;    // Wikipedia link to entity URI
+    private Map<Id, Id> uriToWikiLink;    // entity URI to Wikipedia link
 
     public EntityLinking()
     {
         this.dict = new IdDictionary<>(false);
-        this.mapping = new HashMap<>();
+        this.wikiLinkToUri = new HashMap<>();
+        this.uriToWikiLink = new HashMap<>();
     }
 
     public EntityLinking(IdDictionary<String> dict)
@@ -47,12 +47,12 @@ public class EntityLinking implements Linker<String, String>
         if (wikiId == null)
             return null;
 
-        Id uriId = this.mapping.get(wikiId);
+        Id uriId = this.wikiLinkToUri.get(wikiId);
 
         if (uriId == null)
             return null;
 
-        return getKey(uriId);
+        return this.dict.get(uriId);
     }
 
     /**
@@ -68,19 +68,12 @@ public class EntityLinking implements Linker<String, String>
         if (uriId == null)
             return null;
 
-        for (Map.Entry<Id, Id> entry : this.mapping.entrySet())
-        {
-            if (entry.getValue().equals(uriId))
-            {
-                wikiId = entry.getKey();
-                break;
-            }
-        }
+        wikiId = this.uriToWikiLink.get(uriId);
 
         if (wikiId == null)
             return null;
 
-        return getKey(wikiId);
+        return this.dict.get(wikiId);
     }
 
     /**
@@ -99,21 +92,7 @@ public class EntityLinking implements Linker<String, String>
         if (uriId == null)
             this.dict.put(uri, (uriId = Id.alloc()));
 
-        this.mapping.putIfAbsent(wikiId, uriId);
-    }
-
-    private String getKey(Id id)
-    {
-        Iterator<String> iter = this.dict.keys().asIterator();
-
-        while (iter.hasNext())
-        {
-            String key = iter.next();
-
-            if (this.dict.get(key).equals(id))
-                return key;
-        }
-
-        return null;
+        this.wikiLinkToUri.putIfAbsent(wikiId, uriId);
+        this.uriToWikiLink.putIfAbsent(uriId, wikiId);
     }
 }
