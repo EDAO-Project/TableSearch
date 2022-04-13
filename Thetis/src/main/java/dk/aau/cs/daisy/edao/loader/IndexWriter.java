@@ -109,14 +109,11 @@ public class IndexWriter implements IndexIO
     {
         JsonTable table = TableParser.parse(file);
 
-        if (table == null || table._id  == null || table.rows == null)
+        if (table == null)
             return false;
 
         // Maps a cell specified by RowNumber, ColumnNumber to the list of entities it matches to
         Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
-
-        // The set of entities corresponding to this filename/table
-        Set<String> setOfEntities = new HashSet<>();
         int rowId = 0;
 
         for (List<JsonTable.TableCell> row : table.rows)
@@ -192,7 +189,6 @@ public class IndexWriter implements IndexIO
                             for (String entity : matchedUris)
                             {
                                 this.filter.put(entity);
-                                setOfEntities.add(entity);
                             }
                         }
 
