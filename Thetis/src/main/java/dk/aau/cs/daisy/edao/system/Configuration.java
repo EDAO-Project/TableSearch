@@ -63,11 +63,6 @@ public class Configuration
         addDefaults();
     }
 
-    public Configuration()
-    {
-        addDefaults();
-    }
-
     private static void addDefaults()
     {
         Properties props = readProperties();
@@ -106,7 +101,7 @@ public class Configuration
             return (new ConfigurationIO(new FileInputStream(CONF_FILE))).read();
         }
 
-        catch (FileNotFoundException e)
+        catch (FileNotFoundException | RuntimeException e)
         {
             return new Properties();
         }
