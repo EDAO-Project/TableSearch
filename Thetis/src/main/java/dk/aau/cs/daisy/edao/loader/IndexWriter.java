@@ -470,27 +470,27 @@ public class IndexWriter implements IndexIO
      * Entity linker getter
      * @return Entity linker from link to entity URI
      */
-    public Linker<String, String> getEntityLinker()
+    public EntityLinking getEntityLinker()
     {
-        return this.linker.getLinker();
+        return (EntityLinking) this.linker.getLinker();
     }
 
     /**
      * Getter to Entity table
      * @return Loaded entity table
      */
-    public Index<Id, Entity> getEntityTable()
+    public EntityTable getEntityTable()
     {
-        return this.entityTable.getIndex();
+        return (EntityTable) this.entityTable.getIndex();
     }
 
     /**
      * Getter to entity-table linker
      * @return Loaded entity-table linker
      */
-    public Index<Id, List<String>> getEntityTableLinker()
+    public EntityTableLink getEntityTableLinker()
     {
-        return this.entityTableLink.getIndex();
+        return (EntityTableLink) this.entityTableLink.getIndex();
     }
 
     public long getApproximateEntityMentions()
