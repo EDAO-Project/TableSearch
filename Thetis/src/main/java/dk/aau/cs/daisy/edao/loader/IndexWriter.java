@@ -6,9 +6,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dk.aau.cs.daisy.edao.commands.parser.TableParser;
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
-import dk.aau.cs.daisy.edao.store.EntityLinking;
-import dk.aau.cs.daisy.edao.store.EntityTable;
-import dk.aau.cs.daisy.edao.store.EntityTableLink;
+import dk.aau.cs.daisy.edao.store.*;
+import dk.aau.cs.daisy.edao.structures.IdDictionary;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.graph.Entity;
 import dk.aau.cs.daisy.edao.structures.Id;
@@ -37,9 +36,9 @@ public class IndexWriter implements IndexIO
     private Map<Integer, Integer> cellToNumLinksFrequency = new HashMap<>();
     private Map<Integer, Integer> linkToNumEntitiesFrequency = new HashMap<>();
     private Neo4jEndpoint neo4j;
-    private EntityLinking linker;
-    private EntityTable entityTable;
-    private EntityTableLink entityTableLink;
+    private SynchronizedLinker<String, String> linker;
+    private SynchronizedIndex<Id, Entity> entityTable;
+    private SynchronizedIndex<Id, List<String>> entityTableLink;
     private BloomFilter<String> filter = BloomFilter.create(
             Funnels.stringFunnel(Charset.defaultCharset()),
             5_000_000,
@@ -62,9 +61,9 @@ public class IndexWriter implements IndexIO
         this.outputPath = outputDir;
         this.neo4j = neo4j;
         this.threads = threads;
-        this.linker = new EntityLinking();
-        this.entityTable = new EntityTable();
-        this.entityTableLink = new EntityTableLink();
+        this.linker = SynchronizedLinker.wrap(new EntityLinking());
+        this.entityTable = SynchronizedIndex.wrap(new EntityTable());
+        this.entityTableLink = SynchronizedIndex.wrap(new EntityTableLink());
     }
 
     /**
@@ -125,12 +124,8 @@ public class IndexWriter implements IndexIO
                 if (!cell.links.isEmpty())
                 {
                     List<String> matchedUris = new ArrayList<>();
-
-                    synchronized (this.lock)
-                    {
-                        this.cellsWithLinks++;
-                        this.cellToNumLinksFrequency.merge(cell.links.size(), 1, Integer::sum);
-                    }
+                    this.cellsWithLinks++;
+                    this.cellToNumLinksFrequency.merge(cell.links.size(), 1, Integer::sum);
 
                     for(String link : cell.links)
                     {
@@ -147,49 +142,39 @@ public class IndexWriter implements IndexIO
                             {
                                 String entity = tempLinks.get(0);
                                 matchedUris.add(entity);
+                                this.linker.addMapping(link, entity);
+                                this.linkToNumEntitiesFrequency.merge(tempLinks.size(), 1, Integer::sum);
 
-                                synchronized (this.lock)
+                                List<String> entityTypesUris = this.neo4j.searchTypes(entity);
+
+                                for (String type : DISALLOWED_ENTITY_TYPES)
                                 {
-                                    this.linker.addMapping(link, entity);
-                                    this.linkToNumEntitiesFrequency.merge(tempLinks.size(), 1, Integer::sum);
-
-                                    List<String> entityTypesUris = this.neo4j.searchTypes(entity);
-
-                                    for (String type : DISALLOWED_ENTITY_TYPES)
-                                    {
-                                        entityTypesUris.remove(type);
-                                    }
-
-                                    List<Type> types = new ArrayList<>(entityTypesUris.size());
-                                    entityTypesUris.forEach(t -> types.add(new Type(t)));
-                                    this.entityTable.insert(this.linker.getDictionary().get(entity), new Entity(entity, types));
+                                    entityTypesUris.remove(type);
                                 }
+
+                                List<Type> types = new ArrayList<>(entityTypesUris.size());
+                                entityTypesUris.forEach(t -> types.add(new Type(t)));
+                                this.entityTable.insert(((EntityLinking) this.linker.getLinker()).getDictionary().get(entity),
+                                        new Entity(entity, types));
                             }
                         }
 
                         if (this.linker.mapTo(link) != null)
                         {
                             String entity = this.linker.mapTo(link);
-                            Id entityId = this.linker.getDictionary().get(entity);
+                            Id entityId = ((EntityLinking) this.linker.getLinker()).getDictionary().get(entity);
                             List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> tableLocation =
                                     List.of(new Pair<>(rowId, collId));
                             String fileName = file.getFileName().toString();
-
-                            synchronized (this.lock)
-                            {
-                                this.entityTableLink.addLocation(entityId, fileName, tableLocation);
-                            }
+                            ((EntityTableLink) this.entityTableLink.getIndex()).addLocation(entityId, fileName, tableLocation);
                         }
                     }
 
                     if (!matchedUris.isEmpty())
                     {
-                        synchronized (this.lock)
+                        for (String entity : matchedUris)
                         {
-                            for (String entity : matchedUris)
-                            {
-                                this.filter.put(entity);
-                            }
+                            this.filter.put(entity);
                         }
 
                         entityMatches.put(new Pair<>(rowId, collId), matchedUris);
@@ -202,7 +187,8 @@ public class IndexWriter implements IndexIO
             rowId++;
         }
 
-        saveStats(table, file.getFileName().toString(), this.linker.getDictionary().keys().asIterator(), entityMatches);
+        saveStats(table, file.getFileName().toString(),
+                ((EntityLinking) this.linker.getLinker()).getDictionary().keys().asIterator(), entityMatches);
         return true;
     }
 
@@ -227,12 +213,13 @@ public class IndexWriter implements IndexIO
 
         while (entities.hasNext())
         {
-            Id entityId = this.linker.getDictionary().get(entities.next());
+            Id entityId = ((EntityLinking) this.linker.getLinker()).getDictionary().get(entities.next());
             entityCount++;
 
             if (entityId != null)
             {
-                List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> locations = this.entityTableLink.getLocations(entityId, tableFileName);
+                List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> locations =
+                        ((EntityTableLink) this.entityTableLink.getIndex()).getLocations(entityId, tableFileName);
 
                 if (locations != null)
                 {
@@ -317,12 +304,13 @@ public class IndexWriter implements IndexIO
 
     private void loadEntityIDFs()
     {
-        Iterator<String> entityIter = this.linker.getDictionary().keys().asIterator();
+        EntityLinking linker = (EntityLinking) this.linker.getLinker();
+        Iterator<String> entityIter = linker.getDictionary().keys().asIterator();
 
         while (entityIter.hasNext())
         {
             String entityStr = entityIter.next();
-            Id entityId = this.linker.getDictionary().get(entityStr);
+            Id entityId = linker.getDictionary().get(entityStr);
             List<String> entityFiles = this.entityTableLink.find(entityId);
             double idf = Math.log10((double) this.loadedTables / entityFiles.size()) + 1;
 
@@ -336,7 +324,8 @@ public class IndexWriter implements IndexIO
     private void loadTypeIDFs()
     {
         Map<Type, Integer> typeFrequency = new HashMap<>();
-        Iterator<Id> idIter = this.linker.getDictionary().elements().asIterator();
+        Iterator<Id> idIter = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
+        IdDictionary<String> dictionary = ((EntityLinking) this.linker.getLinker()).getDictionary();
 
         while (idIter.hasNext())
         {
@@ -359,7 +348,7 @@ public class IndexWriter implements IndexIO
 
         for (Type type : typeFrequency.keySet())
         {
-            double ratio = (double) this.linker.getDictionary().size() / typeFrequency.get(type);
+            double ratio = (double) dictionary.size() / typeFrequency.get(type);
             double idf = utils.log2(ratio);
             updateTypeIDFs(type.getType(), idf);
         }
@@ -367,7 +356,7 @@ public class IndexWriter implements IndexIO
 
     private void updateTypeIDFs(String typeName, double idf)
     {
-        Iterator<Id> idsIter = this.linker.getDictionary().elements().asIterator();
+        Iterator<Id> idsIter = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
 
         while (idsIter.hasNext())
         {
@@ -412,12 +401,13 @@ public class IndexWriter implements IndexIO
     {
         FileOutputStream outputStream = new FileOutputStream(this.outputPath + "/" + Configuration.getTableToEntitiesFile());
         OutputStreamWriter writer = new OutputStreamWriter(outputStream);
-        Iterator<String> entityIter = this.linker.getDictionary().keys().asIterator();
+        IdDictionary<String> dictionary = ((EntityLinking) this.linker.getLinker()).getDictionary();
+        Iterator<String> entityIter = dictionary.keys().asIterator();
 
         while (entityIter.hasNext())
         {
             String entity = entityIter.next();
-            List<String> tables = this.entityTableLink.find(this.linker.getDictionary().get(entity));
+            List<String> tables = this.entityTableLink.find(dictionary.get(entity));
 
             for (String table : tables)
             {
@@ -431,7 +421,7 @@ public class IndexWriter implements IndexIO
         outputStream = new FileOutputStream(Configuration.getTableToTypesFile());
         writer = new OutputStreamWriter(outputStream);
         Set<String> tables = new HashSet<>();
-        Iterator<Id> entityIdIter = this.linker.getDictionary().elements().asIterator();
+        Iterator<Id> entityIdIter = dictionary.elements().asIterator();
 
         while (entityIdIter.hasNext())
         {
@@ -480,27 +470,27 @@ public class IndexWriter implements IndexIO
      * Entity linker getter
      * @return Entity linker from link to entity URI
      */
-    public EntityLinking getEntityLinker()
+    public Linker<String, String> getEntityLinker()
     {
-        return this.linker;
+        return this.linker.getLinker();
     }
 
     /**
      * Getter to Entity table
      * @return Loaded entity table
      */
-    public EntityTable getEntityTable()
+    public Index<Id, Entity> getEntityTable()
     {
-        return this.entityTable;
+        return this.entityTable.getIndex();
     }
 
     /**
      * Getter to entity-table linker
      * @return Loaded entity-table linker
      */
-    public EntityTableLink getEntityTableLinker()
+    public Index<Id, List<String>> getEntityTableLinker()
     {
-        return this.entityTableLink;
+        return this.entityTableLink.getIndex();
     }
 
     public long getApproximateEntityMentions()
