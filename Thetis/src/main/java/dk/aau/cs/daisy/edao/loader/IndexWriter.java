@@ -94,8 +94,8 @@ public class IndexWriter implements IndexIO
                 this.loadedTables += runnable != null ? 1 : 0;
                 statsWritingRunnables.add(runnable);
 
-                if (this.logProgress && this.tableStats.size() % (0.01 * this.tableStats.size()) == 0)
-                    System.out.println("Processed " + this.tableStats.size() + "/" + size);
+                if (this.logProgress && this.loadedTables % (0.01 * size) == 0)
+                    System.out.println("Processed " + this.loadedTables + "/" + size);
             }
 
             catch (InterruptedException | ExecutionException ignored) {}
@@ -110,18 +110,20 @@ public class IndexWriter implements IndexIO
 
         loadIDFs();
         flushToDisk();
-        writeStats();
         statsWritingFutures.forEach(f -> {
             try
             {
                 f.get();
             }
 
-            catch (InterruptedException | ExecutionException e) {}
+            catch (InterruptedException | ExecutionException ignored) {}
         });
-
+        writeStats();
 
         this.elapsed = System.nanoTime() - startTime;
+
+        if (this.logProgress)
+            System.out.println("Done");
     }
 
     private Runnable load(Path file)

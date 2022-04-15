@@ -62,6 +62,12 @@ public class EntityTableLink implements Index<Id, List<String>>
         return this.idx.containsKey(key);
     }
 
+    @Override
+    public int size()
+    {
+        return this.idx.size();
+    }
+
     /**
      * Adds location of entity in given table file name
      * @param key Entity ID

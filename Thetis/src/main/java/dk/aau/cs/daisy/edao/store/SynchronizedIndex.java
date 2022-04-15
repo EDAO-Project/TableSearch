@@ -38,6 +38,12 @@ public class SynchronizedIndex<K, V> implements Index<K, V>
         return this.index.contains(key);
     }
 
+    @Override
+    public int size()
+    {
+        return this.index.size();
+    }
+
     public Index<K, V> getIndex()
     {
         return this.index;

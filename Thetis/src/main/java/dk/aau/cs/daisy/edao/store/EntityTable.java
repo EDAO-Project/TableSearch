@@ -36,4 +36,10 @@ public class EntityTable implements Index<Id, Entity>
     {
         return this.idx.containsKey(key);
     }
+
+    @Override
+    public int size()
+    {
+        return this.idx.size();
+    }
 }
