@@ -77,7 +77,8 @@ public class IndexWriter implements IndexIO
 
         int size = this.files.size();
         long startTime = System.nanoTime();
-        List<Future<Boolean>> futures = new ArrayList<>();
+        List<Future<Runnable>> futures = new ArrayList<>();
+        List<Runnable> statsWritingRunnables = new ArrayList<>();
         ExecutorService pool = Executors.newFixedThreadPool(this.threads);
 
         for (int i = 0; i < size; i++)
@@ -89,7 +90,9 @@ public class IndexWriter implements IndexIO
         futures.forEach(f -> {
             try
             {
-                this.loadedTables += f.get() ? 1 : 0;
+                Runnable runnable = f.get();
+                this.loadedTables += runnable != null ? 1 : 0;
+                statsWritingRunnables.add(runnable);
 
                 if (this.logProgress && this.tableStats.size() % (0.01 * this.tableStats.size()) == 0)
                     System.out.println("Processed " + this.tableStats.size() + "/" + size);
@@ -98,18 +101,35 @@ public class IndexWriter implements IndexIO
             catch (InterruptedException | ExecutionException ignored) {}
         });
 
+        if (this.logProgress)
+            System.out.println("Flushing to disk...");
+
+        List<Future<?>> statsWritingFutures = new ArrayList<>();
+        ExecutorService statsWritingExecutor = Executors.newFixedThreadPool(this.threads);
+        statsWritingRunnables.forEach(s -> statsWritingFutures.add(statsWritingExecutor.submit(s)));
+
         loadIDFs();
         flushToDisk();
         writeStats();
+        statsWritingFutures.forEach(f -> {
+            try
+            {
+                f.get();
+            }
+
+            catch (InterruptedException | ExecutionException e) {}
+        });
+
+
         this.elapsed = System.nanoTime() - startTime;
     }
 
-    private boolean load(Path file)
+    private Runnable load(Path file)
     {
         JsonTable table = TableParser.parse(file);
 
         if (table == null)
-            return false;
+            return null;
 
         // Maps a cell specified by RowNumber, ColumnNumber to the list of entities it matches to
         Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
@@ -187,9 +207,8 @@ public class IndexWriter implements IndexIO
             rowId++;
         }
 
-        saveStats(table, file.getFileName().toString(),
+        return () -> saveStats(table, file.getFileName().toString(),
                 ((EntityLinking) this.linker.getLinker()).getDictionary().keys().asIterator(), entityMatches);
-        return true;
     }
 
     private void saveStats(JsonTable jTable, String tableFileName, Iterator<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
@@ -378,19 +397,19 @@ public class IndexWriter implements IndexIO
         // Entity linker
         ObjectOutputStream outputStream =
                 new ObjectOutputStream(new FileOutputStream(this.outputPath + "/" + Configuration.getEntityLinkerFile()));
-        outputStream.writeObject(this.linker);
+        outputStream.writeObject(this.linker.getLinker());
         outputStream.flush();
         outputStream.close();
 
         // Entity table
         outputStream = new ObjectOutputStream(new FileOutputStream(this.outputPath + "/" + Configuration.getEntityTableFile()));
-        outputStream.writeObject(this.entityTable);
+        outputStream.writeObject(this.entityTable.getIndex());
         outputStream.flush();
         outputStream.close();
 
         // Entity to tables inverted index
         outputStream = new ObjectOutputStream(new FileOutputStream(this.outputPath + "/" + Configuration.getEntityToTablesFile()));
-        outputStream.writeObject(this.entityTableLink);
+        outputStream.writeObject(this.entityTableLink.getIndex());
         outputStream.flush();
         outputStream.close();
 
