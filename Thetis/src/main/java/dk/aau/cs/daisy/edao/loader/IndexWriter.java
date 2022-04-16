@@ -75,7 +75,7 @@ public class IndexWriter implements IndexIO
         if (this.loadedTables > 0)
             throw new RuntimeException("Loading has already complete");
 
-        int size = this.files.size();
+        int size = this.files.size(), progressBlock = (int) (0.0001 * (double) size);
         long startTime = System.nanoTime();
         List<Future<Runnable>> futures = new ArrayList<>();
         List<Runnable> statsWritingRunnables = new ArrayList<>();
@@ -94,7 +94,7 @@ public class IndexWriter implements IndexIO
                 this.loadedTables += runnable != null ? 1 : 0;
                 statsWritingRunnables.add(runnable);
 
-                if (this.logProgress && this.loadedTables % (0.0001 * size) == 0)
+                if (this.logProgress && this.loadedTables % progressBlock == 0)
                     System.out.println("Processed " + this.loadedTables + "/" + size);
             }
 
