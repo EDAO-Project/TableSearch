@@ -94,7 +94,7 @@ public class IndexWriter implements IndexIO
                 this.loadedTables += runnable != null ? 1 : 0;
                 statsWritingRunnables.add(runnable);
 
-                if (this.logProgress && this.loadedTables % (0.01 * size) == 0)
+                if (this.logProgress && this.loadedTables % (0.0001 * size) == 0)
                     System.out.println("Processed " + this.loadedTables + "/" + size);
             }
 
@@ -326,12 +326,11 @@ public class IndexWriter implements IndexIO
     private void loadEntityIDFs()
     {
         EntityLinking linker = (EntityLinking) this.linker.getLinker();
-        Iterator<String> entityIter = linker.getDictionary().keys().asIterator();
+        Iterator<Id> entityIter = linker.getDictionary().elements().asIterator();
 
         while (entityIter.hasNext())
         {
-            String entityStr = entityIter.next();
-            Id entityId = linker.getDictionary().get(entityStr);
+            Id entityId = entityIter.next();
             List<String> entityFiles = this.entityTableLink.find(entityId);
             double idf = Math.log10((double) this.loadedTables / entityFiles.size()) + 1;
 

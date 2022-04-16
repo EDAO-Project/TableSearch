@@ -53,6 +53,10 @@ public class EntityTableLink implements Index<Id, List<String>>
     public List<String> find(Id key)
     {
         Map<String, List<Pair<Integer, Integer>>> tablesLocations = this.idx.get(key);
+
+        if (tablesLocations == null)
+            return null;
+
         return List.copyOf(tablesLocations.keySet());
     }
 
