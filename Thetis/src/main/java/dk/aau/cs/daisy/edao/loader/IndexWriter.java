@@ -335,6 +335,10 @@ public class IndexWriter implements IndexIO
             double idf = Math.log10((double) this.loadedTables / entityFiles.size()) + 1;
 
             Entity entity = this.entityTable.find(entityId);
+
+            if (entity == null)
+                continue;
+
             this.entityTable.remove(entityId);
             entity.setIDF(idf);
             this.entityTable.insert(entityId, entity);
