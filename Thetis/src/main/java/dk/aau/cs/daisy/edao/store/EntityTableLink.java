@@ -46,6 +46,7 @@ public class EntityTableLink implements Index<Id, List<String>>
     /**
      * Finds list of table file names for given entity ID
      * Order of table file names is not guaranteed
+     * An empty list is returned when ID does not exist
      * @param key Entity ID
      * @return List of table file names
      */
@@ -55,7 +56,7 @@ public class EntityTableLink implements Index<Id, List<String>>
         Map<String, List<Pair<Integer, Integer>>> tablesLocations = this.idx.get(key);
 
         if (tablesLocations == null)
-            return null;
+            new ArrayList<>();
 
         return List.copyOf(tablesLocations.keySet());
     }
