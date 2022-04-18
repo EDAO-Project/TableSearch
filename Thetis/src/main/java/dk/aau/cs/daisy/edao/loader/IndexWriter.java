@@ -187,7 +187,7 @@ public class IndexWriter implements IndexIO
                             Id entityId = ((EntityLinking) this.linker.getLinker()).getDictionary().get(entity);
                             List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> tableLocation =
                                     List.of(new Pair<>(rowId, collId));
-                            String fileName = file.getFileName().toString();
+                            String fileName = file.toAbsolutePath().toString();
                             ((EntityTableLink) this.entityTableLink.getIndex()).addLocation(entityId, fileName, tableLocation);
                         }
                     }
@@ -386,6 +386,10 @@ public class IndexWriter implements IndexIO
         {
             Id entityId = idsIter.next();
             Entity entity = this.entityTable.find(entityId);
+
+            if (entity == null)
+                continue;
+
             List<Type> types = entity.getTypes();
             this.entityTable.remove(entityId);
             types.replaceAll(t -> {
@@ -394,6 +398,7 @@ public class IndexWriter implements IndexIO
 
                 return t;
             });
+            this.entityTable.insert(entityId, new Entity(entity.getUri(), types));
         }
     }
 
