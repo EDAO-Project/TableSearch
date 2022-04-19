@@ -39,12 +39,17 @@ public class TableParser
 
     public static JsonTable parse(Path path)
     {
+        return parse(path.toFile());
+    }
+
+    public static JsonTable parse(File file)
+    {
         JsonTable table;
 
         // Tries to parse the JSON file, it fails if file not found or JSON is not well formatted
         TypeAdapter<JsonTable> strictGsonObjectAdapter = new Gson().getAdapter(JsonTable.class);
 
-        try (JsonReader reader = new JsonReader(new FileReader(path.toFile())))
+        try (JsonReader reader = new JsonReader(new FileReader(file)))
         {
             table = strictGsonObjectAdapter.read(reader);
         }

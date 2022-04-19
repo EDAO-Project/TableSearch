@@ -14,6 +14,8 @@ import java.util.Set;
 
 public class ExactSearch extends AbstractSearch
 {
+    private long elapsed = -1;
+
     public ExactSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink)
     {
         super(linker, entityTable, entityTableLink);
@@ -27,6 +29,7 @@ public class ExactSearch extends AbstractSearch
     @Override
     protected Result abstractSearch(Table<String> query)
     {
+        long start = System.nanoTime();
         Table.Row<String> flattenedQuery = flattenQuery(query);
         int entityCount = flattenedQuery.size();
         List<String> sharedTableFiles = sharedQueryRowFiles(flattenedQuery);
@@ -52,7 +55,14 @@ public class ExactSearch extends AbstractSearch
             tableEntityMatches.add(new Pair<>(fileName, (double) sharedRows.size()));
         }
 
+        this.elapsed = System.nanoTime() - start;
         return new Result(sharedTableFiles.size(), tableEntityMatches);
+    }
+
+    @Override
+    protected long abstractElapsedNanoSeconds()
+    {
+        return this.elapsed;
     }
 
     private static Table.Row<String> flattenQuery(Table<String> query)

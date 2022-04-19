@@ -1,14 +1,14 @@
 package dk.aau.cs.daisy.edao.similarity;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
-import dk.aau.cs.daisy.edao.commands.SearchTables;
+import java.util.TreeSet;
 
-public class JaccardSimilarity<E> implements Similarity
+import dk.aau.cs.daisy.edao.structures.Pair;
+
+public class JaccardSimilarity<E extends Comparable<E>> implements Similarity
 {
     private Set<E> s1, s2;
-    private boolean weighted = false;
+    private Set<Pair<E, Double>> weights = null;
 
     private JaccardSimilarity(Set<E> s1, Set<E> s2)
     {
@@ -16,68 +16,90 @@ public class JaccardSimilarity<E> implements Similarity
         this.s2 = s2;
     }
 
-    private JaccardSimilarity(Set<E> s1, Set<E> s2, boolean weighted)
+    /**
+     * @param weights Weights for set elements
+     *                First pair element must exist in s1 and/or s2
+     */
+    private JaccardSimilarity(Set<E> s1, Set<E> s2, Set<Pair<E, Double>> weights)
     {
         this.s1 = s1;
         this.s2 = s2;
-        this.weighted = weighted;
+        this.weights = weights;
     }
 
-    public static <E> JaccardSimilarity<E> make(Set<E> s1, Set<E> s2)
+    public static <E extends Comparable<E>> JaccardSimilarity<E> make(Set<E> s1, Set<E> s2)
     {
         return new JaccardSimilarity<E>(s1, s2);
     }
 
-    public static <E> JaccardSimilarity<E> make(Set<E> s1, Set<E> s2, boolean weighted)
+    public static <E extends Comparable<E>> JaccardSimilarity<E> make(Set<E> s1, Set<E> s2, Set<Pair<E, Double>> weights)
     {
-        return new JaccardSimilarity<E>(s1, s2, weighted);
+        return new JaccardSimilarity<E>(s1, s2, weights);
     }
 
     @Override
     public double similarity()
     {
-        List<E> intersection = intersection(), union = union();
+        Set<E> intersection = intersection(), union = union();
 
         if (union.isEmpty())
             return 0;
 
-        if (this.weighted) {
-            // Handle weighted Jaccard similarity where each value in the intersection and union 
-            // is weighted based on the entityType IDF scores
-            double numerator_sum = 0.0;
-            double denominator_sum = 0.0; 
+        // Handle weighted Jaccard similarity where each value in the intersection and union
+        // is weighted based on the entityType IDF scores
+        if (this.weights != null)
+        {
+            double numeratorSum = 0.0;
+            double denominatorSum = 0.0;
+
+            for (E element : intersection)
+            {
+                double weight = findWeight(element);
+
+                if (weight != -1)
+                    numeratorSum += findWeight(element);
+            }
+
+            for (E element : union)
+            {
+                double weight = findWeight(element);
+
+                if (weight != -1)
+                    denominatorSum += findWeight(element);
+            }
             
-            for (E entityType : intersection) {
-                numerator_sum += SearchTables.entityTypeToIDF.get(entityType);
-            }
-            for (E entityType : union) {
-                denominator_sum += SearchTables.entityTypeToIDF.get(entityType);
-            }
-            
-            if (denominator_sum != 0) {
-                return (double) numerator_sum / denominator_sum;
-            }
-            else {
+            if (denominatorSum != 0)
+                return numeratorSum / denominatorSum;
+
+            else
                 return 0.0;
-            }
         }
-        else {
-            return (double) intersection.size() / union.size();
-        }
-        
+
+        return (double) intersection.size() / union.size();
     }
 
-    private List<E> intersection()
+    private Set<E> intersection()
     {
-        List<E> inter = new ArrayList<>(this.s1);
+        Set<E> inter = new TreeSet<>(this.s1);
         inter.retainAll(this.s2);
         return inter;
     }
 
-    private List<E> union()
+    private Set<E> union()
     {
-        List<E> union = new ArrayList<>(this.s1);
+        Set<E> union = new TreeSet<>(this.s1);
         union.addAll(this.s2);
         return union;
+    }
+
+    private double findWeight(E element)
+    {
+        for (Pair<E, Double> weight : this.weights)
+        {
+            if (element.compareTo(weight.getFirst()) == 0)
+                return weight.getSecond();
+        }
+
+        return -1;
     }
 }

@@ -5,19 +5,23 @@ import java.util.Set;
 
 public class Stats
 {
-    private int numRows = -1, numCols = -1, numsCells = -1, numEntities = -1, numMappedCells = -1;
-    private long cellToEntityMatches = -1;
-    private List<Integer> entitiesPerRow = null, entitiesPerColumn = null, cellToEntityMatchesPerCol = null;
-    List<Boolean> numericTableColumns = null;
-    private Set<String> entities = null;
+    private int numRows, numCols, numsCells, numEntities, numMappedCells, entityMappedRows;
+    private long cellToEntityMatches;
+    private List<Integer> entitiesPerRow, entitiesPerColumn, cellToEntityMatchesPerCol;
+    List<Boolean> numericTableColumns;
+    private Set<String> entities;
+    private List<List<String>> tupleQueryAlignment;
+    private double fractionOfEntityMappedRows;
 
     public static class StatBuilder
     {
-        private int numRows = -1, numCols = -1, numsCells = -1, numEntities = -1, numMappedCells = -1;
+        private int numRows = -1, numCols = -1, numsCells = -1, numEntities = -1, numMappedCells = -1, entityMappedRows = -1;
         private long cellToEntityMatches = -1;
         private List<Integer> entitiesPerRow = null, entitiesPerColumn = null, cellToEntityMatchesPerCol = null;
         List<Boolean> numericTableColumns = null;
-        private Set<String> entities;
+        private Set<String> entities = null;
+        private List<List<String>> tupleQueryAlignment = null;
+        private double fractionOfEntityMappedRows = -1;
 
         public StatBuilder rows(int count)
         {
@@ -85,11 +89,30 @@ public class Stats
             return this;
         }
 
+        public StatBuilder tupleQueryAlignment(List<List<String>> alignment)
+        {
+            this.tupleQueryAlignment = alignment;
+            return this;
+        }
+
+        public StatBuilder entityMappedRows(int count)
+        {
+            this.entityMappedRows = count;
+            return this;
+        }
+
+        public StatBuilder fractionOfEntityMappedRows(double fraction)
+        {
+            this.fractionOfEntityMappedRows = fraction;
+            return this;
+        }
+
         public Stats finish()
         {
             return new Stats(this.numRows, this.numCols, this.numsCells, this.numEntities, this.numMappedCells,
                     this.entitiesPerRow, this.entitiesPerColumn, this.cellToEntityMatchesPerCol,
-                    this.entities, this.numericTableColumns, this.cellToEntityMatches);
+                    this.entities, this.numericTableColumns, this.cellToEntityMatches, this.tupleQueryAlignment,
+                    this.entityMappedRows, this.fractionOfEntityMappedRows);
         }
     }
 
@@ -101,7 +124,9 @@ public class Stats
     private Stats(int rows, int columns, int cells, int entities, int mappedCells,
                   List<Integer> entitiesPerRow, List<Integer> entitiesPerColumn,
                   List<Integer> cellToEntityMatchesPerCol, Set<String> entitySet,
-                  List<Boolean> numericTableColumns, long cellToEntityMatches)
+                  List<Boolean> numericTableColumns, long cellToEntityMatches,
+                  List<List<String>> tupleQueryAlignment, int entityMappedRows,
+                  double fractionOfEntityMappedRows)
     {
         this.numRows = rows;
         this.numCols = columns;
@@ -114,6 +139,9 @@ public class Stats
         this.entities = entitySet;
         this.numericTableColumns = numericTableColumns;
         this.cellToEntityMatchesPerCol = cellToEntityMatchesPerCol;
+        this.tupleQueryAlignment = tupleQueryAlignment;
+        this.entityMappedRows = entityMappedRows;
+        this.fractionOfEntityMappedRows = fractionOfEntityMappedRows;
     }
 
     public int rows()
@@ -169,5 +197,15 @@ public class Stats
     public List<Boolean> numericTableColumns()
     {
         return this.numericTableColumns;
+    }
+
+    public List<List<String>> getTupleQueryAlignment()
+    {
+        return this.tupleQueryAlignment;
+    }
+
+    public int getEntityMappedRows()
+    {
+        return this.entityMappedRows;
     }
 }

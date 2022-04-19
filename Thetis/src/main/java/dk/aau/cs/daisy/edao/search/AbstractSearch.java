@@ -24,6 +24,12 @@ public abstract class AbstractSearch implements Search
         return abstractSearch(query);
     }
 
+    @Override
+    public long elapsedNanoSeconds()
+    {
+        return abstractElapsedNanoSeconds();
+    }
+
     public EntityLinking getLinker()
     {
         return this.linker;
@@ -40,4 +46,5 @@ public abstract class AbstractSearch implements Search
     }
 
     protected abstract Result abstractSearch(Table<String> query);
+    protected abstract long abstractElapsedNanoSeconds();
 }

@@ -1,6 +1,6 @@
 package dk.aau.cs.daisy.edao.structures.graph;
 
-public class Type
+public class Type implements Comparable<Type>
 {
     private String type;
     private double idf = -1;
@@ -40,5 +40,14 @@ public class Type
 
         Type other = (Type) o;
         return this.type.equals(other.type) && this.idf == other.idf;
+    }
+
+    @Override
+    public int compareTo(Type o)
+    {
+        if (equals(o))
+            return 0;
+
+        return type.compareTo(o.getType());
     }
 }
