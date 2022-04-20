@@ -12,6 +12,8 @@ public class Stats
     private Set<String> entities;
     private List<List<String>> tupleQueryAlignment;
     private double fractionOfEntityMappedRows;
+    private List<Double> queryRowScores;
+    private List<List<Double>> queryRowVectors;
 
     public static class StatBuilder
     {
@@ -22,6 +24,8 @@ public class Stats
         private Set<String> entities = null;
         private List<List<String>> tupleQueryAlignment = null;
         private double fractionOfEntityMappedRows = -1;
+        private List<Double> queryRowScores = null;
+        List<List<Double>> queryRowVectors = null;
 
         public StatBuilder rows(int count)
         {
@@ -107,12 +111,24 @@ public class Stats
             return this;
         }
 
+        public StatBuilder queryRowScores(List<Double> scores)
+        {
+            this.queryRowScores = scores;
+            return this;
+        }
+
+        public StatBuilder queryRowVectors(List<List<Double>> vectors)
+        {
+            this.queryRowVectors = vectors;
+            return this;
+        }
+
         public Stats finish()
         {
             return new Stats(this.numRows, this.numCols, this.numsCells, this.numEntities, this.numMappedCells,
                     this.entitiesPerRow, this.entitiesPerColumn, this.cellToEntityMatchesPerCol,
                     this.entities, this.numericTableColumns, this.cellToEntityMatches, this.tupleQueryAlignment,
-                    this.entityMappedRows, this.fractionOfEntityMappedRows);
+                    this.entityMappedRows, this.fractionOfEntityMappedRows, this.queryRowScores, this.queryRowVectors);
         }
     }
 
@@ -126,7 +142,8 @@ public class Stats
                   List<Integer> cellToEntityMatchesPerCol, Set<String> entitySet,
                   List<Boolean> numericTableColumns, long cellToEntityMatches,
                   List<List<String>> tupleQueryAlignment, int entityMappedRows,
-                  double fractionOfEntityMappedRows)
+                  double fractionOfEntityMappedRows, List<Double> queryRowScores,
+                  List<List<Double>> queryRowVectors)
     {
         this.numRows = rows;
         this.numCols = columns;
@@ -142,6 +159,8 @@ public class Stats
         this.tupleQueryAlignment = tupleQueryAlignment;
         this.entityMappedRows = entityMappedRows;
         this.fractionOfEntityMappedRows = fractionOfEntityMappedRows;
+        this.queryRowScores = queryRowScores;
+        this.queryRowVectors = queryRowVectors;
     }
 
     public int rows()
@@ -199,13 +218,28 @@ public class Stats
         return this.numericTableColumns;
     }
 
-    public List<List<String>> getTupleQueryAlignment()
+    public List<List<String>> tupleQueryAlignment()
     {
         return this.tupleQueryAlignment;
     }
 
-    public int getEntityMappedRows()
+    public int entityMappedRows()
     {
         return this.entityMappedRows;
+    }
+
+    public double fractionOfEntityMappedRows()
+    {
+        return this.fractionOfEntityMappedRows;
+    }
+
+    public List<Double> queryRowScores()
+    {
+        return this.queryRowScores;
+    }
+
+    public List<List<Double>> queryRowVectors()
+    {
+        return this.queryRowVectors;
     }
 }

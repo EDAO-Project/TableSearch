@@ -14,6 +14,7 @@ import dk.aau.cs.daisy.edao.structures.graph.Type;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.HungarianAlgorithm;
+import dk.aau.cs.daisy.edao.utilities.Utils;
 
 import java.io.File;
 import java.util.*;
@@ -51,7 +52,7 @@ public class AnalogousSearch extends AbstractSearch
             embeddingCoverageSuccesses, embeddingCoverageFails;
     Set<String> queryEntitiesMissingCoverage = new HashSet<>();
     private long elapsed = -1;
-    private boolean logProgress, useEmbeddings, singleColumnPerQueryEntity, weightedJaccard;
+    private boolean logProgress, useEmbeddings, singleColumnPerQueryEntity, weightedJaccard, useMaxSimilarityPerColumn;
     private CosineSimilarityFunction embeddingSimFunction;
     private SimilarityMeasure measure;
     private DBDriverBatch<List<Double>, String> embeddings;
@@ -60,8 +61,8 @@ public class AnalogousSearch extends AbstractSearch
 
     public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK,
                            int threads, boolean logProgress, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
-                           boolean singleColumnPerQueryEntity, boolean weightedJaccard, SimilarityMeasure similarityMeasure,
-                           DBDriverBatch<List<Double>, String> embeddingStore)
+                           boolean singleColumnPerQueryEntity, boolean weightedJaccard, boolean useMaxSimilarityPerColumn,
+                           SimilarityMeasure similarityMeasure, DBDriverBatch<List<Double>, String> embeddingStore)
     {
         super(linker, entityTable, entityTableLink);
         this.topK = topK;
@@ -71,6 +72,7 @@ public class AnalogousSearch extends AbstractSearch
         this.embeddingSimFunction = cosineFunction;
         this.singleColumnPerQueryEntity = singleColumnPerQueryEntity;
         this.weightedJaccard = weightedJaccard;
+        this.useMaxSimilarityPerColumn = useMaxSimilarityPerColumn;
         this.measure = similarityMeasure;
         this.embeddings = embeddingStore;
     }
@@ -143,8 +145,6 @@ public class AnalogousSearch extends AbstractSearch
                 System.out.println("A total of " + this.nonEmbeddingComparisons + " entity comparisons cannot be made due to lack of embeddings.");
                 double percentage = (this.embeddingComparisons / ((double) this.nonEmbeddingComparisons + this.embeddingComparisons)) * 100;
                 System.out.println(percentage + "% of required entity comparisons were made using embeddings.\n");
-
-
                 System.out.println("Embedding Coverage successes: " + embeddingCoverageSuccesses);
                 System.out.println("Embedding Coverage failures: " + embeddingCoverageFails);
                 System.out.println("Embedding Coverage Success Rate: " + (double) embeddingCoverageSuccesses / (embeddingCoverageSuccesses + embeddingCoverageFails));
@@ -156,7 +156,7 @@ public class AnalogousSearch extends AbstractSearch
     }
 
     @Override
-    public long abstractElapsedNanoSeconds()
+    protected long abstractElapsedNanoSeconds()
     {
         return this.elapsed;
     }
@@ -218,13 +218,13 @@ public class AnalogousSearch extends AbstractSearch
 
             if (this.singleColumnPerQueryEntity)
                 statsThread.join();
-
-            this.tableStats.put(table, statBuilder.finish());
         }
 
         catch (InterruptedException ignored) {}
 
-        return aggregateTableSimilarities(tableRowSimilarities);
+        double tableScore = aggregateTableSimilarities(query, tableRowSimilarities, statBuilder);
+        this.tableStats.put(table, statBuilder.finish());
+        return tableScore;
     }
 
     private List<List<String>> computeQueryTupleAlignment(List<List<Integer>> queryRowToColumnMappings, JsonTable table)
@@ -464,7 +464,7 @@ public class AnalogousSearch extends AbstractSearch
         {
             if (!this.useEmbeddings || hasEmbeddingCoverage(query.getRow(queryRow), columnToEntity, queryRowToColumnMappings, queryRow))
                 sims.put(queryRow,
-                        computeQueryRowToTableRowSimilarity(query.getRow(queryRow), columnToEntity, queryRowToColumnMappings));
+                        computeQueryRowToTableRowSimilarity(query.getRow(queryRow), queryRow, columnToEntity, queryRowToColumnMappings));
 
             else
             {
@@ -475,7 +475,7 @@ public class AnalogousSearch extends AbstractSearch
         return sims;
     }
 
-    private List<Double> computeQueryRowToTableRowSimilarity(Table.Row<String> queryRow, Map<Integer, String> columnToEntity,
+    private List<Double> computeQueryRowToTableRowSimilarity(Table.Row<String> queryRow, int rowIndex, Map<Integer, String> columnToEntity,
                                                                List<List<Integer>> queryRowToColumnMappings)
     {
         int queryRowWidth = queryRow.size();
@@ -488,7 +488,7 @@ public class AnalogousSearch extends AbstractSearch
 
             if (this.singleColumnPerQueryEntity)
             {
-                int assignedColumn = queryRowToColumnMappings.get(queryRow).get(queryRowColumn);
+                int assignedColumn = queryRowToColumnMappings.get(rowIndex).get(queryRowColumn);
 
                 if (columnToEntity.containsKey(assignedColumn))
                     bestSimScore = entitySimilarityScore(queryEntity, columnToEntity.get(assignedColumn));
@@ -547,9 +547,108 @@ public class AnalogousSearch extends AbstractSearch
         return tupleToColumnMappings;
     }
 
-    private Double aggregateTableSimilarities(Map<Integer, Map<Integer, List<Double>>> tableRowSimilarities)
+    private Double aggregateTableSimilarities(Table<String> query, Map<Integer, Map<Integer, List<Double>>> tableRowSimilarities,
+                                              Stats.StatBuilder statBuilder)
     {
+        Map<Integer, List<List<Double>>> queryRowToSimVectors = toQueryToSimilarities(tableRowSimilarities);
+        Map<Integer, List<Double>> queryRowToWeightVector = computeQueryRowWeights(query);  // Compute the weighted vector (i.e. considers IDF scores of query entities) for each query tuple
+        List<List<Double>> queryRowVectors = new ArrayList<>();
+        Map<Integer, Double> queryRowToScore = new HashMap<>();
+        int queryRows = query.rowCount();
 
+        for (int row = 0; row < queryRows; row++)
+        {
+            if (tableRowSimilarities.size() > 0)
+            {
+                if (queryRowToSimVectors.containsKey(row))
+                {
+                    List<Double> curRowVec;
+
+                    if (this.useMaxSimilarityPerColumn)
+                        curRowVec = Utils.getMaxPerColumnVector(queryRowToSimVectors.get(row));
+
+                    else
+                        curRowVec = Utils.getAverageVector(queryRowToSimVectors.get(row));
+
+                    List<Double> identityVector = new ArrayList<>(Collections.nCopies(curRowVec.size(), 1.0));
+                    double score = 0.0;
+
+                    if (this.measure == SimilarityMeasure.COSINE)
+                        score = Utils.cosineSimilarity(curRowVec, identityVector);
+
+                    else if (this.measure == SimilarityMeasure.EUCLIDEAN)
+                    {
+                        score = Utils.euclideanDistance(curRowVec, identityVector, queryRowToWeightVector.get(row));
+                        score = 1 / (score + 1);
+                    }
+
+                    queryRowToScore.put(row, score);
+                    queryRowVectors.add(curRowVec);
+                }
+            }
+
+            else
+                queryRowToScore.put(row, 0.0);
+        }
+
+        if (!queryRowToScore.isEmpty())
+        {
+            List<Double> queryRowScores = new ArrayList<>(queryRowToScore.values());
+            statBuilder.queryRowScores(queryRowScores);
+            statBuilder.queryRowVectors(queryRowVectors);
+            return Utils.getAverageOfVector(queryRowScores);
+        }
+
+        return 0.0;
+    }
+
+    // Map each query row to a list of all similarity vectors for the given table map
+    private static Map<Integer, List<List<Double>>> toQueryToSimilarities(Map<Integer, Map<Integer, List<Double>>> tableRowSimilarities)
+    {
+        Map<Integer, List<List<Double>>> queryRowToSimVectors = new HashMap<>();
+
+        for (int row : tableRowSimilarities.keySet())
+        {
+            for (int queryRow : tableRowSimilarities.get(row).keySet())
+            {
+                List<Double> currSimVector = tableRowSimilarities.get(row).get(queryRow);
+
+                if (!queryRowToSimVectors.containsKey(queryRow))
+                {
+                    List<List<Double>> simVectors = new ArrayList<>();
+                    simVectors.add(currSimVector);
+                    queryRowToSimVectors.put(queryRow, simVectors);
+                }
+
+                else
+                    queryRowToSimVectors.get(queryRow).add(currSimVector);
+            }
+        }
+
+        return queryRowToSimVectors;
+    }
+
+    private Map<Integer, List<Double>> computeQueryRowWeights(Table<String> query)
+    {
+        Map<Integer, List<Double>> queryRowToWeightVector = new HashMap<>();
+        int queryRowCount = query.rowCount();
+
+        for (int queryRow = 0; queryRow < queryRowCount; queryRow++)
+        {
+            List<Double> curRowIDFScores = new ArrayList<>();
+            int rowSize = query.getRow(queryRow).size();
+
+            for (int column = 0; column < rowSize; column++)
+            {
+                Id entityId = getLinker().getDictionary().get(query.getRow(queryRow).get(column));
+                double entityIdf = getEntityTable().find(entityId).getIDF();
+                curRowIDFScores.add(entityIdf);
+            }
+
+            queryRowToWeightVector.put(queryRow, Utils.normalizeVector(curRowIDFScores));
+        }
+
+        return queryRowToWeightVector;
     }
 
     public int getEmbeddingComparisons()
@@ -564,11 +663,21 @@ public class AnalogousSearch extends AbstractSearch
 
     public int getEmbeddingCoverageSuccesses()
     {
-        return this.hasEmbeddingCoverageSuccesses;
+        return this.embeddingCoverageSuccesses;
     }
 
     public int getEmbeddingCoverageFails()
     {
-        return this.hasEmbeddingCoverageFails;
+        return this.embeddingCoverageFails;
+    }
+
+    public Set<String> getQueryEntitiesMissingCoverage()
+    {
+        return this.queryEntitiesMissingCoverage;
+    }
+
+    public Map<String, Stats> getTableStats()
+    {
+        return this.tableStats;
     }
 }

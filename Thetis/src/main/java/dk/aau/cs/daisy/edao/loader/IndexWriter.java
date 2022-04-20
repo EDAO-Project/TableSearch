@@ -14,7 +14,7 @@ import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
 import dk.aau.cs.daisy.edao.system.Configuration;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
-import dk.aau.cs.daisy.edao.utilities.utils;
+import dk.aau.cs.daisy.edao.utilities.Utils;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -379,7 +379,7 @@ public class IndexWriter implements IndexIO
                 if (typeFrequency.containsKey(t.getType()))
                 {
                     double ratio = (double) dictionary.size() / typeFrequency.get(t.getType());
-                    double idf = utils.log2(ratio);
+                    double idf = Utils.log2(ratio);
                     t.setIdf(idf);
                 }
             });

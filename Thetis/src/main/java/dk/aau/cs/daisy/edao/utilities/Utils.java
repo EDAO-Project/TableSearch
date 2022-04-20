@@ -1,6 +1,5 @@
 package dk.aau.cs.daisy.edao.utilities;
 
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.FileNotFoundException;
@@ -10,7 +9,6 @@ import java.nio.file.Files;
 import java.util.*;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import dk.aau.cs.daisy.edao.commands.parser.EmbeddingsParser;
@@ -18,7 +16,7 @@ import dk.aau.cs.daisy.edao.commands.parser.Parser;
 import dk.aau.cs.daisy.edao.similarity.CosineSimilarity;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 
-public class utils {
+public class Utils {
 
     /**
      * Returns the JsonTable from a path to the json file
