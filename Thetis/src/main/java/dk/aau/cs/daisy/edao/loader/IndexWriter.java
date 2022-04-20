@@ -347,7 +347,7 @@ public class IndexWriter implements IndexIO
 
     private void loadTypeIDFs()
     {
-        Map<Type, Integer> typeFrequency = new HashMap<>();
+        Map<String, Integer> typeFrequency = new HashMap<>();
         Iterator<Id> idIter = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
         IdDictionary<String> dictionary = ((EntityLinking) this.linker.getLinker()).getDictionary();
 
@@ -361,44 +361,28 @@ public class IndexWriter implements IndexIO
 
                 for (Type type : types)
                 {
-                    if (typeFrequency.containsKey(type))
-                        typeFrequency.put(type, typeFrequency.get(type) + 1);
+                    if (typeFrequency.containsKey(type.toString()))
+                        typeFrequency.put(type.getType(), typeFrequency.get(type.toString()) + 1);
 
                     else
-                        typeFrequency.put(type, 1);
+                        typeFrequency.put(type.getType(), 1);
                 }
             }
         }
 
-        for (Type type : typeFrequency.keySet())
+        idIter = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
+
+        while (idIter.hasNext())
         {
-            double ratio = (double) dictionary.size() / typeFrequency.get(type);
-            double idf = utils.log2(ratio);
-            updateTypeIDFs(type.getType(), idf);
-        }
-    }
-
-    private void updateTypeIDFs(String typeName, double idf)
-    {
-        Iterator<Id> idsIter = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
-
-        while (idsIter.hasNext())
-        {
-            Id entityId = idsIter.next();
-            Entity entity = this.entityTable.find(entityId);
-
-            if (entity == null)
-                continue;
-
-            List<Type> types = entity.getTypes();
-            this.entityTable.remove(entityId);
-            types.replaceAll(t -> {
-                if (t.getType().equals(typeName))
-                    return new Type(typeName, idf);
-
-                return t;
+            Entity entity = this.entityTable.find(idIter.next());
+            entity.getTypes().forEach(t -> {
+                if (typeFrequency.containsKey(t.getType()))
+                {
+                    double ratio = (double) dictionary.size() / typeFrequency.get(t.getType());
+                    double idf = utils.log2(ratio);
+                    t.setIdf(idf);
+                }
             });
-            this.entityTable.insert(entityId, new Entity(entity.getUri(), types));
         }
     }
 

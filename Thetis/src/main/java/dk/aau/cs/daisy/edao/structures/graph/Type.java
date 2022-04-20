@@ -32,6 +32,11 @@ public class Type implements Comparable<Type>
         return this.idf;
     }
 
+    public void setIdf(double idf)
+    {
+        this.idf = idf;
+    }
+
     @Override
     public boolean equals(Object o)
     {
