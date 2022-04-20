@@ -149,7 +149,7 @@ public class IndexWriter implements IndexIO
                     this.cellsWithLinks++;
                     this.cellToNumLinksFrequency.merge(cell.links.size(), 1, Integer::sum);
 
-                    for(String link : cell.links)
+                    for (String link : cell.links)
                     {
                         String uri;
 
@@ -375,6 +375,10 @@ public class IndexWriter implements IndexIO
         while (idIter.hasNext())
         {
             Entity entity = this.entityTable.find(idIter.next());
+
+            if (entity == null)
+                continue;
+
             entity.getTypes().forEach(t -> {
                 if (typeFrequency.containsKey(t.getType()))
                 {
