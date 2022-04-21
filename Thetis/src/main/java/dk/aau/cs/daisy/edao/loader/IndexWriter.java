@@ -210,10 +210,10 @@ public class IndexWriter implements IndexIO
         }
 
         return () -> saveStats(table, file.getFileName().toString(),
-                ((EntityLinking) this.linker.getLinker()).getDictionary().keys().asIterator(), entityMatches);
+                ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator(), entityMatches);
     }
 
-    private void saveStats(JsonTable jTable, String tableFileName, Iterator<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
+    private void saveStats(JsonTable jTable, String tableFileName, Iterator<Id> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
     {
         Stats stats = collectStats(jTable, tableFileName, entities, entityMatches);
 
@@ -223,33 +223,29 @@ public class IndexWriter implements IndexIO
         }
     }
 
-    private Stats collectStats(JsonTable jTable, String tableFileName, Iterator<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
+    private Stats collectStats(JsonTable jTable, String tableFileName, Iterator<Id> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
     {
         List<Integer> numEntitiesPerRow = new ArrayList<>(Collections.nCopies(jTable.numDataRows, 0));
         List<Integer> numEntitiesPerCol = new ArrayList<>(Collections.nCopies(jTable.numCols, 0));
-        List<Integer> numCellToEntityMatchesPerCol = new ArrayList<Integer>(Collections.nCopies(jTable.numCols, 0));
-        List<Boolean> tableColumnsIsNumeric = new ArrayList<Boolean>(Collections.nCopies(jTable.numCols, false));
+        List<Integer> numCellToEntityMatchesPerCol = new ArrayList<>(Collections.nCopies(jTable.numCols, 0));
+        List<Boolean> tableColumnsIsNumeric = new ArrayList<>(Collections.nCopies(jTable.numCols, false));
         long numCellToEntityMatches = 0L; // Specifies the total number (bag semantics) of entities all cells map to
         int entityCount = 0;
 
         while (entities.hasNext())
         {
-            Id entityId = ((EntityLinking) this.linker.getLinker()).getDictionary().get(entities.next());
             entityCount++;
+            Id entityId = entities.next();
+            List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> locations =
+                    ((EntityTableLink) this.entityTableLink.getIndex()).getLocations(entityId, tableFileName);
 
-            if (entityId != null)
+            if (locations != null)
             {
-                List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> locations =
-                        ((EntityTableLink) this.entityTableLink.getIndex()).getLocations(entityId, tableFileName);
-
-                if (locations != null)
+                for (Pair<Integer, Integer> location : locations)
                 {
-                    for (Pair<Integer, Integer> location : locations)
-                    {
-                        numEntitiesPerRow.set(location.getFirst(), numEntitiesPerRow.get(location.getFirst()) + 1);
-                        numEntitiesPerCol.set(location.getSecond(), numEntitiesPerCol.get(location.getSecond()) + 1);
-                        numCellToEntityMatches++;
-                    }
+                    numEntitiesPerRow.set(location.getFirst(), numEntitiesPerRow.get(location.getFirst()) + 1);
+                    numEntitiesPerCol.set(location.getSecond(), numEntitiesPerCol.get(location.getSecond()) + 1);
+                    numCellToEntityMatches++;
                 }
             }
         }
