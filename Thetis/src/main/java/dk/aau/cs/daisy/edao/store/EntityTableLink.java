@@ -3,12 +3,13 @@ package dk.aau.cs.daisy.edao.store;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.Pair;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
  * Inverted indexing of entities' link to table names
  */
-public class EntityTableLink implements Index<Id, List<String>>
+public class EntityTableLink implements Index<Id, List<String>>, Serializable
 {
     private Map<Id, Map<String, List<Pair<Integer, Integer>>>> idx;   // Indexing from entity to table file names of locations where the entity is found
 

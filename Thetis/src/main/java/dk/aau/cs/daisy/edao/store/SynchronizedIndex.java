@@ -1,6 +1,8 @@
 package dk.aau.cs.daisy.edao.store;
 
-public class SynchronizedIndex<K, V> implements Index<K, V>
+import java.io.Serializable;
+
+public class SynchronizedIndex<K, V> implements Index<K, V>, Serializable
 {
     private Index<K, V> index;
 

@@ -1,6 +1,8 @@
 package dk.aau.cs.daisy.edao.store;
 
-public class SynchronizedLinker<F, T> implements Linker<F, T>
+import java.io.Serializable;
+
+public class SynchronizedLinker<F, T> implements Linker<F, T>, Serializable
 {
     private Linker<F, T> linker;
 

@@ -3,6 +3,7 @@ package dk.aau.cs.daisy.edao.store;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.IdDictionary;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,7 +11,7 @@ import java.util.Map;
  * Mapping from Wikipedia link to KG entity URI
  * A trie is maybe better, where leafs contain IDs and no duplicate bidirectional mapping.
  */
-public class EntityLinking implements Linker<String, String>
+public class EntityLinking implements Linker<String, String>, Serializable
 {
     private IdDictionary<String> dict;
     private Map<Id, Id> wikiLinkToUri;    // Wikipedia link to entity URI
