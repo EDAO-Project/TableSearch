@@ -1,8 +1,9 @@
 package dk.aau.cs.daisy.edao.structures;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class Pair<F extends Comparable, S extends Comparable> {
+public class Pair<F extends Comparable, S extends Comparable> implements Serializable {
 
     private final F first;
     private final S second;

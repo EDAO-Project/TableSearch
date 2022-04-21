@@ -1,8 +1,9 @@
 package dk.aau.cs.daisy.edao.structures;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class IdDictionary<K> extends Dictionary<K, Id>
+public class IdDictionary<K> extends Dictionary<K, Id> implements Serializable
 {
     private Map<K, Id> map;
     private Map<Id, K> inverse;

@@ -2,7 +2,9 @@ package dk.aau.cs.daisy.edao.structures;
 
 import dk.aau.cs.daisy.edao.system.Configuration;
 
-public class Id
+import java.io.Serializable;
+
+public class Id implements Serializable
 {
     private static class IdAllocator
     {

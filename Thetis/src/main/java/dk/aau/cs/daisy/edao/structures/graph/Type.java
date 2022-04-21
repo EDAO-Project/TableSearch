@@ -1,6 +1,8 @@
 package dk.aau.cs.daisy.edao.structures.graph;
 
-public class Type implements Comparable<Type>
+import java.io.Serializable;
+
+public class Type implements Comparable<Type>, Serializable
 {
     private String type;
     private double idf = -1;
