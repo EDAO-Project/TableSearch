@@ -251,7 +251,7 @@ public class SearchTables extends Command {
 
     @Override
     public Integer call() {
-        System.out.println("Hashmap Directory: " + this.indexDir);
+        System.out.println("Index Directory: " + this.indexDir);
         System.out.println("Query File: " + this.queryFile);
         System.out.println("Table Directory: " + this.tableDir);    // TODO: Make this redundant - necessary info should be found in indexes
         System.out.println("Output Directory: " + this.outputDir);
@@ -343,16 +343,6 @@ public class SearchTables extends Command {
     //********************* Global Variables of Statistics *********************//
 
     private Double elapsedTime = 0.0;
-
-    private Map<String, Map<String, Object>> filenameToStatistics = Collections.synchronizedMap(new HashMap<>());
-
-    private Integer numEmbeddingSimComparisons = 0;
-    private Integer numNonEmbeddingSimComparisons = 0;
-
-    private Integer hasEmbeddingCoverageFails = 0;
-    private Integer hasEmbeddingCoverageSuccesses = 0;
-    private Set<String> queryEntitiesMissingCoverage = new HashSet<String>();
-
 
     public boolean ensureQueryEntitiesMapping(Table<String> query, IdDictionary<String> entityDict, EntityTableLink tableLink)
     {

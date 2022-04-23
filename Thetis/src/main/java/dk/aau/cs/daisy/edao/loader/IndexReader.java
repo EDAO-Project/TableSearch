@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -56,9 +57,21 @@ public class IndexReader implements IndexIO
 
             if (this.logProgress && tmpCompleted != completed)
             {
-                System.out.println("Loading indexes " + 1 + "/3");
                 completed = tmpCompleted;
+                System.out.println("Loaded indexes: " + completed + "/3");
             }
+        }
+
+        try
+        {
+            f1.get();
+            f2.get();
+            f3.get();
+        }
+
+        catch (InterruptedException | ExecutionException e)
+        {
+            throw new RuntimeException(e.getMessage());
         }
     }
 

@@ -8,6 +8,9 @@ import java.util.*;
 
 /**
  * Inverted indexing of entities' link to table names
+ * TODO: We can reduce space by storing a separate structure of table names
+ *       The index should point by index to the table name in that separate structure along its location within
+ *       This way, we remove duplicating table names
  */
 public class EntityTableLink implements Index<Id, List<String>>, Serializable
 {
@@ -59,7 +62,7 @@ public class EntityTableLink implements Index<Id, List<String>>, Serializable
         if (tablesLocations == null)
             return new ArrayList<>();
 
-        return List.copyOf(tablesLocations.keySet());
+        return new ArrayList<>(tablesLocations.keySet());
     }
 
     @Override
