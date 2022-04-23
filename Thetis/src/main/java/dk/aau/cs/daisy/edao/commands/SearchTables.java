@@ -16,6 +16,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.common.reflect.TypeToken;
 import java.lang.reflect.Type;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import dk.aau.cs.daisy.edao.commands.parser.TableParser;
 import dk.aau.cs.daisy.edao.connector.*;
@@ -307,7 +309,7 @@ public class SearchTables extends Command {
                     break;
 
                 case ANALOGOUS:
-                    analogousSearch(queryTable, linker, entityTable, entityTableLink);
+                    analogousSearch(queryTable, linker, entityTable, entityTableLink, this.tableDir.toPath());
                     break;
 
                 case PPR:
@@ -427,14 +429,19 @@ public class SearchTables extends Command {
     /**
      * Given a list of entities, return a ranked list of table candidates
      */
-    public void analogousSearch(Table<String> query, EntityLinking linker, EntityTable table, EntityTableLink tableLink)
+    public void analogousSearch(Table<String> query, EntityLinking linker, EntityTable table, EntityTableLink tableLink, Path tableDir) throws IOException
     {
+        Stream<Path> fileStream = Files.find(tableDir, Integer.MAX_VALUE,
+                (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
+        Set<Path> filePaths = fileStream.collect(Collectors.toSet());
+        filePaths = filePaths.stream().map(Path::toAbsolutePath).collect(Collectors.toSet());
         AnalogousSearch.CosineSimilarityFunction cosineFunction = this.embeddingSimFunction == EmbeddingSimFunction.ABS_COS
                 ? AnalogousSearch.CosineSimilarityFunction.ABS_COS : this.embeddingSimFunction == EmbeddingSimFunction.NORM_COS
                 ? AnalogousSearch.CosineSimilarityFunction.NORM_COS : AnalogousSearch.CosineSimilarityFunction.ANG_COS;
         AnalogousSearch search = new AnalogousSearch(linker, table, tableLink, this.topK, this.threads,
                 true, this.usePretrainedEmbeddings, cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity,
                 this.useMaxSimilarityPerColumn, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, this.store);
+        search.setCorpus(filePaths.stream().map(Path::toString).collect(Collectors.toSet()));
 
         Result result = search.search(query);
         int topK = 20;
@@ -568,7 +575,7 @@ public class SearchTables extends Command {
             tmp.addProperty("score", score.getSecond());
             
             // Get Page Title and URL of the current file
-            JsonTable table = Utils.getTableFromPath(Paths.get(this.tableDir.toString() + "/" + score.getFirst()));
+            JsonTable table = Utils.getTableFromPath(Paths.get(score.getFirst()));
             String pgTitle = table.pgTitle;
             String tableURL = "https://en.wikipedia.org/wiki/"+pgTitle.replace(' ', '_');
             tmp.addProperty("pgTitle", pgTitle);

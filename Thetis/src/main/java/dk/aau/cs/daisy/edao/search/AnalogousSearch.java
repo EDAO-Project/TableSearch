@@ -58,6 +58,7 @@ public class AnalogousSearch extends AbstractSearch
     private DBDriverBatch<List<Double>, String> embeddings;
     private Map<String, Stats> tableStats = new TreeMap<>();
     private final Object lock = new Object();
+    private Set<String> corpus;
 
     public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK,
                            int threads, boolean logProgress, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
@@ -75,6 +76,12 @@ public class AnalogousSearch extends AbstractSearch
         this.useMaxSimilarityPerColumn = useMaxSimilarityPerColumn;
         this.measure = similarityMeasure;
         this.embeddings = embeddingStore;
+        this.corpus = distinctTables();
+    }
+
+    public void setCorpus(Set<String> tableFiles)
+    {
+        this.corpus = tableFiles;
     }
 
     /**
@@ -88,10 +95,9 @@ public class AnalogousSearch extends AbstractSearch
         long start = System.nanoTime();
         long done = 1, prev = 0;
         ExecutorService threadPool = Executors.newFixedThreadPool(this.threads);
-        Set<String> tables = distinctTables();
-        List<Future<Pair<String, Double>>> parsed = new ArrayList<>(tables.size());
+        List<Future<Pair<String, Double>>> parsed = new ArrayList<>(this.corpus.size());
 
-        for (String table : tables)
+        for (String table : this.corpus)
         {
             Future<Pair<String, Double>> f = threadPool.submit(() -> new Pair<>(table, searchTable(query, table)));
             parsed.add(f);
@@ -99,13 +105,13 @@ public class AnalogousSearch extends AbstractSearch
 
         if (this.logProgress)
         {
-            while (done != tables.size())
+            while (done != this.corpus.size())
             {
                 done = parsed.stream().filter(Future::isDone).count();
 
                 if (done - prev >= 100)
                 {
-                    System.out.println("Processed " + done + "/" + tables.size() + " files...");
+                    System.out.println("Processed " + done + "/" + this.corpus.size() + " files...");
                     prev = done;
                 }
             }
