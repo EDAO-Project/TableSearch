@@ -273,7 +273,7 @@ public class SearchTables extends Command {
             return -1;
         }
 
-        System.out.println("Query Entities: " + queryEntities + "\n");
+        System.out.println("Query Entities: " + queryTable + "\n");
 
         try
         {

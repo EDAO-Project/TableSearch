@@ -2,7 +2,6 @@ package dk.aau.cs.daisy.edao.search;
 
 import dk.aau.cs.daisy.edao.structures.Pair;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -35,8 +34,8 @@ public class Result
 
     public Iterator<Pair<String, Double>> getResults()
     {
-        Collections.sort(this.tableScores, (e1, e2) -> {
-            if (e1.getSecond() == e2.getSecond())
+        this.tableScores.sort((e1, e2) -> {
+            if (e1.getSecond().equals(e2.getSecond()))
                 return 0;
 
             return e1.getSecond() > e2.getSecond() ? -1 : 1;
