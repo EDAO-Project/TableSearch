@@ -42,6 +42,9 @@ public class Result
             return e1.getSecond() > e2.getSecond() ? -1 : 1;
         });
 
+        if (this.tableScores.size() < this.k + 1)
+            return this.tableScores.iterator();
+
         return this.tableScores.subList(0, this.k + 1).iterator();
     }
 }
