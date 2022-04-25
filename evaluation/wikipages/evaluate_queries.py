@@ -90,11 +90,14 @@ def get_ndcg_scores_over_labeled(df, scores_path, tables_path, seed=0):
 
 
 
-def get_ndcg_scores_over_output(full_df, scores_path, groundtruth_relevance_scores_dir, tables_list, k=10):
+def get_ndcg_scores_over_output(full_df, query_df, scores_path, groundtruth_relevance_scores_dir, tables_list,
+    remove_query_tables_from_evaluation_mode=None, k=10):
     '''
     Compute the NDCG scores for every query scored in the `scores_path`
 
     The NDCG score is computed over the top-k results from the output of each query
+
+    If `remove_query_tables_from_evaluation_mode` is specified then query tables are not evaluated and removed from the groundtruth
 
     Return a dictionary indexed by wikipage_id that maps to a dictionary specifying the
     ndcg_score@k, as well as the number of true relevant tables found at k
@@ -109,10 +112,18 @@ def get_ndcg_scores_over_output(full_df, scores_path, groundtruth_relevance_scor
         if filepath.is_file():
             wikipage_id = int(file.split('_')[1])
 
+            filtered_tables_list = tables_list
+            # Update the `filtered_tables_list` if `remove_query_tables_from_evaluation_mode` is specified
+            if args.remove_query_tables_from_evaluation_mode:
+                filtered_tables_list, tables_removed = filter_tables_list(
+                    query_df=query_df, tables_list=tables_list,
+                    mode=args.remove_query_tables_from_evaluation_mode, wikipage_id=wikipage_id
+                )
+
             # Get the gt_to_relevance_scores_dict
             gt_tables_to_relevance_scores_dict = utils.evaluation_helpers.get_gt_tables_to_relevance_scores_dict(
                full_df=full_df, wikipage_id=wikipage_id, 
-               groundtruth_relevance_scores_dir=groundtruth_relevance_scores_dir, tables_list=tables_list
+               groundtruth_relevance_scores_dir=groundtruth_relevance_scores_dir, tables_list=filtered_tables_list
             )
 
             # Read scores and populate table_id_to_pred_score
@@ -124,9 +135,10 @@ def get_ndcg_scores_over_output(full_df, scores_path, groundtruth_relevance_scor
             assert len(scored_tables_json)>=k, 'There are less than k tables that have been scored for wikipage_id: ' + str(wikipage_id)
 
 
-            # Construct the predicted relevance scores
+            # Construct the predicted relevance scores by querying the predicted score
+            # for all tables specified in the `gt_to_relevance_scores_dict`
             pred_tables_to_relevance_scores_dict = {table:0 for table in gt_tables_to_relevance_scores_dict}
-            for table in table_id_to_pred_score:
+            for table in gt_tables_to_relevance_scores_dict:
                 pred_tables_to_relevance_scores_dict[table] = table_id_to_pred_score[table]
 
             # Compute the num_relevant tables in the top-k of the `table_id_to_pred_score` dictionary
@@ -147,21 +159,42 @@ def get_ndcg_scores_over_output(full_df, scores_path, groundtruth_relevance_scor
         
     return scores_dict
 
+def filter_tables_list(query_df, tables_list, mode, wikipage_id):
+    '''
+    Returns an updated `tables_list` based on the specified `mode` of removing query tables from the evaluation
+    as well as a list of the tables removed
+    '''
+    row = query_df[query_df['wikipage_id']==wikipage_id]
+    tables_to_remove = []
+    if mode == 'remove_query_table':
+        tables_to_remove.extend(row['selected_table'])
+    elif mode == 'remove_query_wikipage_tables':
+        [tables_to_remove.append(table) for table in row['tables'].to_list()[0]]
+
+    # Remove all `tables_to_remove` from `tables_list`
+    tables_list = [table for table in tables_list if table not in tables_to_remove]
+
+    return tables_list, tables_to_remove
+
 def main(args):
 
     df = pd.read_pickle(args.query_df)
-    full_df = pd.read_pickle(args.full_df)
+    full_df = pd.read_pickle(args.full_df)  
 
     # Extract the names of all tables in our search space
     tables_list = os.listdir(args.tables_dir)
 
     scores_over_output = get_ndcg_scores_over_output(
         full_df=full_df,
+        query_df=df,
         scores_path=args.scores_dir,
         groundtruth_relevance_scores_dir=args.groundtruth_relevance_scores_dir,
         tables_list=tables_list,
+        remove_query_tables_from_evaluation_mode=args.remove_query_tables_from_evaluation_mode,
         k=args.topk
     )
+
+    print(scores_over_output)
 
     with open(args.output_dir + 'scores_over_output_' + str(args.topk) + '.json', 'w') as fp:
         json.dump(scores_over_output, fp, indent=4)
@@ -177,6 +210,10 @@ if __name__ == "__main__":
     parser.add_argument('--groundtruth_relevance_scores_dir', help='Path to the directory that contains the groundtruth relevance scores for each wikipage', required=True)
     parser.add_argument('--tables_dir', help='Path to the directory containing all the tables that make up the search space for all queries', required=True)
     parser.add_argument('--topk', type=int, default=10, help='Specifies the top-k value for which NDCG scores are evaluated')
+    
+    parser.add_argument('--remove_query_tables_from_evaluation_mode', choices=['remove_query_table', 'remove_query_wikipage_tables'], 
+        help='If specified then the query wikitable or all tables found in the query wikipage (depending on which mode was specified) \
+        are removed from the evaluation')
     args = parser.parse_args()
 
     # Create the query output directory if it doesn't exist (Remove all files in it if any)
@@ -187,6 +224,9 @@ if __name__ == "__main__":
     print("Scores Directory:", args.scores_dir)
     print("Full Dataframe:", args.full_df)
     print("Tables Directory:", args.tables_dir)
-    print("Top-k:", args.topk,'\n')
+    print("Top-k:", args.topk)
+    if args.remove_query_tables_from_evaluation_mode:
+        print('Remove Query Tables from Evaluation Mode:', args.remove_query_tables_from_evaluation_mode)
+    print('\n')
 
     main(args)  

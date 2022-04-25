@@ -8,6 +8,8 @@ from tqdm import tqdm
 def get_gt_tables_to_relevance_scores_dict(full_df, wikipage_id, groundtruth_relevance_scores_dir, tables_list):
     '''
     Return a dictionary mapping each table_id to its relevance score
+
+    Scores for only the tables in `tables_list` are returned in the dictionary
     '''
 
     gt_tables_to_relevance_scores_dict = {table:0 for table in tables_list}
@@ -27,8 +29,8 @@ def get_gt_tables_to_relevance_scores_dict(full_df, wikipage_id, groundtruth_rel
                     # Update the score of existing table in the dictionary because a higher relevance for the same table was discovered
                     if relevance_score > gt_tables_to_relevance_scores_dict[table]:
                         gt_tables_to_relevance_scores_dict[table] = relevance_score
-                else:
-                    gt_tables_to_relevance_scores_dict[table] = relevance_score
+                # else:
+                #     gt_tables_to_relevance_scores_dict[table] = relevance_score
 
     return gt_tables_to_relevance_scores_dict
 
