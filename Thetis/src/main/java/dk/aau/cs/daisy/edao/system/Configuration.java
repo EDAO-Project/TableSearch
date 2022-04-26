@@ -91,6 +91,9 @@ public class Configuration
         if (!props.contains("TableStats"))
             props.setProperty("TableStats", "statistics/perTableStats.json");
 
+        if (!props.contains("LogLevel"))
+            props.setProperty("LogLevel", Logger.Level.INFO.toString());
+
         writeProperties(props);
     }
 
@@ -252,5 +255,15 @@ public class Configuration
     public static String getTableStatsFile()
     {
         return readProperties().getProperty("TableStats");
+    }
+
+    public static void setLogLevel(Logger.Level level)
+    {
+        addProperty("LogLevel", level.toString());
+    }
+
+    public static String getLogLevel()
+    {
+        return readProperties().getProperty("LogLevel");
     }
 }

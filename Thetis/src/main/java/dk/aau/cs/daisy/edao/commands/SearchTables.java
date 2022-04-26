@@ -35,6 +35,7 @@ import dk.aau.cs.daisy.edao.structures.IdDictionary;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
+import dk.aau.cs.daisy.edao.system.Logger;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.Utils;
 import dk.aau.cs.daisy.edao.utilities.ppr;
@@ -325,7 +326,14 @@ public class SearchTables extends Command {
 
         catch (IOException e)
         {
+            Logger.logNewLine(Logger.Level.ERROR, "Failed to load indexes from disk");
             System.out.println("Failed to load indexes from disk");
+            return -1;
+        }
+
+        catch (RuntimeException e)
+        {
+            Logger.logNewLine(Logger.Level.ERROR, e.getMessage());
             return -1;
         }
     }
