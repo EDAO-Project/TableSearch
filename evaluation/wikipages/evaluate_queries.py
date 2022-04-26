@@ -115,7 +115,7 @@ def get_ndcg_scores_over_output(full_df, query_df, scores_path, groundtruth_rele
             filtered_tables_list = tables_list
             # Update the `filtered_tables_list` if `remove_query_tables_from_evaluation_mode` is specified
             if args.remove_query_tables_from_evaluation_mode:
-                filtered_tables_list, tables_removed = filter_tables_list(
+                filtered_tables_list, tables_removed = utils.filter_tables_list(
                     query_df=query_df, tables_list=tables_list,
                     mode=args.remove_query_tables_from_evaluation_mode, wikipage_id=wikipage_id
                 )
@@ -159,22 +159,22 @@ def get_ndcg_scores_over_output(full_df, query_df, scores_path, groundtruth_rele
         
     return scores_dict
 
-def filter_tables_list(query_df, tables_list, mode, wikipage_id):
-    '''
-    Returns an updated `tables_list` based on the specified `mode` of removing query tables from the evaluation
-    as well as a list of the tables removed
-    '''
-    row = query_df[query_df['wikipage_id']==wikipage_id]
-    tables_to_remove = []
-    if mode == 'remove_query_table':
-        tables_to_remove.extend(row['selected_table'])
-    elif mode == 'remove_query_wikipage_tables':
-        [tables_to_remove.append(table) for table in row['tables'].to_list()[0]]
+# def filter_tables_list(query_df, tables_list, mode, wikipage_id):
+#     '''
+#     Returns an updated `tables_list` based on the specified `mode` of removing query tables from the evaluation
+#     as well as a list of the tables removed
+#     '''
+#     row = query_df[query_df['wikipage_id']==wikipage_id]
+#     tables_to_remove = []
+#     if mode == 'remove_query_table':
+#         tables_to_remove.extend(row['selected_table'])
+#     elif mode == 'remove_query_wikipage_tables':
+#         [tables_to_remove.append(table) for table in row['tables'].to_list()[0]]
 
-    # Remove all `tables_to_remove` from `tables_list`
-    tables_list = [table for table in tables_list if table not in tables_to_remove]
+#     # Remove all `tables_to_remove` from `tables_list`
+#     tables_list = [table for table in tables_list if table not in tables_to_remove]
 
-    return tables_list, tables_to_remove
+#     return tables_list, tables_to_remove
 
 def main(args):
 
@@ -193,8 +193,6 @@ def main(args):
         remove_query_tables_from_evaluation_mode=args.remove_query_tables_from_evaluation_mode,
         k=args.topk
     )
-
-    print(scores_over_output)
 
     with open(args.output_dir + 'scores_over_output_' + str(args.topk) + '.json', 'w') as fp:
         json.dump(scores_over_output, fp, indent=4)
