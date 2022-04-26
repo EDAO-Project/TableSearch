@@ -30,7 +30,7 @@ public class IndexWriter implements IndexIO
     private List<Path> files;
     private boolean logProgress;
     private File outputPath;
-    private int threads, loadedTables = 0, cellsWithLinks = 0;
+    private int threads, loadedTables = 0, cellsWithLinks = 0, tableStatsCollected = 0;
     private final Object lock = new Object();
     private long elapsed = -1;
     private Map<Integer, Integer> cellToNumLinksFrequency = new HashMap<>();
@@ -108,12 +108,16 @@ public class IndexWriter implements IndexIO
         ExecutorService statsWritingExecutor = Executors.newFixedThreadPool(this.threads);
         statsWritingRunnables.forEach(s -> statsWritingFutures.add(statsWritingExecutor.submit(s)));
 
+        int statWritersCount = statsWritingFutures.size();
         loadIDFs();
         flushToDisk();
         statsWritingFutures.forEach(f -> {
             try
             {
                 f.get();
+
+                if (this.logProgress)
+                    System.out.println(this.tableStatsCollected + "/" + statWritersCount + " table stats collected");
             }
 
             catch (InterruptedException | ExecutionException ignored) {}
@@ -272,6 +276,7 @@ public class IndexWriter implements IndexIO
             }
         }
 
+        this.tableStatsCollected++;
         return Stats.build()
                 .rows(jTable.numDataRows)
                 .columns(jTable.numCols)
