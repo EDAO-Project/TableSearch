@@ -6,10 +6,7 @@ import dk.aau.cs.daisy.edao.store.EntityTableLink;
 import dk.aau.cs.daisy.edao.system.Configuration;
 import dk.aau.cs.daisy.edao.system.Logger;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -80,39 +77,35 @@ public class IndexReader implements IndexIO
 
     private void loadEntityLinker()
     {
-        try (ObjectInputStream stream = new ObjectInputStream(new FileInputStream(this.indexDir + "/" + Configuration.getEntityLinkerFile())))
-        {
-            this.linker = (EntityLinking) stream.readObject();
-        }
-
-        catch (IOException | ClassNotFoundException e)
-        {
-            throw new RuntimeException(e.getMessage());
-        }
+        this.linker = (EntityLinking) readIndex(this.indexDir + "/" + Configuration.getEntityLinkerFile());
     }
 
     private void loadEntityTable()
     {
-        try (ObjectInputStream stream = new ObjectInputStream(new FileInputStream(this.indexDir + "/" + Configuration.getEntityTableFile())))
-        {
-            this.entityTable = (EntityTable) stream.readObject();
-        }
-
-        catch (IOException | ClassNotFoundException e)
-        {
-            throw new RuntimeException(e.getMessage());
-        }
+        this.entityTable = (EntityTable) readIndex(this.indexDir + "/" + Configuration.getEntityTableFile());
     }
 
     private void loadEntityTableLink()
     {
-        try (ObjectInputStream stream = new ObjectInputStream(new FileInputStream(this.indexDir + "/" + Configuration.getEntityToTablesFile())))
+        this.entityTableLink = (EntityTableLink) readIndex(this.indexDir + "/" + Configuration.getEntityToTablesFile());
+    }
+
+    private Object readIndex(String file)
+    {
+        try (ObjectInputStream stream = new ObjectInputStream(new FileInputStream(file)))
         {
-            this.entityTableLink = (EntityTableLink) stream.readObject();
+            return stream.readObject();
+        }
+
+        catch (OptionalDataException e)
+        {
+            Logger.logNewLine(Logger.Level.ERROR, "Index file contains primitive data or EOF was reached earlier than expected");
+            throw new RuntimeException(e.getMessage());
         }
 
         catch (IOException | ClassNotFoundException e)
         {
+            Logger.logNewLine(Logger.Level.ERROR, "IO error when reading index");
             throw new RuntimeException(e.getMessage());
         }
     }

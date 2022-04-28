@@ -60,6 +60,7 @@ public class Logger
     }
 
     private static int prevLength = 0;
+    private static boolean prevWasNewLine = false;
 
     public static void log(Level level, String message)
     {
@@ -67,9 +68,15 @@ public class Logger
 
         if (configuredLevel != null && level.getLevel() >= configuredLevel.getLevel())
         {
-            clearChannel();
+            if (prevWasNewLine)
+                System.out.println();
+
+            else
+                clearChannel();
+
             System.out.print("(" + new Date() + ") - " + level + ": " + message + "\r");
             prevLength = message.length();
+            prevWasNewLine = false;
         }
     }
 
@@ -78,7 +85,10 @@ public class Logger
         Level configuredLevel = Level.parse(Configuration.getLogLevel());
 
         if (configuredLevel != null && level.getLevel() >= configuredLevel.getLevel())
+        {
             System.out.print("\n(" + new Date() + ") - " + level + ": " + message);
+            prevWasNewLine = true;
+        }
     }
 
     private static void clearChannel()

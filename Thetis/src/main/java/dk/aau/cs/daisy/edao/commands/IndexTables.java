@@ -155,7 +155,7 @@ public class IndexTables extends Command {
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         }
 
-        Logger.logNewLine(Logger.Level.INFO, "\n\nDONE\n\n");
+        Logger.logNewLine(Logger.Level.INFO, "DONE");
         return 23;
     }
 

@@ -89,7 +89,7 @@ public class Configuration
             props.setProperty("CellToNumLinksFrequency", "cellToNumLinksFrequency.json");
 
         if (!props.contains("TableStats"))
-            props.setProperty("TableStats", "statistics/perTableStats.json");
+            props.setProperty("TableStats", "perTableStats.json");
 
         if (!props.contains("LogLevel"))
             props.setProperty("LogLevel", Logger.Level.INFO.toString());
