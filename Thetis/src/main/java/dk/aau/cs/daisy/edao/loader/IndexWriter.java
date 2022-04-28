@@ -13,8 +13,10 @@ import dk.aau.cs.daisy.edao.structures.graph.Entity;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
 import dk.aau.cs.daisy.edao.system.Configuration;
+import dk.aau.cs.daisy.edao.system.Logger;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.Utils;
+import org.apache.commons.io.FilenameUtils;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -80,6 +82,7 @@ public class IndexWriter implements IndexIO
         List<Future<Runnable>> futures = new ArrayList<>();
         List<Runnable> statsWritingRunnables = new ArrayList<>();
         ExecutorService pool = Executors.newFixedThreadPool(this.threads);
+        Logger.logNewLine(Logger.Level.INFO, "Processing tables...");
 
         for (int i = 0; i < size; i++)
         {
@@ -94,30 +97,26 @@ public class IndexWriter implements IndexIO
                 this.loadedTables += runnable != null ? 1 : 0;
                 statsWritingRunnables.add(runnable);
 
-                if (this.logProgress && this.loadedTables % progressBlock == 0)
-                    System.out.println("Processed " + this.loadedTables + "/" + size);
+                if (this.loadedTables % progressBlock == 0)
+                    Logger.log(Logger.Level.INFO, "Processed " + this.loadedTables + "/" + size);
             }
 
             catch (InterruptedException | ExecutionException ignored) {}
         });
-
-        if (this.logProgress)
-            System.out.println("Flushing to disk...");
 
         List<Future<?>> statsWritingFutures = new ArrayList<>();
         ExecutorService statsWritingExecutor = Executors.newFixedThreadPool(this.threads);
         statsWritingRunnables.forEach(s -> statsWritingFutures.add(statsWritingExecutor.submit(s)));
 
         int statWritersCount = statsWritingFutures.size();
+        Logger.logNewLine(Logger.Level.INFO, "Flushing to disk...");
         loadIDFs();
         flushToDisk();
         statsWritingFutures.forEach(f -> {
             try
             {
                 f.get();
-
-                if (this.logProgress)
-                    System.out.println(this.tableStatsCollected + "/" + statWritersCount + " table stats collected");
+                Logger.log(Logger.Level.INFO, this.tableStatsCollected + "/" + statWritersCount + " table stats collected");
             }
 
             catch (InterruptedException | ExecutionException ignored) {}
@@ -125,9 +124,7 @@ public class IndexWriter implements IndexIO
         writeStats();
 
         this.elapsed = System.nanoTime() - startTime;
-
-        if (this.logProgress)
-            System.out.println("Done");
+        Logger.log(Logger.Level.INFO, "Done");
     }
 
     private Runnable load(Path file)
@@ -139,6 +136,7 @@ public class IndexWriter implements IndexIO
 
         // Maps a cell specified by RowNumber, ColumnNumber to the list of entities it matches to
         Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
+        Set<String> tableEntities = new HashSet<>();
         int rowId = 0;
 
         for (List<JsonTable.TableCell> row : table.rows)
@@ -201,6 +199,7 @@ public class IndexWriter implements IndexIO
                         for (String entity : matchedUris)
                         {
                             this.filter.put(entity);
+                            tableEntities.add(entity);
                         }
 
                         entityMatches.put(new Pair<>(rowId, collId), matchedUris);
@@ -213,11 +212,10 @@ public class IndexWriter implements IndexIO
             rowId++;
         }
 
-        return () -> saveStats(table, file.getFileName().toString(),
-                ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator(), entityMatches);
+        return () -> saveStats(table, FilenameUtils.removeExtension(file.getFileName().toString()), tableEntities.iterator(), entityMatches);
     }
 
-    private void saveStats(JsonTable jTable, String tableFileName, Iterator<Id> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
+    private void saveStats(JsonTable jTable, String tableFileName, Iterator<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
     {
         Stats stats = collectStats(jTable, tableFileName, entities, entityMatches);
 
@@ -227,7 +225,7 @@ public class IndexWriter implements IndexIO
         }
     }
 
-    private Stats collectStats(JsonTable jTable, String tableFileName, Iterator<Id> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
+    private Stats collectStats(JsonTable jTable, String tableFileName, Iterator<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
     {
         List<Integer> numEntitiesPerRow = new ArrayList<>(Collections.nCopies(jTable.numDataRows, 0));
         List<Integer> numEntitiesPerCol = new ArrayList<>(Collections.nCopies(jTable.numCols, 0));
@@ -239,7 +237,11 @@ public class IndexWriter implements IndexIO
         while (entities.hasNext())
         {
             entityCount++;
-            Id entityId = entities.next();
+            Id entityId = ((EntityLinking) this.linker.getLinker()).getDictionary().get(entities.next());
+
+            if (entityId == null)
+                continue;
+
             List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> locations =
                     ((EntityTableLink) this.entityTableLink.getIndex()).getLocations(entityId, tableFileName);
 
@@ -436,7 +438,7 @@ public class IndexWriter implements IndexIO
 
         writer.flush();
         writer.close();
-        outputStream = new FileOutputStream(Configuration.getTableToTypesFile());
+        outputStream = new FileOutputStream(this.outputPath + "/" + Configuration.getTableToTypesFile());
         writer = new OutputStreamWriter(outputStream);
         Set<String> tables = new HashSet<>();
         Iterator<Id> entityIdIter = dictionary.elements().asIterator();

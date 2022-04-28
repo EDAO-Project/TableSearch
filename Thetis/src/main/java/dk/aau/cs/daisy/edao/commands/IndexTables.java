@@ -14,6 +14,7 @@ import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.graph.Entity;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
 
+import dk.aau.cs.daisy.edao.system.Logger;
 import picocli.CommandLine;
 
 import org.neo4j.driver.exceptions.AuthenticationException;
@@ -123,8 +124,8 @@ public class IndexTables extends Command {
     @Override
     public Integer call() {
         long parsedTables;
-        System.out.println("Input Directory: " + this.tableDir.getAbsolutePath() );
-        System.out.println("Output Directory: " + this.outputDir.getAbsolutePath() );
+        Logger.logNewLine(Logger.Level.INFO, "Input Directory: " + this.tableDir.getAbsolutePath());
+        Logger.logNewLine(Logger.Level.INFO, "Output Directory: " + this.outputDir.getAbsolutePath());
 
         try {
             Neo4jEndpoint connector = new Neo4jEndpoint(this.configFile);
@@ -132,30 +133,29 @@ public class IndexTables extends Command {
 
             switch (this.tableType) {
                 case TT:
-                    System.err.println( "Indexing of '"+TableType.TT.getName() + "' is not supported yet!" );
+                    Logger.logNewLine(Logger.Level.ERROR, "Indexing of '"+TableType.TT.getName() + "' is not supported yet!");
                     break;
                 case WIKI:
-                    System.out.println("Starting indexing of '"+TableType.WIKI.getName()+"'");
+                    Logger.logNewLine(Logger.Level.INFO, "Starting indexing of '" + TableType.WIKI.getName() + "'");
                     parsedTables = this.indexWikiTables(this.tableDir.toPath(), this.outputDir, connector, this.threads);
-                    System.out.printf("Indexed %d tables%n", parsedTables);
+                    Logger.logNewLine(Logger.Level.INFO, "Indexed " + parsedTables + " tables\n");
                     break;
             }
         } catch(AuthenticationException ex){
-            System.err.println("Could not Login to Neo4j Server (user or password do not match)");
-            System.err.println(ex.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "Could not Login to Neo4j Server (user or password do not match)");
+            Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         }catch (ServiceUnavailableException ex){
-            System.err.println("Could not connect to Neo4j Server");
-            System.err.println(ex.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "Could not connect to Neo4j Server");
+            Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         } catch (FileNotFoundException ex){
-            System.err.println("Configuration file for Neo4j connector not found");
-            System.err.println(ex.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "Configuration file for Neo4j connector not found");
+            Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         } catch ( IOException ex){
-            System.err.println("Error in reading configuration for Neo4j connector");
-            System.err.println(ex.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "Error in reading configuration for Neo4j connector");
+            Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         }
 
-        System.out.println("\n\nDONE\n\n");
-
+        Logger.logNewLine(Logger.Level.INFO, "\n\nDONE\n\n");
         return 23;
     }
 
@@ -180,14 +180,14 @@ public class IndexTables extends Command {
                     (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
             List<Path> filePaths = fileStream.collect(Collectors.toList());
             Collections.sort(filePaths);
-            System.out.println("\nThere are " + filePaths.size() + " files to be processed.");
+            Logger.logNewLine(Logger.Level.INFO, "\nThere are " + filePaths.size() + " files to be processed.");
 
             long startTime = System.nanoTime();
             IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads, true);
             indexWriter.performIO();
 
             long elapsedTime = System.nanoTime() - startTime;
-            System.out.println("Elapsed time: " + elapsedTime / (1e9) + " seconds\n");
+            Logger.logNewLine(Logger.Level.INFO, "Elapsed time: " + elapsedTime / (1e9) + " seconds\n");
 
             Set<Type> entityTypes = new HashSet<>();
             Iterator<Id> idIter = indexWriter.getEntityLinker().getDictionary().elements().asIterator();
@@ -198,9 +198,9 @@ public class IndexTables extends Command {
                 entityTypes.addAll(entity.getTypes());
             }
 
-            System.out.printf("Found an approximate total of %d  unique entity mentions across %d cells %n", indexWriter.getApproximateEntityMentions(), indexWriter.cellsWithLinks());
-            System.out.println("There are in total " + entityTypes.size() + " unique entity types across all discovered entities.");
-            System.out.println("Indexing took " + indexWriter.elapsedTime() + " ns");
+            Logger.logNewLine(Logger.Level.INFO, "Found an approximate total of " + indexWriter.getApproximateEntityMentions() + " unique entity mentions across " + indexWriter.cellsWithLinks() + " cells \n");
+            Logger.logNewLine(Logger.Level.INFO, "There are in total " + entityTypes.size() + " unique entity types across all discovered entities.");
+            Logger.logNewLine(Logger.Level.INFO, "Indexing took " + indexWriter.elapsedTime() + " ns");
 
             return indexWriter.loadedTables();
         }

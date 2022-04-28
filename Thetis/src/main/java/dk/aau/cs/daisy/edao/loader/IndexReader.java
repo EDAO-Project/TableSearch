@@ -4,6 +4,7 @@ import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
 import dk.aau.cs.daisy.edao.system.Configuration;
+import dk.aau.cs.daisy.edao.system.Logger;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -55,10 +56,10 @@ public class IndexReader implements IndexIO
         {
             int tmpCompleted = (f1.isDone() ? 1 : 0) + (f2.isDone() ? 1 : 0) + (f3.isDone() ? 1 : 0);
 
-            if (this.logProgress && tmpCompleted != completed)
+            if (tmpCompleted != completed)
             {
                 completed = tmpCompleted;
-                System.out.println("Loaded indexes: " + completed + "/3");
+                Logger.log(Logger.Level.INFO, "Loaded indexes: " + completed + "/" + INDEX_COUNT);
             }
         }
 
@@ -71,6 +72,8 @@ public class IndexReader implements IndexIO
 
         catch (InterruptedException | ExecutionException e)
         {
+            Logger.logNewLine(Logger.Level.ERROR, "Failed loading an index:");
+            Logger.logNewLine(Logger.Level.ERROR, e.getMessage());
             throw new RuntimeException(e.getMessage());
         }
     }

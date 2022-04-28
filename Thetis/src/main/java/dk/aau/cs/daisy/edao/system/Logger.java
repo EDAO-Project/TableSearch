@@ -1,10 +1,12 @@
 package dk.aau.cs.daisy.edao.system;
 
+import java.util.Date;
+
 public class Logger
 {
     public enum Level
     {
-        INFO(1), DEBUG(2), ERROR(3);
+        INFO(1), DEBUG(2), RESULT(3), ERROR(4);
 
         private int level;
 
@@ -24,6 +26,9 @@ public class Logger
                     return ERROR.name();
 
                 case 3:
+                    return RESULT.name();
+
+                case 4:
                     return DEBUG.name();
 
                 default:
@@ -47,6 +52,9 @@ public class Logger
             else if ("debug".equals(str.toLowerCase()))
                 return DEBUG;
 
+            else if ("result".equals(str.toLowerCase()))
+                return RESULT;
+
             return null;
         }
     }
@@ -60,7 +68,7 @@ public class Logger
         if (configuredLevel != null && level.getLevel() >= configuredLevel.getLevel())
         {
             clearChannel();
-            System.out.print(message + "\r");
+            System.out.print("(" + new Date() + ") - " + level + ": " + message + "\r");
             prevLength = message.length();
         }
     }
@@ -70,7 +78,7 @@ public class Logger
         Level configuredLevel = Level.parse(Configuration.getLogLevel());
 
         if (configuredLevel != null && level.getLevel() >= configuredLevel.getLevel())
-            System.out.println("\n" + message);
+            System.out.println("\n(" + new Date() + ") - " + level + ": " + message);
     }
 
     private static void clearChannel()

@@ -1,7 +1,6 @@
 package dk.aau.cs.daisy.edao.commands;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.*;
 import java.nio.file.*;
 import java.nio.file.Path;
@@ -14,8 +13,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
-import com.google.common.reflect.TypeToken;
-import java.lang.reflect.Type;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -254,11 +251,11 @@ public class SearchTables extends Command {
 
     @Override
     public Integer call() {
-        System.out.println("Index Directory: " + this.indexDir);
-        System.out.println("Query File: " + this.queryFile);
-        System.out.println("Table Directory: " + this.tableDir);    // TODO: Make this redundant - necessary info should be found in indexes
-        System.out.println("Output Directory: " + this.outputDir);
-        System.out.println("Single Column per Query Entity: " + this.singleColumnPerQueryEntity);
+        Logger.logNewLine(Logger.Level.INFO, "Index Directory: " + this.indexDir);
+        Logger.logNewLine(Logger.Level.INFO, "Query File: " + this.queryFile);
+        Logger.logNewLine(Logger.Level.INFO, "Table Directory: " + this.tableDir);  // TODO: Make this redundant - necessary info should be found in indexes
+        Logger.logNewLine(Logger.Level.INFO, "Output Directory: " + this.outputDir);
+        Logger.logNewLine(Logger.Level.INFO, "Single Column per Query Entity: " + this.singleColumnPerQueryEntity);
 
         // Create output directory if it doesn't exist
         if (!outputDir.exists())
@@ -272,11 +269,11 @@ public class SearchTables extends Command {
 
         if (queryTable == null)
         {
-            System.out.println("Query file '" + this.queryFile + "' could not be parsed");
+            Logger.logNewLine(Logger.Level.ERROR, "Query file '" + this.queryFile + "' could not be parsed");
             return -1;
         }
 
-        System.out.println("Query Entities: " + queryTable + "\n");
+        Logger.logNewLine(Logger.Level.INFO, "Query Entities: " + queryTable + "\n");
 
         try
         {
@@ -286,7 +283,7 @@ public class SearchTables extends Command {
             indexReader.performIO();
 
             long elapsedTime = System.nanoTime() - startTime;
-            System.out.println("Indexes loaded from disk in " + elapsedTime / 1e9 + " seconds\n");
+            Logger.logNewLine(Logger.Level.INFO, "Indexes loaded from disk in " + elapsedTime / 1e9 + " seconds\n");
 
             EntityLinking linker = indexReader.getLinker();
             EntityTable entityTable = indexReader.getEntityTable();
@@ -294,15 +291,15 @@ public class SearchTables extends Command {
 
             // Ensure all query entities are mappable
             if (this.ensureQueryEntitiesMapping(queryTable, linker.getDictionary(), entityTableLink))
-                System.out.println("All query entities are mappable!\n\n");
+                Logger.logNewLine(Logger.Level.INFO, "All query entities are mappable!\n\n");
 
             else
             {
-                System.out.println("NOT all query entities are mappable!");
+                Logger.logNewLine(Logger.Level.ERROR, "NOT all query entities are mappable!");
                 return -1;
             }
 
-            System.out.println("Search mode: " + this.searchMode.getMode());
+            Logger.logNewLine(Logger.Level.INFO, "Search mode: " + this.searchMode.getMode());
 
             switch (this.searchMode){
                 case EXACT:
@@ -327,7 +324,6 @@ public class SearchTables extends Command {
         catch (IOException e)
         {
             Logger.logNewLine(Logger.Level.ERROR, "Failed to load indexes from disk");
-            System.out.println("Failed to load indexes from disk");
             return -1;
         }
 
@@ -386,10 +382,10 @@ public class SearchTables extends Command {
             List<String> tableFiles = entityTableLink.find(entityId);
 
             if (tableFiles == null || tableFiles.isEmpty())
-                System.out.println("'" + entity + "' does not map to any known entity in the constructed index");
+                Logger.logNewLine(Logger.Level.RESULT, "'" + entity + "' does not map to any known entity in the constructed index");
 
             else
-                System.out.println("There are " + tableFiles.size() + " files that contain the entity '" + entity + "'");
+                Logger.logNewLine(Logger.Level.RESULT, "There are " + tableFiles.size() + " files that contain the entity '" + entity + "'");
         }
 
         Search search = new ExactSearch(linker, entityTable, entityTableLink);
@@ -398,7 +394,7 @@ public class SearchTables extends Command {
         while (resIter.hasNext())
         {
             Pair<String, Double> result = resIter.next();
-            System.out.println("For filename '" + result.getFirst() + "', there are " + result.getSecond() + " matching tuples");
+            Logger.logNewLine(Logger.Level.RESULT, "For filename '" + result.getFirst() + "', there are " + result.getSecond() + " matching tuples");
         }
 
         // Analyze all pairwise combinations of query entities
@@ -417,7 +413,7 @@ public class SearchTables extends Command {
         }
 
         int tableEntities = flattenedQueryTable.size();
-        System.out.println("\n2-entities analysis:");
+        Logger.logNewLine(Logger.Level.RESULT, "\n2-entities analysis:");
 
         for (int i = 0; i < tableEntities; i++)
         {
@@ -428,7 +424,7 @@ public class SearchTables extends Command {
                 while (resIter.hasNext())
                 {
                     Pair<String, Double> result = resIter.next();
-                    System.out.println("For filename '" + result.getFirst() + "', there are " + result.getSecond() + " matching tuples");
+                    Logger.logNewLine(Logger.Level.RESULT, "For filename '" + result.getFirst() + "', there are " + result.getSecond() + " matching tuples");
                 }
             }
         }
@@ -446,8 +442,7 @@ public class SearchTables extends Command {
         AnalogousSearch.CosineSimilarityFunction cosineFunction = this.embeddingSimFunction == EmbeddingSimFunction.ABS_COS
                 ? AnalogousSearch.CosineSimilarityFunction.ABS_COS : this.embeddingSimFunction == EmbeddingSimFunction.NORM_COS
                 ? AnalogousSearch.CosineSimilarityFunction.NORM_COS : AnalogousSearch.CosineSimilarityFunction.ANG_COS;
-        AnalogousSearch search = new AnalogousSearch(linker, table, tableLink, this.topK, this.threads,
-                true, this.usePretrainedEmbeddings, cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity,
+        AnalogousSearch search = new AnalogousSearch(linker, table, tableLink, this.topK, this.threads, this.usePretrainedEmbeddings, cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity,
                 this.useMaxSimilarityPerColumn, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, this.store);
         search.setCorpus(filePaths.stream().map(Path::toString).collect(Collectors.toSet()));
 
@@ -455,13 +450,13 @@ public class SearchTables extends Command {
         int topK = 20;
         Iterator<Pair<String, Double>> resultIter = result.getResults();
         List<Pair<String, Double>> scores = new ArrayList<>();
-        System.out.println("\nTop-" + topK + " tables are:");
+        Logger.logNewLine(Logger.Level.RESULT, "\nTop-" + topK + " tables are:");
 
         while (resultIter.hasNext())
         {
             Pair<String, Double> next = resultIter.next();
             scores.add(next);
-            System.out.println("Filename = " + next.getFirst() + ", score = " + next.getSecond());
+            Logger.logNewLine(Logger.Level.RESULT, "Filename = " + next.getFirst() + ", score = " + next.getSecond());
         }
 
         saveFilenameScores(this.outputDir, scores, search.getTableStats(), search.getQueryEntitiesMissingCoverage(),
@@ -475,17 +470,17 @@ public class SearchTables extends Command {
             this.connector = new Neo4jEndpoint(this.configFile);
             connector.testConnection();
         } catch(AuthenticationException ex){
-            System.err.println( "Could not Login to Neo4j Server (user or password do not match)");
-            System.err.println(ex.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "Could not Login to Neo4j Server (user or password do not match)");
+            Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         }catch (ServiceUnavailableException ex){
-            System.err.println( "Could not connect to Neo4j Server");
-            System.err.println(ex.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "Could not connect to Neo4j Server");
+            Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         } catch (FileNotFoundException ex){
-            System.err.println( "Configuration file for Neo4j connector not found");
-            System.err.println(ex.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "Configuration file for Neo4j connector not found");
+            Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         } catch ( IOException ex){
-            System.err.println("Error in reading configuration for Neo4j connector");
-            System.err.println(ex.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "Error in reading configuration for Neo4j connector");
+            Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         }
 
 
@@ -503,11 +498,11 @@ public class SearchTables extends Command {
         }
 
         long startTime = System.nanoTime();
-        System.out.println("\n\nRunning PPR over the " + queryEntities.size() + " provided Query Tuple(s)...");
-        System.out.println("PPR Weights: " + weights);
+        Logger.logNewLine(Logger.Level.INFO, "\n\nRunning PPR over the " + queryEntities.size() + " provided Query Tuple(s)...");
+        Logger.logNewLine(Logger.Level.INFO, "PPR Weights: " + weights);
 
         // Run PPR once from each query tuple
-        for (Integer i=0; i<queryEntities.size(); i++) {
+        for (int i = 0; i < queryEntities.size(); i++) {
             Map<String, Double> curTupleFilenameToScore = connector.runPPR(queryEntities.get(i), weights.get(i), minThreshold, numParticles, topK);
             
             // Update the 'filenameToScore' accordingly
@@ -519,11 +514,12 @@ public class SearchTables extends Command {
                     filenameToScore.put(s, filenameToScore.get(s) + curTupleFilenameToScore.get(s));
                 }
             }
-            System.out.println("Finished computing PPR for tuple: " + i);
+
+            Logger.logNewLine(Logger.Level.INFO, "Finished computing PPR for tuple: " + i);
         }
         elapsedTime = (System.nanoTime() - startTime) / 1e9;
-        System.out.println("\n\nFinished running PPR over the given Query Tuple(s)");    
-        System.out.println("Elapsed time: " + elapsedTime + " seconds\n");
+        Logger.logNewLine(Logger.Level.INFO, "\n\nFinished running PPR over the given Query Tuple(s)");
+        Logger.logNewLine(Logger.Level.INFO, "Elapsed time: " + elapsedTime + " seconds\n");
 
         // Sort the scores for each file
         filenameToScore = sortByValue(filenameToScore);
@@ -570,7 +566,7 @@ public class SearchTables extends Command {
         if (!saveDir.exists())
             saveDir.mkdir();
 
-        System.out.println("\nConstructing the filenameToScore.json file...");
+        Logger.logNewLine(Logger.Level.INFO, "\nConstructing the filenameToScore.json file...");
 
         // Specify the format of the filenameToScore.json file 
         JsonObject jsonObj = new JsonObject();
@@ -634,6 +630,6 @@ public class SearchTables extends Command {
             i.printStackTrace();
         }
 
-        System.out.println("Finished constructing the filenameToScore.json file.");
+        Logger.logNewLine(Logger.Level.INFO, "Finished constructing the filenameToScore.json file.");
     }
 }

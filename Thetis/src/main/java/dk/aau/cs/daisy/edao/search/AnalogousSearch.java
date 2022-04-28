@@ -12,6 +12,7 @@ import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
 import dk.aau.cs.daisy.edao.structures.table.Table;
+import dk.aau.cs.daisy.edao.system.Logger;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 import dk.aau.cs.daisy.edao.utilities.HungarianAlgorithm;
 import dk.aau.cs.daisy.edao.utilities.Utils;
@@ -52,7 +53,7 @@ public class AnalogousSearch extends AbstractSearch
             embeddingCoverageSuccesses, embeddingCoverageFails;
     Set<String> queryEntitiesMissingCoverage = new HashSet<>();
     private long elapsed = -1;
-    private boolean logProgress, useEmbeddings, singleColumnPerQueryEntity, weightedJaccard, useMaxSimilarityPerColumn;
+    private boolean useEmbeddings, singleColumnPerQueryEntity, weightedJaccard, useMaxSimilarityPerColumn;
     private CosineSimilarityFunction embeddingSimFunction;
     private SimilarityMeasure measure;
     private DBDriverBatch<List<Double>, String> embeddings;
@@ -61,14 +62,13 @@ public class AnalogousSearch extends AbstractSearch
     private Set<String> corpus;
 
     public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK,
-                           int threads, boolean logProgress, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
+                           int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
                            boolean singleColumnPerQueryEntity, boolean weightedJaccard, boolean useMaxSimilarityPerColumn,
                            SimilarityMeasure similarityMeasure, DBDriverBatch<List<Double>, String> embeddingStore)
     {
         super(linker, entityTable, entityTableLink);
         this.topK = topK;
         this.threads = threads;
-        this.logProgress = logProgress;
         this.useEmbeddings = useEmbeddings;
         this.embeddingSimFunction = cosineFunction;
         this.singleColumnPerQueryEntity = singleColumnPerQueryEntity;
@@ -103,17 +103,14 @@ public class AnalogousSearch extends AbstractSearch
             parsed.add(f);
         }
 
-        if (this.logProgress)
+        while (done != this.corpus.size())
         {
-            while (done != this.corpus.size())
-            {
-                done = parsed.stream().filter(Future::isDone).count();
+            done = parsed.stream().filter(Future::isDone).count();
 
-                if (done - prev >= 100)
-                {
-                    System.out.println("Processed " + done + "/" + this.corpus.size() + " files...");
-                    prev = done;
-                }
+            if (done - prev >= 100)
+            {
+                Logger.log(Logger.Level.INFO, "Processed " + done + "/" + this.corpus.size() + " files...");
+                prev = done;
             }
         }
 
@@ -134,28 +131,27 @@ public class AnalogousSearch extends AbstractSearch
 
             catch (InterruptedException | ExecutionException e)
             {
+                Logger.logNewLine(Logger.Level.ERROR, "Exception when scoring table");
                 throw new RuntimeException(e.getMessage());
             }
         }).count();
 
         this.elapsed = System.nanoTime() - start;
 
-        if (this.logProgress)
-        {
-            System.out.println("A total of " + parsedTables + " tables were parsed.");
-            System.out.println("Elapsed time: " + this.elapsed / 1e9 + " seconds\n");
+        Logger.logNewLine(Logger.Level.INFO, "A total of " + parsedTables + " tables were parsed.");
+        Logger.logNewLine(Logger.Level.INFO, "Elapsed time: " + this.elapsed / 1e9 + " seconds\n");
 
-            if (this.useEmbeddings)
-            {
-                System.out.println("A total of " + this.embeddingComparisons + " entity comparisons were made using embeddings.");
-                System.out.println("A total of " + this.nonEmbeddingComparisons + " entity comparisons cannot be made due to lack of embeddings.");
-                double percentage = (this.embeddingComparisons / ((double) this.nonEmbeddingComparisons + this.embeddingComparisons)) * 100;
-                System.out.println(percentage + "% of required entity comparisons were made using embeddings.\n");
-                System.out.println("Embedding Coverage successes: " + embeddingCoverageSuccesses);
-                System.out.println("Embedding Coverage failures: " + embeddingCoverageFails);
-                System.out.println("Embedding Coverage Success Rate: " + (double) embeddingCoverageSuccesses / (embeddingCoverageSuccesses + embeddingCoverageFails));
-                System.out.println("Query Entities with missing embedding coverage: " + queryEntitiesMissingCoverage + "\n");
-            }
+        if (this.useEmbeddings)
+        {
+            Logger.logNewLine(Logger.Level.INFO, "A total of " + this.embeddingComparisons + " entity comparisons were made using embeddings.");
+            Logger.logNewLine(Logger.Level.INFO, "A total of " + this.nonEmbeddingComparisons + " entity comparisons cannot be made due to lack of embeddings.");
+
+            double percentage = (this.embeddingComparisons / ((double) this.nonEmbeddingComparisons + this.embeddingComparisons)) * 100;
+            Logger.logNewLine(Logger.Level.INFO, percentage + "% of required entity comparisons were made using embeddings.\n");
+            Logger.logNewLine(Logger.Level.INFO, "Embedding Coverage successes: " + embeddingCoverageSuccesses);
+            Logger.logNewLine(Logger.Level.INFO, "Embedding Coverage failures: " + embeddingCoverageFails);
+            Logger.logNewLine(Logger.Level.INFO, "Embedding Coverage Success Rate: " + (double) embeddingCoverageSuccesses / (embeddingCoverageSuccesses + embeddingCoverageFails));
+            Logger.logNewLine(Logger.Level.INFO, "Query Entities with missing embedding coverage: " + queryEntitiesMissingCoverage + "\n");
         }
 
         return new Result(this.topK, scores);
