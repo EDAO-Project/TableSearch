@@ -97,7 +97,7 @@ public class Configuration
         writeProperties(props);
     }
 
-    private static Properties readProperties()
+    private static synchronized Properties readProperties()
     {
         try
         {
@@ -110,7 +110,7 @@ public class Configuration
         }
     }
 
-    private static void writeProperties(Properties properties)
+    private static synchronized void writeProperties(Properties properties)
     {
         try
         {
