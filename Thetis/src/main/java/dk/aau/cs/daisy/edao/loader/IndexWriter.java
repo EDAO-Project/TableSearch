@@ -26,13 +26,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class IndexWriter implements IndexIO
 {
     private List<Path> files;
     private boolean logProgress;
     private File outputPath;
-    private int threads, loadedTables = 0, cellsWithLinks = 0, tableStatsCollected = 0;
+    private int threads,  cellsWithLinks = 0, tableStatsCollected = 0;
+    private AtomicInteger loadedTables = new AtomicInteger(0);
     private final Object lock = new Object();
     private long elapsed = -1;
     private Map<Integer, Integer> cellToNumLinksFrequency = new HashMap<>();
@@ -74,7 +76,7 @@ public class IndexWriter implements IndexIO
     @Override
     public void performIO() throws IOException
     {
-        if (this.loadedTables > 0)
+        if (this.loadedTables.get() > 0)
             throw new RuntimeException("Loading has already complete");
 
         int size = this.files.size(), progressBlock = (int) (0.0001 * (double) size);
@@ -94,11 +96,11 @@ public class IndexWriter implements IndexIO
             try
             {
                 Runnable runnable = f.get();
-                this.loadedTables += runnable != null ? 1 : 0;
+                this.loadedTables.addAndGet(runnable != null ? 1 : 0);
                 statsWritingRunnables.add(runnable);
 
-                if (this.loadedTables % progressBlock == 0)
-                    Logger.log(Logger.Level.INFO, "Processed " + this.loadedTables + "/" + size);
+                if (this.loadedTables.get() % progressBlock == 0)
+                    Logger.log(Logger.Level.INFO, "Processed " + this.loadedTables.get() + "/" + size);
             }
 
             catch (InterruptedException | ExecutionException ignored) {}
@@ -335,7 +337,7 @@ public class IndexWriter implements IndexIO
         {
             Id entityId = entityIter.next();
             List<String> entityFiles = this.entityTableLink.find(entityId);
-            double idf = Math.log10((double) this.loadedTables / entityFiles.size()) + 1;
+            double idf = Math.log10((double) this.loadedTables.get() / entityFiles.size()) + 1;
 
             Entity entity = this.entityTable.find(entityId);
 
@@ -478,7 +480,7 @@ public class IndexWriter implements IndexIO
      */
     public int loadedTables()
     {
-        return this.loadedTables;
+        return this.loadedTables.get();
     }
 
     public int cellsWithLinks()
