@@ -180,7 +180,7 @@ public class IndexTables extends Command {
                     (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
             List<Path> filePaths = fileStream.collect(Collectors.toList());
             Collections.sort(filePaths);
-            Logger.logNewLine(Logger.Level.INFO, "\nThere are " + filePaths.size() + " files to be processed.");
+            Logger.logNewLine(Logger.Level.INFO, "There are " + filePaths.size() + " files to be processed.");
 
             long startTime = System.nanoTime();
             IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads, true);
@@ -195,7 +195,9 @@ public class IndexTables extends Command {
             while (idIter.hasNext())
             {
                 Entity entity = indexWriter.getEntityTable().find(idIter.next());
-                entityTypes.addAll(entity.getTypes());
+
+                if (entity != null)
+                    entityTypes.addAll(entity.getTypes());
             }
 
             Logger.logNewLine(Logger.Level.INFO, "Found an approximate total of " + indexWriter.getApproximateEntityMentions() + " unique entity mentions across " + indexWriter.cellsWithLinks() + " cells \n");

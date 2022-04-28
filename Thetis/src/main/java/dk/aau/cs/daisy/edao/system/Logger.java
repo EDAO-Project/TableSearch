@@ -78,7 +78,7 @@ public class Logger
         Level configuredLevel = Level.parse(Configuration.getLogLevel());
 
         if (configuredLevel != null && level.getLevel() >= configuredLevel.getLevel())
-            System.out.println("\n(" + new Date() + ") - " + level + ": " + message);
+            System.out.print("\n(" + new Date() + ") - " + level + ": " + message);
     }
 
     private static void clearChannel()

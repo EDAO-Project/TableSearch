@@ -155,9 +155,9 @@ public class IndexWriter implements IndexIO
 
                     for (String link : cell.links)
                     {
-                        String uri;
+                        String uri = this.linker.mapTo(link);   // Wiki link to URI
 
-                        if ((uri = this.linker.mapTo(link)) != null)
+                        if (uri != null)
                             matchedUris.add(uri);
 
                         else
@@ -167,11 +167,10 @@ public class IndexWriter implements IndexIO
                             if (!tempLinks.isEmpty())
                             {
                                 String entity = tempLinks.get(0);
+                                List<String> entityTypesUris = this.neo4j.searchTypes(entity);
                                 matchedUris.add(entity);
                                 this.linker.addMapping(link, entity);
                                 this.linkToNumEntitiesFrequency.merge(tempLinks.size(), 1, Integer::sum);
-
-                                List<String> entityTypesUris = this.neo4j.searchTypes(entity);
 
                                 for (String type : DISALLOWED_ENTITY_TYPES)
                                 {
@@ -297,20 +296,25 @@ public class IndexWriter implements IndexIO
 
     private void writeStats()
     {
+        File statDir = new File(this.outputPath + "/statistics/");
+
+        if (!statDir.exists())
+            statDir.mkdir();
+
         try
         {
-            FileWriter writer = new FileWriter(this.outputPath + "/" + Configuration.getWikiLinkToEntitiesFrequencyFile());
+            FileWriter writer = new FileWriter(statDir + "/" + Configuration.getWikiLinkToEntitiesFrequencyFile());
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             gson.toJson(this.linkToNumEntitiesFrequency, writer);
             writer.flush();
             writer.close();
 
-            writer = new FileWriter(this.outputPath + "/" + Configuration.getCellToNumLinksFrequencyFile());
+            writer = new FileWriter(statDir + "/" + Configuration.getCellToNumLinksFrequencyFile());
             gson.toJson(this.cellToNumLinksFrequency, writer);
             writer.flush();
             writer.close();
 
-            writer = new FileWriter(this.outputPath + "/" + Configuration.getTableStatsFile());
+            writer = new FileWriter(statDir + "/" + Configuration.getTableStatsFile());
             gson.toJson(this.tableStats, writer);
             writer.flush();
             writer.close();
