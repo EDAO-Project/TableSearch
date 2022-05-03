@@ -3,7 +3,7 @@ package dk.aau.cs.daisy.edao.store;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.Pair;
 
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -12,7 +12,7 @@ import java.util.*;
  *       The index should point by index to the table name in that separate structure along its location within
  *       This way, we remove duplicating table names
  */
-public class EntityTableLink implements Index<Id, List<String>>, Serializable
+public class EntityTableLink implements Index<Id, List<String>>, Externalizable
 {
     private Map<Id, Map<String, List<Pair<Integer, Integer>>>> idx;   // Indexing from entity to table file names of locations where the entity is found
 
@@ -139,5 +139,61 @@ public class EntityTableLink implements Index<Id, List<String>>, Serializable
         }
 
         return entities;
+    }
+
+    /**
+     * Clears index
+     */
+    @Override
+    public void clear()
+    {
+        this.idx.clear();
+    }
+
+    /**
+     * This method should not be called by client
+     * This is used to write class object to a stream
+     * @param out the stream to write the object to
+     * @throws IOException
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        List<Pair<Id, Pair<String, Pair<Integer, Integer>>>> tuples = new ArrayList<>();
+
+        for (Id id : this.idx.keySet())
+        {
+            for (String fileName : this.idx.get(id).keySet())
+            {
+                for (Pair<Integer, Integer> location : this.idx.get(id).get(fileName))
+                {
+                    tuples.add(new Pair<>(id, new Pair<>(fileName, new Pair<>(location.getFirst(), location.getSecond()))));
+                }
+            }
+        }
+
+        out.writeObject(tuples);
+    }
+
+    /**
+     * This method should not be called by client
+     * This is used to read class object from a stream
+     * @param in the stream to read data from in order to restore the object
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
+    {
+        List<Pair<Id, Pair<String, Pair<Integer, Integer>>>> tuples =
+                (List<Pair<Id, Pair<String, Pair<Integer, Integer>>>>) in.readObject();
+
+        for (Id id : this.idx.keySet())
+        {
+            for (String fileName : this.idx.get(id).keySet())
+            {
+                addLocation(id, fileName, new ArrayList<>(this.idx.get(id).get(fileName)));
+            }
+        }
     }
 }

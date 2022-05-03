@@ -46,6 +46,12 @@ public class SynchronizedIndex<K, V> implements Index<K, V>, Serializable
         return this.index.size();
     }
 
+    @Override
+    public void clear()
+    {
+        this.index.clear();
+    }
+
     public Index<K, V> getIndex()
     {
         return this.index;

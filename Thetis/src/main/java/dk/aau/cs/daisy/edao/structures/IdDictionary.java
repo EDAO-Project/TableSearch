@@ -77,4 +77,10 @@ public class IdDictionary<K> extends Dictionary<K, Id> implements Serializable
         this.inverse.remove(removed);
         return removed;
     }
+
+    public void clear()
+    {
+        this.map.clear();
+        this.inverse.clear();
+    }
 }

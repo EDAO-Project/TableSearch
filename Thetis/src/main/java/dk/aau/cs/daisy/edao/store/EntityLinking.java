@@ -96,4 +96,15 @@ public class EntityLinking implements Linker<String, String>, Serializable
         this.wikiLinkToUri.putIfAbsent(wikiId, uriId);
         this.uriToWikiLink.putIfAbsent(uriId, wikiId);
     }
+
+    /**
+     * Clears mappings and dictionary
+     */
+    @Override
+    public void clear()
+    {
+        this.wikiLinkToUri.clear();
+        this.uriToWikiLink.clear();
+        this.dict.clear();
+    }
 }

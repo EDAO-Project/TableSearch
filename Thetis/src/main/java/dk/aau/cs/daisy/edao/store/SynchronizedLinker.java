@@ -33,6 +33,12 @@ public class SynchronizedLinker<F, T> implements Linker<F, T>, Serializable
         this.linker.addMapping(from, to);
     }
 
+    @Override
+    public void clear()
+    {
+        this.linker.clear();
+    }
+
     public Linker<F, T> getLinker()
     {
         return this.linker;

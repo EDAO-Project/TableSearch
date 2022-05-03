@@ -4,7 +4,7 @@ import dk.aau.cs.daisy.edao.system.Configuration;
 
 import java.io.Serializable;
 
-public class Id implements Serializable
+public class Id implements Serializable, Comparable<Id>
 {
     private static class IdAllocator
     {
@@ -69,5 +69,14 @@ public class Id implements Serializable
 
         Id otherId = (Id) other;
         return this.id == otherId.id;
+    }
+
+    @Override
+    public int compareTo(Id other)
+    {
+        if (this.id == other.getId())
+            return 0;
+
+        return this.id < other.getId() ? -1 : 1;
     }
 }

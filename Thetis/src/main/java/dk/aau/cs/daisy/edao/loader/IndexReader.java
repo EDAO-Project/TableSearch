@@ -99,7 +99,12 @@ public class IndexReader implements IndexIO
 
         catch (OptionalDataException e)
         {
-            Logger.logNewLine(Logger.Level.ERROR, "Index file contains primitive data or EOF was reached earlier than expected");
+            if (e.eof)
+                Logger.logNewLine(Logger.Level.ERROR, "EOF reached earlier than expected when reading index file: " + file);
+
+            else
+                Logger.logNewLine(Logger.Level.ERROR, "Index file stream contains primitive data: " + file);
+
             throw new RuntimeException(e.getMessage());
         }
 

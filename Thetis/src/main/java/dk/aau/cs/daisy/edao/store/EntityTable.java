@@ -43,4 +43,10 @@ public class EntityTable implements Index<Id, Entity>, Serializable
     {
         return this.idx.size();
     }
+
+    @Override
+    public void clear()
+    {
+        this.idx.clear();
+    }
 }
