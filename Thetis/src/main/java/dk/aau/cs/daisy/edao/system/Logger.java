@@ -99,6 +99,6 @@ public class Logger
             System.out.print(" ");
         }
 
-        System.out.println("\r");
+        System.out.print("\r");
     }
 }
