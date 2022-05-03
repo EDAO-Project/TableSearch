@@ -74,8 +74,9 @@ public class Logger
             else
                 clearChannel();
 
-            System.out.print("(" + new Date() + ") - " + level + ": " + message + "\r");
-            prevLength = message.length();
+            String msg = "(" + new Date() + ") - " + level + ": " + message + "\r";
+            System.out.print(msg);
+            prevLength = msg.length();
             prevWasNewLine = false;
         }
     }
