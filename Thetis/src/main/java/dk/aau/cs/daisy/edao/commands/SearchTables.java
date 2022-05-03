@@ -290,7 +290,7 @@ public class SearchTables extends Command {
             EntityTableLink entityTableLink = indexReader.getEntityTableLink();
 
             // Ensure all query entities are mappable
-            if (this.ensureQueryEntitiesMapping(queryTable, linker.getDictionary(), entityTableLink))
+            if (ensureQueryEntitiesMapping(queryTable, linker.getDictionary(), entityTableLink))
                 Logger.logNewLine(Logger.Level.INFO, "All query entities are mappable!\n\n");
 
             else
