@@ -5,6 +5,7 @@ import dk.aau.cs.daisy.edao.structures.Pair;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.*;
 import java.util.List;
 import java.util.Set;
 
@@ -90,5 +91,40 @@ public class EntityTableLinkTest
         assertTrue(entities1.contains(this.id1) && entities1.contains(this.id2));
         assertTrue(entities2.contains(this.id1) && entities2.contains(this.id2) && entities2.contains(this.id3));
         assertTrue(entities3.contains(this.id1) && entities3.contains(this.id3));
+    }
+
+    @Test
+    public void testSerialization()
+    {
+        File indexFile = new File("index.idx");
+
+        try (ObjectOutputStream stream = new ObjectOutputStream(new FileOutputStream(indexFile)))
+        {
+            stream.writeObject(this.tableLink);
+        }
+
+        catch (IOException e)
+        {
+            indexFile.delete();
+            fail(e.getMessage());
+        }
+
+        try (ObjectInputStream stream = new ObjectInputStream(new FileInputStream(indexFile)))
+        {
+            EntityTableLink index = (EntityTableLink) stream.readObject();
+            indexFile.delete();
+            assertEquals(3, index.size());
+
+            List<String> id1Files = index.find(this.id1), id2Files = index.find(this.id2), id3Files = index.find(this.id3);
+            this.files1.forEach(f -> assertTrue(id1Files.contains(f)));
+            this.files2.forEach(f -> assertTrue(id2Files.contains(f)));
+            this.files3.forEach(f -> assertTrue(id3Files.contains(f)));
+        }
+
+        catch (IOException | ClassNotFoundException e)
+        {
+            indexFile.delete();
+            fail(e.getMessage());
+        }
     }
 }
