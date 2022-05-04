@@ -7,6 +7,7 @@ import com.google.gson.stream.JsonReader;
 import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
+import dk.aau.cs.daisy.edao.utilities.Utils;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -39,27 +40,12 @@ public class TableParser
 
     public static JsonTable parse(Path path)
     {
-        return parse(path.toFile());
+        JsonTable table = Utils.getTableFromPath(path);
+        return table == null || table._id  == null || table.rows == null ? null : table;
     }
 
     public static JsonTable parse(File file)
     {
-        JsonTable table;
-
-        // Tries to parse the JSON file, it fails if file not found or JSON is not well formatted
-        TypeAdapter<JsonTable> strictGsonObjectAdapter = new Gson().getAdapter(JsonTable.class);
-
-        try (JsonReader reader = new JsonReader(new FileReader(file)))
-        {
-            table = strictGsonObjectAdapter.read(reader);
-        }
-
-        catch (IOException e)
-        {
-            e.printStackTrace();
-            return null;
-        }
-
-        return table == null || table._id  == null || table.rows == null ? null : table;
+        return parse(file.toPath());
     }
 }

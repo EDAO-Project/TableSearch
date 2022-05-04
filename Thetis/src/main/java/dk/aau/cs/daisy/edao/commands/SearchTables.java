@@ -134,6 +134,9 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = { "-upe", "--usePretrainedEmbeddings"}, description = "If specified, pre-trained embeddings are used to capture the similarity between two entities whenever possible")
     private boolean usePretrainedEmbeddings;
 
+    @CommandLine.Option(names = { "--hungarianAlgorithmSameAlignmentAcrossTuples"}, description = "If specified, the Hungarian algorithm uses the same alignment of columns to query entities across all query tuples")
+    private boolean hungarianAlgorithmSameAlignmentAcrossTuples;
+
     @CommandLine.Option(names = { "-pem", "--embeddingsInputMode" }, description = "Specifies the manner by which the preTrainedEmbeddings are loaded from. Must be one of {file, database}", defaultValue = "file")
     private EmbeddingsInputMode embeddingsInputMode = null;
 
@@ -442,15 +445,15 @@ public class SearchTables extends Command {
         AnalogousSearch.CosineSimilarityFunction cosineFunction = this.embeddingSimFunction == EmbeddingSimFunction.ABS_COS
                 ? AnalogousSearch.CosineSimilarityFunction.ABS_COS : this.embeddingSimFunction == EmbeddingSimFunction.NORM_COS
                 ? AnalogousSearch.CosineSimilarityFunction.NORM_COS : AnalogousSearch.CosineSimilarityFunction.ANG_COS;
-        AnalogousSearch search = new AnalogousSearch(linker, table, tableLink, this.topK, this.threads, this.usePretrainedEmbeddings, cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity,
-                this.useMaxSimilarityPerColumn, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, this.store);
+        AnalogousSearch search = new AnalogousSearch(linker, table, tableLink, this.topK, this.threads, this.usePretrainedEmbeddings,
+                cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedJaccardSimilarity,
+                this.useMaxSimilarityPerColumn, this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, this.store);
         search.setCorpus(filePaths.stream().map(Path::toString).collect(Collectors.toSet()));
 
         Result result = search.search(query);
-        int topK = 20;
         Iterator<Pair<String, Double>> resultIter = result.getResults();
         List<Pair<String, Double>> scores = new ArrayList<>();
-        Logger.logNewLine(Logger.Level.RESULT, "\nTop-" + topK + " tables are:");
+        Logger.logNewLine(Logger.Level.RESULT, "\nTop-" + this.topK + " tables are:");
 
         while (resultIter.hasNext())
         {
@@ -503,7 +506,7 @@ public class SearchTables extends Command {
 
         // Run PPR once from each query tuple
         for (int i = 0; i < queryEntities.size(); i++) {
-            Map<String, Double> curTupleFilenameToScore = connector.runPPR(queryEntities.get(i), weights.get(i), minThreshold, numParticles, topK);
+            Map<String, Double> curTupleFilenameToScore = connector.runPPR(queryEntities.get(i), weights.get(i), minThreshold, numParticles, this.topK);
             
             // Update the 'filenameToScore' accordingly
             for (String s : curTupleFilenameToScore.keySet()) {
@@ -589,7 +592,7 @@ public class SearchTables extends Command {
             if (!this.searchMode.getMode().equals("ppr")) {
                 tmp.addProperty("numEntityMappedRows", String.valueOf(tableStats.get(score.getFirst()).entityMappedRows()));
                 tmp.addProperty("fractionOfEntityMappedRows", String.valueOf(tableStats.get(score.getFirst()).fractionOfEntityMappedRows()));
-                tmp.addProperty("tupleScores", String.valueOf(tableStats.get(score.getFirst()).queryRowVectors()));
+                tmp.addProperty("tupleScores", String.valueOf(tableStats.get(score.getFirst()).queryRowScores()));
                 tmp.addProperty("tupleVectors", String.valueOf(tableStats.get(score.getFirst()).queryRowVectors()));
             }
 
