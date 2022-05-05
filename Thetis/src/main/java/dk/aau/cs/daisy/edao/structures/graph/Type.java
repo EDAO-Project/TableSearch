@@ -21,7 +21,7 @@ public class Type implements Comparable<Type>, Serializable
     @Override
     public String toString()
     {
-        return this.type;
+        return this.type + " - " + this.idf;
     }
 
     public String getType()
@@ -39,6 +39,12 @@ public class Type implements Comparable<Type>, Serializable
         this.idf = idf;
     }
 
+    /**
+     * Equality between type and object
+     * (Important!) The type weight is not part of the equality check
+     * @param o Object to compare equality against
+     * @return True if the object if equal by string representation
+     */
     @Override
     public boolean equals(Object o)
     {
@@ -46,7 +52,7 @@ public class Type implements Comparable<Type>, Serializable
             return false;
 
         Type other = (Type) o;
-        return this.type.equals(other.type) && this.idf == other.idf;
+        return this.type.equals(other.type);
     }
 
     @Override
