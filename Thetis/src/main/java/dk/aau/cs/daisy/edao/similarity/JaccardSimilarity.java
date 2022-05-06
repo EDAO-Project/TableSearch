@@ -80,19 +80,23 @@ public class JaccardSimilarity<E extends Comparable<E>> implements Similarity
     }
 
     /**
-     * This is a temporary hack
-     * @return
+     * This is a temporary hack since .retainAll() does not seem to work!
+     * @return Set of intersecting elements
      */
     private Set<E> intersection()
     {
-        Set<E> inter = new TreeSet<>(this.s1);
-        Set<String> strings = new HashSet<>();
-        this.s1.forEach(e -> strings.add(e.toString()));
+        Set<E> inter = new TreeSet<>();
 
-        for (E element : this.s2)
+        for (E element1 : this.s1)
         {
-            if (strings.contains(element.toString()))
-                inter.add(element);
+            for (E element2 : this.s2)
+            {
+                if (element1.equals(element2))
+                {
+                    inter.add(element2);
+                    break;
+                }
+            }
         }
 
         return inter;

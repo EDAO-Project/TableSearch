@@ -41,9 +41,8 @@ public class Type implements Comparable<Type>, Serializable
 
     /**
      * Equality between type and object
-     * (Important!) The type weight is not part of the equality check
      * @param o Object to compare equality against
-     * @return True if the object if equal by string representation
+     * @return True if the object is equal by string representation and IDF score
      */
     @Override
     public boolean equals(Object o)
@@ -52,7 +51,7 @@ public class Type implements Comparable<Type>, Serializable
             return false;
 
         Type other = (Type) o;
-        return this.type.equals(other.type);
+        return this.type.equals(other.type) && this.idf == other.idf;
     }
 
     @Override
