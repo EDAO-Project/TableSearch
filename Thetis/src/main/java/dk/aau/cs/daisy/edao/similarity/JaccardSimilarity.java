@@ -1,5 +1,6 @@
 package dk.aau.cs.daisy.edao.similarity;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -78,10 +79,22 @@ public class JaccardSimilarity<E extends Comparable<E>> implements Similarity
         return (double) intersection.size() / union.size();
     }
 
+    /**
+     * This is a temporary hack
+     * @return
+     */
     private Set<E> intersection()
     {
         Set<E> inter = new TreeSet<>(this.s1);
-        inter.retainAll(this.s2);
+        Set<String> strings = new HashSet<>();
+        this.s1.forEach(e -> strings.add(e.toString()));
+
+        for (E element : this.s2)
+        {
+            if (strings.contains(element.toString()))
+                inter.add(element);
+        }
+
         return inter;
     }
 
