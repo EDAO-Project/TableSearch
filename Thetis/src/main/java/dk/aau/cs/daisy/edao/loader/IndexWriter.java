@@ -437,7 +437,7 @@ public class IndexWriter implements IndexIO
 
             for (String table : tables)
             {
-                writer.write("<http://thetis.edao.eu/wikitables/\"" + table +
+                writer.write("<http://thetis.edao.eu/wikitables/" + table +
                         "> <https://schema.org/mentions> <" + entity + "> .\n");
             }
         }
@@ -459,8 +459,8 @@ public class IndexWriter implements IndexIO
                     continue;
 
                 tables.add(t);
-                writer.write("<http://thetis.edao.eu/wikitables/" + t + "> " +
-                        "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
+                writer.write("<http://thetis.edao.eu/wikitables/" + t +
+                        "> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
                         "<https://schema.org/Table> .\n");
             }
         }

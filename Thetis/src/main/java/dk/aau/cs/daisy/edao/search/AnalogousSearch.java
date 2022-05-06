@@ -398,6 +398,7 @@ public class AnalogousSearch extends AbstractSearch
             {
                 Set<Pair<Type, Double>> weights = entTypes1.stream().map(t -> new Pair<>(t, t.getIdf())).collect(Collectors.toSet());
                 weights.addAll(entTypes2.stream().map(t -> new Pair<>(t, t.getIdf())).collect(Collectors.toSet()));
+                weights = weights.stream().filter(p -> p.getSecond() >= 0).collect(Collectors.toSet());
                 jaccardScore = JaccardSimilarity.make(entTypes1, entTypes2, weights).similarity();
             }
 

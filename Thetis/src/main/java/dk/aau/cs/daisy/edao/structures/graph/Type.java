@@ -41,18 +41,14 @@ public class Type implements Comparable<Type>, Serializable
 
     /**
      * Equality between type and object
-     * (Important!) The type weight is not part of the equality check
+     * (Important!) This is simple string comparison, which is a hacky way to fix a bug
      * @param o Object to compare equality against
      * @return True if the object if equal by string representation
      */
     @Override
     public boolean equals(Object o)
     {
-        if (!(o instanceof Type))
-            return false;
-
-        Type other = (Type) o;
-        return this.type.equals(other.type);
+        return toString().equals(o.toString());
     }
 
     @Override
