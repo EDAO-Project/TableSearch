@@ -128,7 +128,7 @@ public class IndexWriter implements IndexIO
                     for (String link : cell.links)
                     {
                         if (this.linker.mapTo(link) != null)   // Check if we had already searched for it
-                            matchesUris.add(this.linker.mapFrom(link));
+                            matchesUris.add(this.linker.mapTo(link));
 
                         else
                         {
