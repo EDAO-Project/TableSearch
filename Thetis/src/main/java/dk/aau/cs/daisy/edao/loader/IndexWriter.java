@@ -89,6 +89,9 @@ public class IndexWriter implements IndexIO
                 Logger.log(Logger.Level.INFO, "Processed " + (i + 1) + "/" + size + " files...");
         }
 
+        Logger.log(Logger.Level.INFO, "Collecting IDF weights...");
+        loadIDFs();
+
         Logger.logNewLine(Logger.Level.INFO, "Writing indexes and stats on disk...");
         flushToDisk();
         writeStats();
@@ -98,7 +101,6 @@ public class IndexWriter implements IndexIO
         Logger.logNewLine(Logger.Level.INFO, "A total of " + this.loadedTables.get() + " tables were loaded");
         Logger.logNewLine(Logger.Level.INFO, "Elapsed time: " + this.elapsed / (1e9) + " seconds");
         Logger.logNewLine(Logger.Level.INFO, "Computing IDF weights...");
-        loadIDFs();
     }
 
     private boolean load(Path tablePath)
