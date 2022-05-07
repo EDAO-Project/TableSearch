@@ -22,23 +22,21 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class IndexWriter implements IndexIO
 {
     private List<Path> files;
     private boolean logProgress;
     private File outputPath;
-    private int threads,  cellsWithLinks = 0, tableStatsCollected = 0;
-    private AtomicInteger loadedTables = new AtomicInteger(0);
+    private int threads;
+    private AtomicInteger loadedTables = new AtomicInteger(0),
+            cellsWithLinks = new AtomicInteger(0), tableStatsCollected = new AtomicInteger(0);
     private final Object lock = new Object();
     private long elapsed = -1;
-    private Map<Integer, Integer> cellToNumLinksFrequency = new HashMap<>();
-    private Map<Integer, Integer> linkToNumEntitiesFrequency = new HashMap<>();
+    private Map<Integer, Integer> cellToNumLinksFrequency = Collections.synchronizedMap(new HashMap<>());
+    private Map<Integer, Integer> linkToNumEntitiesFrequency = Collections.synchronizedMap(new HashMap<>());
     private Neo4jEndpoint neo4j;
     private SynchronizedLinker<String, String> linker;
     private SynchronizedIndex<Id, Entity> entityTable;
@@ -79,86 +77,58 @@ public class IndexWriter implements IndexIO
         if (this.loadedTables.get() > 0)
             throw new RuntimeException("Loading has already complete");
 
-        int size = this.files.size(), progressBlock = (int) (0.0001 * (double) size);
+        int size = this.files.size();
         long startTime = System.nanoTime();
-        List<Future<Runnable>> futures = new ArrayList<>();
-        List<Runnable> statsWritingRunnables = new ArrayList<>();
-        ExecutorService pool = Executors.newFixedThreadPool(this.threads);
-        Logger.logNewLine(Logger.Level.INFO, "Processing tables...");
 
         for (int i = 0; i < size; i++)
         {
-            int index = i;
-            futures.add(pool.submit(() -> load(this.files.get(index).toAbsolutePath())));
+            if (load(this.files.get(i)))
+                this.loadedTables.incrementAndGet();
+
+            if (this.loadedTables.get() % 100 == 0)
+                Logger.log(Logger.Level.INFO, "Processed " + (i + 1) + "/" + size + " files...");
         }
 
-        futures.forEach(f -> {
-            try
-            {
-                Runnable runnable = f.get();
-                this.loadedTables.addAndGet(runnable != null ? 1 : 0);
-                statsWritingRunnables.add(runnable);
-
-                if (this.loadedTables.get() % progressBlock == 0)
-                    Logger.log(Logger.Level.INFO, "Processed " + this.loadedTables.get() + "/" + size);
-            }
-
-            catch (InterruptedException | ExecutionException ignored) {}
-        });
-
-        List<Future<?>> statsWritingFutures = new ArrayList<>();
-        ExecutorService statsWritingExecutor = Executors.newFixedThreadPool(this.threads);
-        statsWritingRunnables.forEach(s -> statsWritingFutures.add(statsWritingExecutor.submit(s)));
-
-        int statWritersCount = statsWritingFutures.size();
-        Logger.logNewLine(Logger.Level.INFO, "Flushing to disk...");
-        loadIDFs();
+        Logger.logNewLine(Logger.Level.INFO, "Writing indexes and stats on disk...");
         flushToDisk();
-        statsWritingFutures.forEach(f -> {
-            try
-            {
-                f.get();
-                Logger.log(Logger.Level.INFO, this.tableStatsCollected + "/" + statWritersCount + " table stats collected");
-            }
-
-            catch (InterruptedException | ExecutionException ignored) {}
-        });
         writeStats();
 
         this.elapsed = System.nanoTime() - startTime;
         Logger.log(Logger.Level.INFO, "Done");
+        Logger.logNewLine(Logger.Level.INFO, "A total of " + this.loadedTables.get() + " tables were loaded");
+        Logger.logNewLine(Logger.Level.INFO, "Elapsed time: " + this.elapsed / (1e9) + " seconds");
+        Logger.logNewLine(Logger.Level.INFO, "Computing IDF weights...");
+        loadIDFs();
     }
 
-    private Runnable load(Path file)
+    private boolean load(Path tablePath)
     {
-        JsonTable table = TableParser.parse(file);
+        JsonTable table = TableParser.parse(tablePath);
 
-        if (table == null)
-            return null;
+        if (table == null ||  table._id == null || table.rows == null)
+            return false;
 
-        // Maps a cell specified by RowNumber, ColumnNumber to the list of entities it matches to
-        Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
-        Set<String> tableEntities = new HashSet<>();
-        int rowId = 0;
+        String tableName = tablePath.getFileName().toString();
+        Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();  // Maps a cell specified by RowNumber, ColumnNumber to the list of entities it matches to
+        Set<String> entities = new HashSet<>(); // The set of entities corresponding to this filename/table
+        int row = 0;
 
-        for (List<JsonTable.TableCell> row : table.rows)
+        for (List<JsonTable.TableCell> tableRow : table.rows)
         {
-            int collId =0;
+            int column = 0;
 
-            for (JsonTable.TableCell cell : row)
+            for (JsonTable.TableCell cell : tableRow)
             {
                 if (!cell.links.isEmpty())
                 {
-                    List<String> matchedUris = new ArrayList<>();
-                    this.cellsWithLinks++;
+                    this.cellsWithLinks.incrementAndGet();
                     this.cellToNumLinksFrequency.merge(cell.links.size(), 1, Integer::sum);
+                    List<String> matchesUris = new ArrayList<>();
 
                     for (String link : cell.links)
                     {
-                        String uri = this.linker.mapTo(link);   // Wiki link to URI
-
-                        if (uri != null)
-                            matchedUris.add(uri);
+                        if (this.linker.mapTo(link) != null)   // Check if we had already searched for it
+                            matchesUris.add(this.linker.mapFrom(link));
 
                         else
                         {
@@ -167,20 +137,19 @@ public class IndexWriter implements IndexIO
                             if (!tempLinks.isEmpty())
                             {
                                 String entity = tempLinks.get(0);
-                                List<String> entityTypesUris = this.neo4j.searchTypes(entity);
-                                matchedUris.add(entity);
+                                List<String> entityTypes = this.neo4j.searchTypes(entity);
+                                matchesUris.add(entity);
                                 this.linker.addMapping(link, entity);
                                 this.linkToNumEntitiesFrequency.merge(tempLinks.size(), 1, Integer::sum);
 
                                 for (String type : DISALLOWED_ENTITY_TYPES)
                                 {
-                                    entityTypesUris.remove(type);
+                                    entityTypes.remove(type);
                                 }
 
-                                List<Type> types = new ArrayList<>(entityTypesUris.size());
-                                entityTypesUris.forEach(t -> types.add(new Type(t)));
-                                this.entityTable.insert(((EntityLinking) this.linker.getLinker()).getDictionary().get(entity),
-                                        new Entity(entity, types));
+                                Id entityId = ((EntityLinking) this.linker.getLinker()).getDictionary().get(entity);
+                                this.entityTable.insert(entityId,
+                                        new Entity(entity, entityTypes.stream().map(Type::new).collect(Collectors.toList())));
                             }
                         }
 
@@ -188,32 +157,32 @@ public class IndexWriter implements IndexIO
                         {
                             String entity = this.linker.mapTo(link);
                             Id entityId = ((EntityLinking) this.linker.getLinker()).getDictionary().get(entity);
-                            List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> tableLocation =
-                                    List.of(new Pair<>(rowId, collId));
-                            String fileName = file.toAbsolutePath().toString();
-                            ((EntityTableLink) this.entityTableLink.getIndex()).addLocation(entityId, fileName, tableLocation);
+                            Pair<Integer, Integer> location = new Pair<>(row, column);
+                            ((EntityTableLink) this.entityTableLink.getIndex()).
+                                    addLocation(entityId, tableName, List.of(location));
                         }
                     }
 
-                    if (!matchedUris.isEmpty())
+                    if (!matchesUris.isEmpty())
                     {
-                        for (String entity : matchedUris)
+                        for (String entity : matchesUris)
                         {
                             this.filter.put(entity);
-                            tableEntities.add(entity);
+                            entities.add(entity);
                         }
 
-                        entityMatches.put(new Pair<>(rowId, collId), matchedUris);
+                        entityMatches.put(new Pair<>(row, column), matchesUris);
                     }
                 }
 
-                collId++;
+                column++;
             }
 
-            rowId++;
+            row++;
         }
 
-        return () -> saveStats(table, FilenameUtils.removeExtension(file.getFileName().toString()), tableEntities.iterator(), entityMatches);
+        saveStats(table, FilenameUtils.removeExtension(tableName), entities.iterator(), entityMatches);
+        return true;
     }
 
     private void saveStats(JsonTable jTable, String tableFileName, Iterator<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
@@ -279,7 +248,7 @@ public class IndexWriter implements IndexIO
             }
         }
 
-        this.tableStatsCollected++;
+        this.tableStatsCollected.incrementAndGet();
         return Stats.build()
                 .rows(jTable.numDataRows)
                 .columns(jTable.numCols)
@@ -334,68 +303,49 @@ public class IndexWriter implements IndexIO
 
     private void loadEntityIDFs()
     {
-        EntityLinking linker = (EntityLinking) this.linker.getLinker();
-        Iterator<Id> entityIter = linker.getDictionary().elements().asIterator();
+        Iterator<Id> idIter = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
 
-        while (entityIter.hasNext())
+        while (idIter.hasNext())
         {
-            Id entityId = entityIter.next();
-            List<String> entityFiles = this.entityTableLink.find(entityId);
-            double idf = Math.log10((double) this.loadedTables.get() / entityFiles.size()) + 1;
-
-            Entity entity = this.entityTable.find(entityId);
-
-            if (entity == null)
-                continue;
-
-            this.entityTable.remove(entityId);
-            entity.setIDF(idf);
-            this.entityTable.insert(entityId, entity);
+            Id entityId = idIter.next();
+            double idf = Math.log10((double) this.loadedTables.get() / this.entityTableLink.find(entityId).size()) + 1;
+            this.entityTable.find(entityId).setIDF(idf);
         }
     }
 
     private void loadTypeIDFs()
     {
-        Map<String, Integer> typeFrequency = new HashMap<>();
-        Iterator<Id> idIter = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
-        IdDictionary<String> dictionary = ((EntityLinking) this.linker.getLinker()).getDictionary();
+        Map<Type, Integer> entityTypeFrequency = new HashMap<>();
+        Iterator<Id> idIterator = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
 
-        while (idIter.hasNext())
+        while (idIterator.hasNext())
         {
-            Entity entity = this.entityTable.find(idIter.next());
+            List<Type> entityTypes = this.entityTable.find(idIterator.next()).getTypes();
 
-            if (entity != null)
+            for (Type t : entityTypes)
             {
-                List<Type> types = entity.getTypes();
+                if (entityTypeFrequency.containsKey(t))
+                    entityTypeFrequency.put(t, entityTypeFrequency.get(t) + 1);
 
-                for (Type type : types)
-                {
-                    if (typeFrequency.containsKey(type.toString()))
-                        typeFrequency.put(type.getType(), typeFrequency.get(type.toString()) + 1);
-
-                    else
-                        typeFrequency.put(type.getType(), 1);
-                }
+                else
+                    entityTypeFrequency.put(t, 1);
             }
         }
 
-        idIter = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
+        int totalEntityCount = this.entityTable.size();
 
-        while (idIter.hasNext())
+        for (Type t : entityTypeFrequency.keySet())
         {
-            Entity entity = this.entityTable.find(idIter.next());
+            double idf = Utils.log2((double) totalEntityCount / entityTypeFrequency.get(t));
+            idIterator = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
 
-            if (entity == null)
-                continue;
-
-            entity.getTypes().forEach(t -> {
-                if (typeFrequency.containsKey(t.getType()))
-                {
-                    double ratio = (double) dictionary.size() / typeFrequency.get(t.getType());
-                    double idf = Utils.log2(ratio);
-                    t.setIdf(idf);
-                }
-            });
+            while (idIterator.hasNext())
+            {
+                this.entityTable.find(idIterator.next()).getTypes().forEach(entityType -> {
+                    if (entityType.equals(t))
+                        entityType.setIdf(idf);
+                });
+            }
         }
     }
 
@@ -489,7 +439,7 @@ public class IndexWriter implements IndexIO
 
     public int cellsWithLinks()
     {
-        return this.cellsWithLinks;
+        return this.cellsWithLinks.get();
     }
 
     /**
