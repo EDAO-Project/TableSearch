@@ -24,20 +24,13 @@ public class EntityTableLink implements Index<Id, List<String>>, Externalizable
     @Override
     public void insert(Id key, List<String> fileNames)
     {
+        if (!this.idx.containsKey(key))
+            this.idx.put(key, new HashMap<>());
+
         for (String fileName : fileNames)
         {
-            if (this.idx.containsKey(key))
-            {
-                if (!this.idx.get(key).containsKey(fileName))
-                    this.idx.get(key).put(fileName, new ArrayList<>());
-            }
-
-            else
-            {
-                Map<String, List<Pair<Integer, Integer>>> locations = new HashMap<>();
-                locations.put(fileName, new ArrayList<>());
-                this.idx.put(key, locations);
-            }
+            if (!this.idx.get(key).containsKey(fileName))
+                this.idx.get(key).put(fileName, new ArrayList<>());
         }
     }
 
@@ -87,14 +80,10 @@ public class EntityTableLink implements Index<Id, List<String>>, Externalizable
     {
         if (this.idx.containsKey(key))
         {
-            if (this.idx.get(key).containsKey(fileName))
-                locations.forEach(l -> this.idx.get(key).get(fileName).add(l));
-
-            else
-            {
+            if (!this.idx.get(key).containsKey(fileName))
                 this.idx.get(key).put(fileName, new ArrayList<>(locations.size()));
-                locations.forEach(l -> this.idx.get(key).get(fileName).add(l));
-            }
+
+            locations.forEach(l -> this.idx.get(key).get(fileName).add(l));
         }
 
         else
