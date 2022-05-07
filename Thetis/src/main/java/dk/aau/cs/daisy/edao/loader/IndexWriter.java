@@ -308,8 +308,12 @@ public class IndexWriter implements IndexIO
         while (idIter.hasNext())
         {
             Id entityId = idIter.next();
-            double idf = Math.log10((double) this.loadedTables.get() / this.entityTableLink.find(entityId).size()) + 1;
-            this.entityTable.find(entityId).setIDF(idf);
+
+            if (this.entityTableLink.contains(entityId))    // Some Ids belong to Wikipedia links, not entity URIs
+            {
+                double idf = Math.log10((double) this.loadedTables.get() / this.entityTableLink.find(entityId).size()) + 1;
+                this.entityTable.find(entityId).setIDF(idf);
+            }
         }
     }
 
@@ -320,15 +324,20 @@ public class IndexWriter implements IndexIO
 
         while (idIterator.hasNext())
         {
-            List<Type> entityTypes = this.entityTable.find(idIterator.next()).getTypes();
+            Id id = idIterator.next();
 
-            for (Type t : entityTypes)
+            if (this.entityTable.contains(id))  // Some IDs do not belong to entity URIs
             {
-                if (entityTypeFrequency.containsKey(t))
-                    entityTypeFrequency.put(t, entityTypeFrequency.get(t) + 1);
+                List<Type> entityTypes = this.entityTable.find(id).getTypes();
 
-                else
-                    entityTypeFrequency.put(t, 1);
+                for (Type t : entityTypes)
+                {
+                    if (entityTypeFrequency.containsKey(t))
+                        entityTypeFrequency.put(t, entityTypeFrequency.get(t) + 1);
+
+                    else
+                        entityTypeFrequency.put(t, 1);
+                }
             }
         }
 
@@ -341,10 +350,15 @@ public class IndexWriter implements IndexIO
 
             while (idIterator.hasNext())
             {
-                this.entityTable.find(idIterator.next()).getTypes().forEach(entityType -> {
-                    if (entityType.equals(t))
-                        entityType.setIdf(idf);
-                });
+                Id id = idIterator.next();
+
+                if (this.entityTable.contains(id))  // Some IDs do not belong to entity URIs
+                {
+                    this.entityTable.find(id).getTypes().forEach(entityType -> {
+                        if (entityType.equals(t))
+                            entityType.setIdf(idf);
+                    });
+                }
             }
         }
     }
