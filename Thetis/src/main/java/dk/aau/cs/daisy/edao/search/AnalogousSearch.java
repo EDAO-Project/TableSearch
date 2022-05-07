@@ -179,29 +179,27 @@ public class AnalogousSearch extends AbstractSearch
         if (jTable == null || jTable.numDataRows == 0)
             return null;
 
-        List<List<Integer>> tupleToColumnMappings = new ArrayList<>();  // If each query entity needs to map to only one column find the best mapping
+        List<List<Integer>> queryRowToColumnMappings = new ArrayList<>();  // If each query entity needs to map to only one column find the best mapping
 
         if (singleColumnPerQueryEntity)
         {
-            tupleToColumnMappings = getQueryToColumnMapping(query, jTable);
+            queryRowToColumnMappings = getQueryToColumnMapping(query, jTable);
+            List<List<String>> queryRowToColumnNames = new ArrayList<>(); // Log in the `statisticsMap` the column names aligned with each query row
 
-            // Log in the `statisticsMap` the column names aligned with each query tuple
-            List<List<String>> tupleQueryToColumnNames = new ArrayList<>();
-
-            for (int queryRow = 0; queryRow < tupleToColumnMappings.size(); queryRow++)
+            for (int queryRow = 0; queryRow < queryRowToColumnMappings.size(); queryRow++)
             {
-                tupleQueryToColumnNames.add(new ArrayList<>());
+                queryRowToColumnNames.add(new ArrayList<>());
 
-                for (int entityId=0; entityId<tupleToColumnMappings.get(queryRow).size(); entityId++)
+                for (int entityId = 0; entityId < queryRowToColumnMappings.get(queryRow).size(); entityId++)
                 {
-                    int alignedColNum = tupleToColumnMappings.get(queryRow).get(entityId);
+                    int alignedColNum = queryRowToColumnMappings.get(queryRow).get(entityId);
 
                     if ((jTable.headers.size() > alignedColNum) && (alignedColNum >= 0))    // Ensure that `table` has headers that we can index them
-                        tupleQueryToColumnNames.get(queryRow).add(jTable.headers.get(alignedColNum).text);
+                        queryRowToColumnNames.get(queryRow).add(jTable.headers.get(alignedColNum).text);
                 }
             }
 
-            statBuilder.tupleQueryAlignment(tupleQueryToColumnNames);
+            statBuilder.tupleQueryAlignment(queryRowToColumnNames);
         }
 
         Map<Integer, Map<Integer, List<Double>>> tableRowToQueryRowSims = new HashMap<>(); // Map each row number of the table to each query tuple and its respective similarity vector
@@ -210,36 +208,36 @@ public class AnalogousSearch extends AbstractSearch
 
         for(List<JsonTable.TableCell> row : jTable.rows)
         {
-            Map<Integer, String> colIdToEntity = new HashMap<>();   // In a given row map a colId to its respective entity value
+            Map<Integer, String> columnToEntity = new HashMap<>();   // In a given row map a colId to its respective entity value
 
             for (int column = 0; column < row.size(); column++)
             {
                 if (!row.get(column).links.isEmpty())    // A cell value may map to multiple entities. Currently use the first one (TODO: Consider all of them?)
                 {
-                    for (String link : row.get(column).links) {
-                        // Only consider links for which we have a known entity mapping
-                        if (getLinker().mapTo(link) != null)
+                    for (String link : row.get(column).links)
+                    {
+                        if (getLinker().mapTo(link) != null)    // Only consider links for which we have a known entity mapping
                         {
-                            colIdToEntity.put(column, getLinker().mapTo(link));
+                            columnToEntity.put(column, getLinker().mapTo(link));
                             break;
                         }
                     }
                 }
             }
 
-            if (!colIdToEntity.isEmpty())   // Compute similarity vectors only for rows that map to at least one entity
+            if (!columnToEntity.isEmpty())   // Compute similarity vectors only for rows that map to at least one entity
             {
                 numEntityMappedRows++;
-                Map<Integer, List<Double>> tupleIDVectorMap = new HashMap<>();
+                Map<Integer, List<Double>> queryRowVectors = new HashMap<>();
 
                 for (int queryRow = 0; queryRow < query.rowCount(); queryRow++)    // For each row and for each query tuple compute the maximal similarity vector
                 {
                     // If pre-trained embeddings are being used, we need to ensure that all entities
                     // of the current query tuple as well as its corresponding row entities are all mappable to known pre-trained embeddings
-                    if (!this.useEmbeddings || hasEmbeddingCoverage(query.getRow(queryRow), colIdToEntity, tupleToColumnMappings, queryRow))
+                    if (!this.useEmbeddings || hasEmbeddingCoverage(query.getRow(queryRow), columnToEntity, queryRowToColumnMappings, queryRow))
                     {
                         // Initialize the maximum vector for the current tuple, to a zero vector of size equal to the query tuple size.
-                        List<Double> maximumTupleVector = new ArrayList<>(Collections.nCopies(query.getRow(queryRow).size(), 0.0));    // Initialize the maximum vector for the current tuple, to a zero vector of size equal to the query tuple size.
+                        List<Double> maximumQueryRowVector = new ArrayList<>(Collections.nCopies(query.getRow(queryRow).size(), 0.0));    // Initialize the maximum vector for the current tuple, to a zero vector of size equal to the query tuple size.
 
                         for (int queryColumn = 0; queryColumn < query.getRow(queryRow).size(); queryColumn++)
                         {
@@ -249,25 +247,25 @@ public class AnalogousSearch extends AbstractSearch
                             if (this.singleColumnPerQueryEntity)
                             {
                                 // Each query entity maps to only one entity from a single column (if it exists)
-                                Integer assignedColumn = tupleToColumnMappings.get(queryRow).get(queryColumn);
+                                Integer assignedColumn = queryRowToColumnMappings.get(queryRow).get(queryColumn);
 
-                                if (colIdToEntity.containsKey(assignedColumn))
-                                    bestSimScore = entitySimilarityScore(queryEntity, colIdToEntity.get(assignedColumn));
+                                if (columnToEntity.containsKey(assignedColumn))
+                                    bestSimScore = entitySimilarityScore(queryEntity, columnToEntity.get(assignedColumn));
                             }
 
                             else
                             {
-                                for (String rowEntity : colIdToEntity.values()) // Loop over each entity in the row
+                                for (String rowEntity : columnToEntity.values()) // Loop over each entity in the row
                                 {
                                     double simScore = entitySimilarityScore(queryEntity, rowEntity);    // Compute pairwise entity similarity between 'queryEntity' and 'rowEntity'
                                     bestSimScore = Math.max(bestSimScore, simScore);
                                 }
                             }
 
-                            maximumTupleVector.set(queryColumn, bestSimScore);
+                            maximumQueryRowVector.set(queryColumn, bestSimScore);
                         }
 
-                        tupleIDVectorMap.put(queryRow, maximumTupleVector);
+                        queryRowVectors.put(queryRow, maximumQueryRowVector);
                     }
 
                     else
@@ -276,7 +274,7 @@ public class AnalogousSearch extends AbstractSearch
                     }
                 }
 
-                tableRowToQueryRowSims.put(queryRowCounter, tupleIDVectorMap);
+                tableRowToQueryRowSims.put(queryRowCounter, queryRowVectors);
             }
 
             queryRowCounter++;
