@@ -50,7 +50,8 @@ public class IndexWriter implements IndexIO
     private static final List<String> DISALLOWED_ENTITY_TYPES =
             Arrays.asList("http://www.w3.org/2002/07/owl#Thing", "http://www.wikidata.org/entity/Q5");
 
-    public IndexWriter(List<Path> files, File outputDir, Neo4jEndpoint neo4j, int threads, boolean logProgress)
+    public IndexWriter(List<Path> files, File outputDir, Neo4jEndpoint neo4j, int threads, boolean logProgress,
+                       String wikiPrefix, String uriPrefix)
     {
         if (!outputDir.exists())
             outputDir.mkdirs();
@@ -63,7 +64,7 @@ public class IndexWriter implements IndexIO
         this.outputPath = outputDir;
         this.neo4j = neo4j;
         this.threads = threads;
-        this.linker = SynchronizedLinker.wrap(new EntityLinking());
+        this.linker = SynchronizedLinker.wrap(new EntityLinking(wikiPrefix, uriPrefix));
         this.entityTable = SynchronizedIndex.wrap(new EntityTable());
         this.entityTableLink = SynchronizedIndex.wrap(new EntityTableLink());
     }

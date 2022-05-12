@@ -121,6 +121,9 @@ public class IndexTables extends Command {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    private static final String WIKI_PREFIX = "http://www.wikipedia.org/";
+    private static final String URI_PREFIX = "http://dbpedia.org/";
+
     @Override
     public Integer call() {
         long parsedTables;
@@ -183,7 +186,7 @@ public class IndexTables extends Command {
             Logger.logNewLine(Logger.Level.INFO, "There are " + filePaths.size() + " files to be processed.");
 
             long startTime = System.nanoTime();
-            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads, true);
+            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads, true, WIKI_PREFIX, URI_PREFIX);
             indexWriter.performIO();
 
             long elapsedTime = System.nanoTime() - startTime;
