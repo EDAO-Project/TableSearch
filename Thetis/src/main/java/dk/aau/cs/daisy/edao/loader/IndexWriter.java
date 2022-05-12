@@ -344,23 +344,21 @@ public class IndexWriter implements IndexIO
         }
 
         int totalEntityCount = this.entityTable.size();
+        idIterator = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
 
-        for (Type t : entityTypeFrequency.keySet())
+        while (idIterator.hasNext())
         {
-            double idf = Utils.log2((double) totalEntityCount / entityTypeFrequency.get(t));
-            idIterator = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
+            Id id = idIterator.next();
 
-            while (idIterator.hasNext())
+            if (this.entityTable.contains(id))  // Check if ID belongs to KG entity
             {
-                Id id = idIterator.next();
-
-                if (this.entityTable.contains(id))  // Some IDs do not belong to entity URIs
-                {
-                    this.entityTable.find(id).getTypes().forEach(entityType -> {
-                        if (entityType.equals(t))
-                            entityType.setIdf(idf);
-                    });
-                }
+                this.entityTable.find(id).getTypes().forEach(t -> {
+                    if (entityTypeFrequency.containsKey(t))
+                    {
+                        double idf = Utils.log2((double) totalEntityCount / entityTypeFrequency.get(t));
+                        t.setIdf(idf);
+                    }
+                });
             }
         }
     }
