@@ -278,11 +278,14 @@ public class SearchTables extends Command {
             System.out.println("Elapsed time for deserialization: " + (System.nanoTime() - startTime)/(1e9) + " seconds\n");
         }
         else {
-            System.out.println("de-serialization Failed!\n");
+            System.out.println("De-serialization Failed!\n");
             return -1;
         }
 
         for (Path queryPath : queryPaths) {
+            String[] split = queryPath.toFile().toString().split("/");
+            String queryName = split[split.length - 1].split(".")[0];
+
             // Read off the queryEntities list from a json object
             queryEntities = this.parseQuery(queryPath.toFile());
             System.out.println("Query Entities: " + queryEntities + "\n");
@@ -304,13 +307,17 @@ public class SearchTables extends Command {
                     break;
                 case ANALOGOUS:
                     System.out.println("Search mode: " + searchMode.getMode());
-                    this.analogousSearch();
+                    this.analogousSearch(queryName);
                     break;
                 case PPR:
                     System.out.println("Search mode: " + searchMode.getMode());
-                    this.ppr();
+                    this.ppr(queryName);
                     break;
             }
+
+            similarityVectorMap.clear();
+            filenameToScore.clear();
+            filenameToStatistics.clear();
         }
 
         if (this.embeddingsInputMode == EmbeddingsInputMode.DATABASE)
@@ -366,7 +373,6 @@ public class SearchTables extends Command {
     private Integer hasEmbeddingCoverageFails = 0;
     private Integer hasEmbeddingCoverageSuccesses = 0;
     private Set<String> queryEntitiesMissingCoverage = new HashSet<String>();
-
 
     public boolean ensureQueryEntitiesMapping() {
         // Ensure that all queryEntities are searchable over the index
@@ -466,7 +472,7 @@ public class SearchTables extends Command {
     /**
      * Given a list of entities, return a ranked list of table candidates
      */
-    public int analogousSearch() {
+    public int analogousSearch(String queryName) {
 
         // Loop over each table in the tables directory
         try {
@@ -532,7 +538,7 @@ public class SearchTables extends Command {
         // Compute a relevance score for each file/table (higher score means more relevant)
         this.getFilenameScores(20, "euclidean");
 
-        this.saveFilenameScores(outputDir);
+        this.saveFilenameScores(outputDir, queryName);
 
         return 1;
     }
@@ -996,7 +1002,7 @@ public class SearchTables extends Command {
     }
 
 
-    public int ppr() {
+    public int ppr(String queryName) {
         // Initialize the connector
         try {
             this.connector = new Neo4jEndpoint(this.configFile);
@@ -1056,7 +1062,7 @@ public class SearchTables extends Command {
         filenameToScore = sortByValue(filenameToScore);
 
         // Save the PPR scores to a json file
-        this.saveFilenameScores(outputDir);
+        this.saveFilenameScores(outputDir, queryName);
 
         return 1;
     }
@@ -1204,10 +1210,9 @@ public class SearchTables extends Command {
     /**
      * Saves the data of the filenameToScore Hashmap into the "filenameToScore.json" file at the specified output directory
      */
-    // TODO: Wrap this in RAII for better control
-    public synchronized void saveFilenameScores(File outputDir) {
+    public synchronized void saveFilenameScores(File outputDir, String queryName) {
 
-        File saveDir = new File(outputDir, "/search_output/");
+        File saveDir = new File(outputDir, "/search_output/" + queryName);
         if (!saveDir.exists()){
             saveDir.mkdir();
         }
