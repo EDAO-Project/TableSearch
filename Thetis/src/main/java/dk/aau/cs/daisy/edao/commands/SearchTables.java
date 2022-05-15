@@ -1272,11 +1272,10 @@ public class SearchTables extends Command {
      * If the `embeddingsInputMode` is "database" then it queries the database for existence
      */
     public boolean entityExists(String entity) {
-        if (embeddingsInputMode.getEmbeddingsInputMode() == "file") {
-            if (entityToEmbedding.containsKey(entity)) {return true;}
-            else {return false;}
+        if (embeddingsInputMode == EmbeddingsInputMode.FILE) {
+            return entityToEmbedding.containsKey(entity);
         }
-        else if (embeddingsInputMode.getEmbeddingsInputMode() == "database") {
+        else if (embeddingsInputMode == EmbeddingsInputMode.DATABASE) {
             try {
                 return this.store.select(entity) != null;
             }
@@ -1296,12 +1295,12 @@ public class SearchTables extends Command {
      * If the `embeddingsInputMode` is "database" then query he database to get the embedding vector
      */
     public List<Double> getEmbeddingVector(String entity) {
-        if (embeddingsInputMode.getEmbeddingsInputMode() == "file") {
+        if (embeddingsInputMode == EmbeddingsInputMode.FILE) {
             if (entityToEmbedding.containsKey(entity)) {
                 return entityToEmbedding.get(entity);
             }
         }
-        else if (embeddingsInputMode.getEmbeddingsInputMode() == "database") {
+        else if (embeddingsInputMode == EmbeddingsInputMode.DATABASE) {
             try {
                 return this.store.select(entity);
             }
