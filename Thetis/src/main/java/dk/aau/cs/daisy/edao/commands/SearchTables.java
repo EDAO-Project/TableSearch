@@ -284,7 +284,7 @@ public class SearchTables extends Command {
 
         for (Path queryPath : queryPaths) {
             String[] split = queryPath.toFile().toString().split("/");
-            String queryName = split[split.length - 1].split(".")[0];
+            String queryName = split[split.length - 1].split("\\.")[0];
 
             // Read off the queryEntities list from a json object
             queryEntities = this.parseQuery(queryPath.toFile());
