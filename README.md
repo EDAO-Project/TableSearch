@@ -91,7 +91,7 @@ Enter the project root directory. Start parsing and inserting embeddings into an
 docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim  
 cd /src
 mvn package
-java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o /data/embeddings -db sqlite -dbn embeddings
+java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o /data/embeddings -db relational_wrap -dbn embeddings
 ```
 
 Add the option `-dp` or `--disable-parsing` to skip pre-parsing the embeddings file before insertion.
@@ -122,7 +122,7 @@ Now, exit the Docker interactive mode and start inserting embeddings into Postgr
 docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.6-jdk-11-slim
 cd /src
 mvn package
-java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -db postgres -h <IP> -p 5432 -dbn embeddings -u <USERNAME> -pw <PASSWORD>
+java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -db relational_wrap -h <IP> -p 5432 -dbn embeddings -u <USERNAME> -pw <PASSWORD>
 ```
 
 Insert the IP address from the previous step instead of `<IP>`.
