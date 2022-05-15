@@ -1214,7 +1214,7 @@ public class SearchTables extends Command {
 
         File saveDir = new File(outputDir, "/search_output/" + queryName);
         if (!saveDir.exists()){
-            saveDir.mkdir();
+            saveDir.mkdirs();
         }
 
         System.out.println("\nConstructing the filenameToScore.json file...");
