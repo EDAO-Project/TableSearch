@@ -39,7 +39,7 @@ public class SearchTables extends Command {
     //********************* Command Line Arguments *********************//
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec; // injected by picocli
-    
+
     public enum SearchMode {
         EXACT("exact"), ANALOGOUS("analogous"), PPR("ppr");
 
@@ -77,7 +77,7 @@ public class SearchTables extends Command {
     }
 
     public enum EmbeddingSimFunction {
-        NORM_COS("norm_cos"), ABS_COS("abs_cos"), ANG_COS("ang_cos"); 
+        NORM_COS("norm_cos"), ABS_COS("abs_cos"), ANG_COS("ang_cos");
 
         private final String simFunction;
         EmbeddingSimFunction(String simFunction){
@@ -95,7 +95,7 @@ public class SearchTables extends Command {
     }
 
     public enum EmbeddingsInputMode {
-        FILE("file"), DATABASE("data"); 
+        FILE("file"), DATABASE("data");
 
         private final String mode;
         EmbeddingsInputMode(String mode){
@@ -130,12 +130,12 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = { "-pem", "--embeddingsInputMode" }, description = "Specifies the manner by which the preTrainedEmbeddings are loaded from. Must be one of {file, database}", defaultValue = "file")
     private EmbeddingsInputMode embeddingsInputMode = null;
 
-    @CommandLine.Option(names = { "-ajs", "--adjustedJaccardSimilarity"}, description = "If specified, the Jaccard similarity between two entities can only be one if the two entities compared are identical. " + 
-        "If two different entities share the same types then assign an adjusted score of 0.95. ")
+    @CommandLine.Option(names = { "-ajs", "--adjustedJaccardSimilarity"}, description = "If specified, the Jaccard similarity between two entities can only be one if the two entities compared are identical. " +
+            "If two different entities share the same types then assign an adjusted score of 0.95. ")
     private boolean adjustedJaccardSimilarity;
 
-    @CommandLine.Option(names = { "-wjs", "--weightedJaccardSimilarity"}, description = "If specified, the a weighted Jaccard similarity between two entities is performed. " + 
-        "The weights for each entity type correspond to their respective IDF scores")
+    @CommandLine.Option(names = { "-wjs", "--weightedJaccardSimilarity"}, description = "If specified, the a weighted Jaccard similarity between two entities is performed. " +
+            "The weights for each entity type correspond to their respective IDF scores")
     private boolean weightedJaccardSimilarity;
 
     @CommandLine.Option(names = { "--useMaxSimilarityPerColumn"}, description = "If specified, instead of taking the average similarity across columns as a score the maximum value is used")
@@ -167,7 +167,7 @@ public class SearchTables extends Command {
     public void setHashMapDirectory(File value) {
         if(!value.exists()){
             throw new CommandLine.ParameterException(spec.commandLine(),
-                String.format("Invalid value '%s' for option '--hashmap-dir': " + "the directory does not exists.", value));
+                    String.format("Invalid value '%s' for option '--hashmap-dir': " + "the directory does not exists.", value));
         }
 
         if (!value.isDirectory()) {
@@ -178,20 +178,30 @@ public class SearchTables extends Command {
         hashmapDir = value;
     }
 
-    private File queryFile = null;
-    @CommandLine.Option(names = { "-q", "--query-file" }, paramLabel = "QUERY", description = "Path to the query json file", required = true)
+    private File queriesLocation;
+    private List<Path> queryFiles;
+    @CommandLine.Option(names = { "-q", "--queries" }, paramLabel = "QUERY", description = "Path to directory of query json files", required = true)
     public void setQueryFile(File value) {
         if(!value.exists()){
             throw new CommandLine.ParameterException(spec.commandLine(),
-                String.format("Invalid value '%s' for option '--query-file': " + "the directory does not exists.", value));
+                    String.format("Invalid value '%s' for option '--query-dir': " + "the directory does not exists.", value));
         }
 
-        if (!value.isFile()) {
-            throw new CommandLine.ParameterException(spec.commandLine(),
-                    String.format("Invalid value '%s' for option '--query-file': " + "the path does not point to a directory.", value));
-        }
+        this.queriesLocation = value;
 
-        queryFile = value;
+        if (value.isFile())
+            this.queryFiles = List.of(value.toPath());
+
+        else {
+            try {
+                Stream<Path> queryStream = Files.find(value.toPath(), Integer.MAX_VALUE,
+                        (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
+                this.queryFiles = queryStream.collect(Collectors.toList());
+            }
+            catch (IOException e) {
+                System.out.println("Exception when finding query files: " + e.getMessage());
+            }
+        }
     }
 
     private File tableDir = null;
@@ -245,7 +255,7 @@ public class SearchTables extends Command {
     @Override
     public Integer call() {
         System.out.println("Hashmap Directory: " + hashmapDir);
-        System.out.println("Query File: " + queryFile);
+        System.out.println("Queries Location: " + queriesLocation.toString());
         System.out.println("Table Directory: " + tableDir);
         System.out.println("Output Directory: " + outputDir);
         System.out.println("Single Column per Query Entity: " + singleColumnPerQueryEntity);
@@ -258,49 +268,59 @@ public class SearchTables extends Command {
         if (this.embeddingsInputMode == EmbeddingsInputMode.DATABASE)
             this.store = Factory.fromConfig(false);
 
-        // Read off the queryEntities list from a json object
-        queryEntities = this.parseQuery(queryFile);
-        System.out.println("Query Entities: " + queryEntities + "\n");
-
         // Perform De-Serialization of the indices
-        long startTime = System.nanoTime();    
+        long startTime = System.nanoTime();
+
         if (this.deserializeHashMaps(hashmapDir)) {
             System.out.println("Deserialization successful!\n");
             System.out.println("Elapsed time for deserialization: " + (System.nanoTime() - startTime)/(1e9) + " seconds\n");
         }
         else {
-            System.out.println("de-serialization Failed!\n");
+            System.out.println("De-serialization Failed!\n");
             return -1;
         }
 
-        // Ensure all query entities are mappable
-        if (this.ensureQueryEntitiesMapping()) {
-            System.out.println("All query entities are mappable!\n\n");
-        }
-        else {
-            System.out.println("NOT all query entities are mappable!");
-            return -1;
-        }
+        for (Path queryPath : this.queryFiles) {
+            String[] split = queryPath.toFile().toString().split("/");
+            String queryName = split[split.length - 1].split("\\.")[0];
 
-        // Perform search according to the specified `search-mode`
-        switch (this.searchMode){
-            case EXACT:
-                System.out.println("Search mode: " + searchMode.getMode());
-                this.exactSearch();
-                break;
-            case ANALOGOUS:
-                System.out.println("Search mode: " + searchMode.getMode());
-                this.analogousSearch();
-                break;
-            case PPR:
-                System.out.println("Search mode: " + searchMode.getMode());
-                this.ppr();
-                break;
+            // Read off the queryEntities list from a json object
+            queryEntities = this.parseQuery(queryPath.toFile());
+            System.out.println("Query Entities: " + queryEntities + "\n");
+
+            // Ensure all query entities are mappable
+            if (this.ensureQueryEntitiesMapping()) {
+                System.out.println("All query entities are mappable!\n\n");
+            }
+            else {
+                System.out.println("NOT all query entities are mappable!");
+                return -1;
+            }
+
+            // Perform search according to the specified `search-mode`
+            switch (this.searchMode){
+                case EXACT:
+                    System.out.println("Search mode: " + searchMode.getMode());
+                    this.exactSearch();
+                    break;
+                case ANALOGOUS:
+                    System.out.println("Search mode: " + searchMode.getMode());
+                    this.analogousSearch(queryName);
+                    break;
+                case PPR:
+                    System.out.println("Search mode: " + searchMode.getMode());
+                    this.ppr(queryName);
+                    break;
+            }
+
+            similarityVectorMap.clear();
+            filenameToScore.clear();
+            filenameToStatistics.clear();
         }
 
         if (this.embeddingsInputMode == EmbeddingsInputMode.DATABASE)
             this.store.close();
-        
+
         return 1;
     }
 
@@ -352,7 +372,6 @@ public class SearchTables extends Command {
     private Integer hasEmbeddingCoverageSuccesses = 0;
     private Set<String> queryEntitiesMissingCoverage = new HashSet<String>();
 
-
     public boolean ensureQueryEntitiesMapping() {
         // Ensure that all queryEntities are searchable over the index
         System.out.println("\nIDF scores for each entity:");
@@ -401,7 +420,7 @@ public class SearchTables extends Command {
                 queryEntitiesPair.add(queryEntitiesFlat.get(i));
                 queryEntitiesPair.add(queryEntitiesFlat.get(j));
                 System.out.println("\nPair: " + queryEntitiesPair);
-                this.exactTupleMatches(queryEntitiesPair);    
+                this.exactTupleMatches(queryEntitiesPair);
             }
         }
     }
@@ -451,13 +470,13 @@ public class SearchTables extends Command {
     /**
      * Given a list of entities, return a ranked list of table candidates
      */
-    public int analogousSearch() {
+    public int analogousSearch(String queryName) {
 
         // Loop over each table in the tables directory
         try {
             // Get a list of all the files from the specified directory
             Stream<Path> file_stream = Files.find(this.tableDir.toPath(), Integer.MAX_VALUE,
-                (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
+                    (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
             List<Path> file_paths_list = file_stream.collect(Collectors.toList());
             System.out.println("There are " + file_paths_list.size() + " files to be processed.");
 
@@ -493,7 +512,7 @@ public class SearchTables extends Command {
 
             System.out.println("A total of " + parsedTables + " tables were parsed.");
             System.out.println("Elapsed time: " + elapsedTime + " seconds\n");
-        } 
+        }
         catch (IOException | RuntimeException e) {
             e.printStackTrace();
             return -1;
@@ -517,7 +536,7 @@ public class SearchTables extends Command {
         // Compute a relevance score for each file/table (higher score means more relevant)
         this.getFilenameScores(20, "euclidean");
 
-        this.saveFilenameScores(outputDir);
+        this.saveFilenameScores(outputDir, queryName);
 
         return 1;
     }
@@ -525,7 +544,7 @@ public class SearchTables extends Command {
     /**
      * Given a path to a table, update the similarityVectorMap for the current query with respect
      * to each row and each query tuple in this table
-     * 
+     *
      * If '--singleColumnPerQueryEntity' is specified then each query tuple can map to only one column in the table
      */
     public boolean searchTable(Path path) {
@@ -592,9 +611,9 @@ public class SearchTables extends Command {
                 for (Integer tupleID=0; tupleID<queryEntities.size(); tupleID++) {
                     // If pre-trained embeddings are being used, we need to ensure that all entities
                     // of the current query tuple as well as its corresponding row entities are all mappable to known pre-trained embeddings
-                    if ( ( usePretrainedEmbeddings && hasEmbeddingCoverage(queryEntities.get(tupleID), colIdToEntity, tupleToColumnMappings, tupleID) ) 
-                         || !usePretrainedEmbeddings) {
-                    
+                    if ( ( usePretrainedEmbeddings && hasEmbeddingCoverage(queryEntities.get(tupleID), colIdToEntity, tupleToColumnMappings, tupleID) )
+                            || !usePretrainedEmbeddings) {
+
                         // Initialize the maximum vector for the current tuple, to a zero vector of size equal to the query tuple size.
                         List<Double> maximumTupleVector = new ArrayList<>(Collections.nCopies(queryEntities.get(tupleID).size(), 0.0));
 
@@ -607,7 +626,7 @@ public class SearchTables extends Command {
                                 Integer assigned_col_id = tupleToColumnMappings.get(tupleID).get(queryEntityID);
                                 if (colIdToEntity.containsKey(assigned_col_id)) {
                                     bestSimScore = this.entitySimilarityScore(queryEntity, colIdToEntity.get(assigned_col_id));
-                                } 
+                                }
                             }
                             else {
                                 // Loop over each entity in the row
@@ -638,7 +657,7 @@ public class SearchTables extends Command {
         statisticsMap.put("numEntityMappedRows", numEntityMappedRows);
         statisticsMap.put("fractionOfEntityMappedRows", (double)numEntityMappedRows / table.numDataRows);
         filenameToStatistics.put(filename, statisticsMap);
-        
+
         return true;
     }
 
@@ -647,7 +666,7 @@ public class SearchTables extends Command {
      * of the table columns to the query entities if any and the id of the query tuple; identify
      * if there exist pre-trained embeddings for each query entity and each matching row entity
      */
-    public boolean hasEmbeddingCoverage(List<String> queryEntities, Map<Integer, String> colIdToEntity, List<List<Integer>> tupleToColumnMappings, Integer queryTupleID) {       
+    public boolean hasEmbeddingCoverage(List<String> queryEntities, Map<Integer, String> colIdToEntity, List<List<Integer>> tupleToColumnMappings, Integer queryTupleID) {
         // Ensure that all query entities have an embedding
         for (String qEnt : queryEntities) {
             if (!entityExists(qEnt)) {
@@ -665,7 +684,7 @@ public class SearchTables extends Command {
             for (Integer assigned_col_id : tupleToColumnMappings.get(queryTupleID)) {
                 if (colIdToEntity.containsKey(assigned_col_id)) {
                     relevant_row_ents.add(colIdToEntity.get(assigned_col_id));
-                } 
+                }
             }
         }
         else {
@@ -691,7 +710,7 @@ public class SearchTables extends Command {
     }
 
     /*
-     * Map each query entity from each query tuple to its best matching column id for the input 'table'   
+     * Map each query entity from each query tuple to its best matching column id for the input 'table'
      */
     public List<List<Integer>> getQueryToColumnMapping(JsonTable table) {
 
@@ -704,7 +723,7 @@ public class SearchTables extends Command {
                 entityToColumnScore.get(tupleID).add(new ArrayList<Double>(Collections.nCopies(table.numCols, 0.0)));
             }
         }
-        
+
         // Loop over every cell in a table and populate 'entityToColumnScore'
         for(List<JsonTable.TableCell> row : table.rows){
             int colId = 0;
@@ -751,11 +770,11 @@ public class SearchTables extends Command {
     /*
      * Given the multi-dimensional array indexed by (tupleID, entityID, columnID) mapping to
      * the aggregated score for that query entity with respect the column, return the best columnID map for each entity
-     * 
-     * This function returns a 2-D list of integers indexed by (tupleID, entityID) and maps to the columnID 
+     *
+     * This function returns a 2-D list of integers indexed by (tupleID, entityID) and maps to the columnID
      */
     public List<List<Integer>> getBestMatchFromScores(List<List<List<Double>>> entityToColumnScore) {
-        
+
         // Mapping of the matched columnIDs for each entity in each query tuple
         // Indexed by (tupleID, entityID) mapping to the columnID. If a columnID is -1 then that entity is not chosen for assignment
         List<List<Integer>> tupleToColumnMappings = new ArrayList<>();
@@ -774,25 +793,25 @@ public class SearchTables extends Command {
 
             tupleToColumnMappings.add(assignmentList);
         }
-        
+
         return tupleToColumnMappings;
     }
 
 
     /*
      * The similarity between two entities (this is a score between 0 and 1)
-     * 
+     *
      * By default the similarity is the jaccard similarity of the entity types corresponding to the entities.
-     * 
-     * However if 'usePretrainedEmbeddings' is specified and there exist embeddings for both entities 
+     *
+     * However if 'usePretrainedEmbeddings' is specified and there exist embeddings for both entities
      * then use the angular distance between the two embedding vectors as the score.
-     * 
-     * If 'usePretrainedEmbeddings' is not specified but 'adjustedJaccardSimilarity' is specified then 
+     *
+     * If 'usePretrainedEmbeddings' is not specified but 'adjustedJaccardSimilarity' is specified then
      * an adjusted Jaccard similarity between two entities is used where the similarity score is 1 only if the two entities are identical.
-     * Otherwise a maximum similarity score is placed if the two entities are different 
+     * Otherwise a maximum similarity score is placed if the two entities are different
 
-     * 
-     * Returns a number between 0 and 1    
+     *
+     * Returns a number between 0 and 1
      */
     public double entitySimilarityScore(String ent1, String ent2) {
 
@@ -806,7 +825,7 @@ public class SearchTables extends Command {
             if (entityTypes.containsKey(ent2)) {
                 entTypes2 = new HashSet<String>(entityTypes.get(ent2));
             }
-            
+
             Double jaccard_score = 0.0;
             if (weightedJaccardSimilarity) {
                 // Run weighted Jaccard Similarity
@@ -831,13 +850,13 @@ public class SearchTables extends Command {
                     return jaccard_score;
                 }
             }
-            
+
             return jaccard_score;
         }
 
         // Check if the `usePretrainedEmbeddings` mode is specified and if there are embeddings for both entities
         if (usePretrainedEmbeddings && entityExists(ent1) && entityExists(ent2)) {
-            
+
             // Compute the appropriate score based on the specified EmbeddingSimFunction
             String embSimFunction = embeddingSimFunction.getEmbeddingSimFunction();
             Double cosineSim = utils.cosineSimilarity(getEmbeddingVector(ent1), getEmbeddingVector(ent2));
@@ -851,7 +870,7 @@ public class SearchTables extends Command {
             else if (embSimFunction.equals("ang_cos")) {
                 simScore = 1 - Math.acos(cosineSim) / Math.PI;
             }
-            
+
             numEmbeddingSimComparisons += 1;    // TODO: This must be surrounded by mutex lock
             return simScore;
         }
@@ -867,13 +886,13 @@ public class SearchTables extends Command {
 
     /*
      * Compute a table score for each table and return the top-k tables with their respective scores
-     * 
+     *
      * @param vec_similarity_measure: Must be one of {"cosine", "euclidean"}
      */
     public void getFilenameScores(Integer k, String vec_similarity_measure) {
         System.out.println("Computing scores for each table using " + vec_similarity_measure + " similarity...");
         long startTime = System.nanoTime();
-    
+
         for (String filename : similarityVectorMap.keySet()) {
             // Map each query tupleID to a list of all similarity vectors concerning the current filename 
             Map<Integer, List<List<Double>>> tupleIDToListOfSimVectors = new HashMap<>();
@@ -892,7 +911,7 @@ public class SearchTables extends Command {
                     }
                 }
             }
-           
+
             // Compute the weighted vector (i.e. considers IDF scores of query entities) for each query tuple
             Map<Integer, List<Double>> tupleIDToWeightVector = new HashMap<>();
             for (Integer tupleID=0; tupleID < queryEntities.size(); tupleID++) {
@@ -905,7 +924,7 @@ public class SearchTables extends Command {
 
             // 2D List mapping each tupleID to the similarity scores chosen across the aligned columns
             List<List<Double>> tupleVectors = new ArrayList<>();
-            
+
             // Compute a score for the current file with respect to each query tuple
             // The score takes into account the weight vector associated with each tuple
             Map<Integer, Double> tupleIDToScore = new HashMap<>();
@@ -914,7 +933,7 @@ public class SearchTables extends Command {
                     // There is at least one data row that has values mapping to known entities
 
                     // ensure that the current tupleID has at least one similarity vector with some row
-                    if (tupleIDToListOfSimVectors.containsKey(tupleID)) {                   
+                    if (tupleIDToListOfSimVectors.containsKey(tupleID)) {
                         List<Double> curTupleVec = new ArrayList<Double>();
                         if (useMaxSimilarityPerColumn) {
                             // Use the maximum similarity score per column as the tuple vector
@@ -943,15 +962,15 @@ public class SearchTables extends Command {
                     }
                 }
                 else {
-                   // No entity maps to any value in any row in this table so we give the file a score of zero
-                   tupleIDToScore.put(tupleID, 0.0);
+                    // No entity maps to any value in any row in this table so we give the file a score of zero
+                    tupleIDToScore.put(tupleID, 0.0);
                 }
             }
 
             // TODO: Each tuple currently weighted equally. Maybe add extra weighting per tuple when taking average?
             // Get a single score for the current filename that is averaged across all query tuple scores
             if (!tupleIDToScore.isEmpty()) {
-                List<Double> tupleIDScores = new ArrayList<Double>(tupleIDToScore.values()); 
+                List<Double> tupleIDScores = new ArrayList<Double>(tupleIDToScore.values());
                 Double fileScore = utils.getAverageOfVector(tupleIDScores);
                 filenameToScore.put(filename, fileScore);
                 filenameToStatistics.get(filename).put("tupleScores", tupleIDScores);
@@ -962,7 +981,7 @@ public class SearchTables extends Command {
                 filenameToStatistics.get(filename).put("tupleScores", Arrays.asList(0.0));
                 filenameToStatistics.get(filename).put("tupleVectors", Arrays.asList(0.0));
             }
-        } 
+        }
 
         System.out.println("Elapsed time: " + (System.nanoTime() - startTime) /(1e9) + " seconds\n");
 
@@ -981,7 +1000,7 @@ public class SearchTables extends Command {
     }
 
 
-    public int ppr() {
+    public int ppr(String queryName) {
         // Initialize the connector
         try {
             this.connector = new Neo4jEndpoint(this.configFile);
@@ -1021,7 +1040,7 @@ public class SearchTables extends Command {
         // Run PPR once from each query tuple
         for (Integer i=0; i<queryEntities.size(); i++) {
             Map<String, Double> curTupleFilenameToScore = connector.runPPR(queryEntities.get(i), weights.get(i), minThreshold, numParticles, topK);
-            
+
             // Update the 'filenameToScore' accordingly
             for (String s : curTupleFilenameToScore.keySet()) {
                 if (!filenameToScore.containsKey(s)) {
@@ -1034,14 +1053,14 @@ public class SearchTables extends Command {
             System.out.println("Finished computing PPR for tuple: " + i);
         }
         elapsedTime = (System.nanoTime() - startTime) / 1e9;
-        System.out.println("\n\nFinished running PPR over the given Query Tuple(s)");    
+        System.out.println("\n\nFinished running PPR over the given Query Tuple(s)");
         System.out.println("Elapsed time: " + elapsedTime + " seconds\n");
 
         // Sort the scores for each file
         filenameToScore = sortByValue(filenameToScore);
 
         // Save the PPR scores to a json file
-        this.saveFilenameScores(outputDir);
+        this.saveFilenameScores(outputDir, queryName);
 
         return 1;
     }
@@ -1053,7 +1072,7 @@ public class SearchTables extends Command {
     {
         // Create a list from elements of HashMap
         List<Map.Entry<String, Double> > list = new LinkedList<Map.Entry<String, Double> >(hm.entrySet());
-  
+
         // Sort the list
         Collections.sort(list, new Comparator<Map.Entry<String, Double> >() {
             public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
@@ -1062,7 +1081,7 @@ public class SearchTables extends Command {
                 return i;
             }
         });
-          
+
         // put data from sorted list to hashmap 
         Map<String, Double> temp = new LinkedHashMap<String, Double>();
         for (Map.Entry<String, Double> aa : list) {
@@ -1076,7 +1095,7 @@ public class SearchTables extends Command {
      */
     public boolean deserializeHashMaps(File path) {
         System.out.println("Deserializing Hash Maps...");
-        
+
         try {
 
             FileInputStream fileIn = new FileInputStream(path+"/entityToFilename.ser");
@@ -1121,7 +1140,7 @@ public class SearchTables extends Command {
             if (usePretrainedEmbeddings) {
                 Gson gson = new Gson();
                 Reader reader = new FileReader(embeddingsPath);
-        
+
                 // convert JSON file to a hashmap and then extract the list of queries
                 Type type = new TypeToken<HashMap<String, List<Double>>>(){}.getType();
                 Map<String, List<Double>> map = gson.fromJson(reader, type);
@@ -1142,7 +1161,7 @@ public class SearchTables extends Command {
             }
 
             return true;
-        } 
+        }
         catch (IOException i) {
             i.printStackTrace();
             return false;
@@ -1160,13 +1179,13 @@ public class SearchTables extends Command {
         try {
             Gson gson = new Gson();
             Reader reader = Files.newBufferedReader(path.toPath());
-    
+
             // convert JSON file to a hashmap and then extract the list of queries
             Type type = new TypeToken<HashMap<String, List<List<String>>>>(){}.getType();
             Map<String, List<List<String>>> map = gson.fromJson(reader, type);
             queryEntities = map.get("queries");
 
-            reader.close();    
+            reader.close();
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -1189,12 +1208,11 @@ public class SearchTables extends Command {
     /**
      * Saves the data of the filenameToScore Hashmap into the "filenameToScore.json" file at the specified output directory
      */
-    // TODO: Wrap this in RAII for better control
-    public synchronized void saveFilenameScores(File outputDir) {
+    public synchronized void saveFilenameScores(File outputDir, String queryName) {
 
-        File saveDir = new File(outputDir, "/search_output/");
+        File saveDir = new File(outputDir, "/search_output/" + queryName);
         if (!saveDir.exists()){
-            saveDir.mkdir();
+            saveDir.mkdirs();
         }
 
         System.out.println("\nConstructing the filenameToScore.json file...");
@@ -1202,13 +1220,13 @@ public class SearchTables extends Command {
         // Specify the format of the filenameToScore.json file 
         JsonObject jsonObj = new JsonObject();
         JsonArray innerObjs = new JsonArray();
-        
+
         // Iterate over filenameToScore hashmap
         for (String file : ProgressBar.wrap(filenameToScore.keySet(), "Processing files...")) {
             JsonObject tmp = new JsonObject();
             tmp.addProperty("tableID", file);
             tmp.addProperty("score", filenameToScore.get(file));
-            
+
             // Get Page Title and URL of the current file
             JsonTable table = utils.getTableFromPath(Paths.get(this.tableDir.toString()+"/" + file));
             String pgTitle = table.pgTitle;
@@ -1272,11 +1290,10 @@ public class SearchTables extends Command {
      * If the `embeddingsInputMode` is "database" then it queries the database for existence
      */
     public boolean entityExists(String entity) {
-        if (embeddingsInputMode.getEmbeddingsInputMode() == "file") {
-            if (entityToEmbedding.containsKey(entity)) {return true;}
-            else {return false;}
+        if (embeddingsInputMode == EmbeddingsInputMode.FILE) {
+            return entityToEmbedding.containsKey(entity);
         }
-        else if (embeddingsInputMode.getEmbeddingsInputMode() == "database") {
+        else if (embeddingsInputMode == EmbeddingsInputMode.DATABASE) {
             try {
                 return this.store.select(entity) != null;
             }
@@ -1284,24 +1301,24 @@ public class SearchTables extends Command {
                 return false;
             }
         }
-        return false; 
+        return false;
     }
 
     /**
      * Returns the embedding vector for the specified entity.
-     * 
+     *
      * The entity specified must exist! If it isn't then an empty vector is returned
      *
      * If the `embeddingsInputMode` is "file" then extract the embedding vector from the `entityToEmbedding` hashmap
      * If the `embeddingsInputMode` is "database" then query he database to get the embedding vector
      */
     public List<Double> getEmbeddingVector(String entity) {
-        if (embeddingsInputMode.getEmbeddingsInputMode() == "file") {
+        if (embeddingsInputMode == EmbeddingsInputMode.FILE) {
             if (entityToEmbedding.containsKey(entity)) {
                 return entityToEmbedding.get(entity);
             }
         }
-        else if (embeddingsInputMode.getEmbeddingsInputMode() == "database") {
+        else if (embeddingsInputMode == EmbeddingsInputMode.DATABASE) {
             try {
                 return this.store.select(entity);
             }

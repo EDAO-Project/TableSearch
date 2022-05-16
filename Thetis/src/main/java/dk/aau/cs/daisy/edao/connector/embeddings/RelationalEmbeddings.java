@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+// TODO: Be careful with this one! It should maybe be deleted.
 public class RelationalEmbeddings implements DBDriverBatch<List<Double>, String>, Setup, ExplainableCause
 {
     private DBDriver<ResultSet, String> driver;
