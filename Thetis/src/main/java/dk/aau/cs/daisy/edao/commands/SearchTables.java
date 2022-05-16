@@ -255,7 +255,7 @@ public class SearchTables extends Command {
     @Override
     public Integer call() {
         System.out.println("Hashmap Directory: " + hashmapDir);
-        System.out.println("Queries location: " + queriesLocation.toString());
+        System.out.println("Queries Location: " + queriesLocation.toString());
         System.out.println("Table Directory: " + tableDir);
         System.out.println("Output Directory: " + outputDir);
         System.out.println("Single Column per Query Entity: " + singleColumnPerQueryEntity);
