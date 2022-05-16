@@ -144,7 +144,7 @@ def get_ndcg_scores_over_output(full_df, query_df, scores_path, groundtruth_rele
             # Compute the num_relevant tables in the top-k of the `table_id_to_pred_score` dictionary
             num_relevant_tables = 0
             for table in list(table_id_to_pred_score.keys())[:k]:
-                if gt_tables_to_relevance_scores_dict[table] > 0:
+                if table in gt_tables_to_relevance_scores_dict and gt_tables_to_relevance_scores_dict[table]>0:
                     num_relevant_tables+=1
 
             
