@@ -293,7 +293,7 @@ public class SearchTables extends Command {
             EntityTableLink entityTableLink = indexReader.getEntityTableLink();
 
             // Ensure all query entities are mappable
-            if (ensureQueryEntitiesMapping(queryTable, linker.getDictionary(), entityTableLink))
+            if (ensureQueryEntitiesMapping(queryTable, linker.getWikiDictionary(), entityTableLink))
                 Logger.logNewLine(Logger.Level.INFO, "All query entities are mappable!\n\n");
 
             else
@@ -353,7 +353,7 @@ public class SearchTables extends Command {
 
     private Double elapsedTime = 0.0;
 
-    public boolean ensureQueryEntitiesMapping(Table<String> query, IdDictionary<String> entityDict, EntityTableLink tableLink)
+    public boolean ensureQueryEntitiesMapping(Table<String> query, IdDictionary<String> wikiDict, EntityTableLink tableLink)
     {
         int rows = query.rowCount();
 
@@ -364,7 +364,7 @@ public class SearchTables extends Command {
 
             for (int j = 0; j < rowSize; j++)
             {
-                Id entityId = entityDict.get(row.get(j));
+                Id entityId = wikiDict.get(row.get(j));
 
                 if (!tableLink.contains(entityId))
                     return false;
@@ -376,12 +376,12 @@ public class SearchTables extends Command {
 
     public void exactSearch(Table<String> query, EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink)
     {
-        Iterator<String> entityIter = linker.getDictionary().keys().asIterator();
+        Iterator<String> entityIter = linker.getUriDictionary().keys().asIterator();
 
         while (entityIter.hasNext())
         {
             String entity = entityIter.next();
-            Id entityId = linker.getDictionary().get(entity);
+            Id entityId = linker.getUriDictionary().get(entity);
             List<String> tableFiles = entityTableLink.find(entityId);
 
             if (tableFiles == null || tableFiles.isEmpty())

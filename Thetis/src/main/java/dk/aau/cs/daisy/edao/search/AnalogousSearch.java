@@ -372,8 +372,8 @@ public class AnalogousSearch extends AbstractSearch
      * If 'usePretrainedEmbeddings' is not specified but 'adjustedJaccardSimilarity' is specified then
      * an adjusted Jaccard similarity between two entities is used where the similarity score is 1 only if the two entities are identical.
      * Otherwise a maximum similarity score is placed if the two entities are different
-     * @param ent1 entity
-     * @param ent2 entity
+     * @param ent1 entity URI
+     * @param ent2 entity URI
      * @return A score within [0, 1]
      */
     private double entitySimilarityScore(String ent1, String ent2)
@@ -382,7 +382,7 @@ public class AnalogousSearch extends AbstractSearch
         {
             Set<Type> entTypes1 = new HashSet<>();
             Set<Type> entTypes2 = new HashSet<>();
-            Id ent1Id = getLinker().getDictionary().get(ent1), ent2Id = getLinker().getDictionary().get(ent2);
+            Id ent1Id = getLinker().getUriDictionary().get(ent1), ent2Id = getLinker().getUriDictionary().get(ent2);
 
             if (getEntityTable().contains(ent1Id))
                 entTypes1 = new HashSet<>(getEntityTable().find(ent1Id).getTypes());
@@ -539,7 +539,7 @@ public class AnalogousSearch extends AbstractSearch
     }
 
     /**
-     *
+     * Aggregates scores into a single table score
      * @param query
      * @param tableRowSimilarities
      * @param statBuilder
@@ -578,7 +578,8 @@ public class AnalogousSearch extends AbstractSearch
 
             for (int column = 0; column < rowSize; column++)
             {
-                Id entityId = getLinker().getDictionary().get(query.getRow(queryRow).get(column));
+                String uri = getLinker().mapTo(query.getRow(queryRow).get(column));
+                Id entityId = getLinker().getUriDictionary().get(uri);
                 curRowIDFScores.add(getEntityTable().find(entityId).getIDF());
             }
 
@@ -647,7 +648,7 @@ public class AnalogousSearch extends AbstractSearch
     private Set<String> distinctTables()
     {
         Set<String> tables = new HashSet<>();
-        Iterator<Id> entityIter = getLinker().getDictionary().elements().asIterator();
+        Iterator<Id> entityIter = getLinker().getUriDictionary().elements().asIterator();
 
         while (entityIter.hasNext())
         {

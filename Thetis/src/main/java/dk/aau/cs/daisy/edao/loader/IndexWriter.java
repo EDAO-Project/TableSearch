@@ -150,7 +150,7 @@ public class IndexWriter implements IndexIO
                                     entityTypes.remove(type);
                                 }
 
-                                Id entityId = ((EntityLinking) this.linker.getLinker()).getDictionary().get(entity);
+                                Id entityId = ((EntityLinking) this.linker.getLinker()).getUriDictionary().get(entity);
                                 this.entityTable.insert(entityId,
                                         new Entity(entity, entityTypes.stream().map(Type::new).collect(Collectors.toList())));
                             }
@@ -159,7 +159,7 @@ public class IndexWriter implements IndexIO
                         if (this.linker.mapTo(link) != null)
                         {
                             String entity = this.linker.mapTo(link);
-                            Id entityId = ((EntityLinking) this.linker.getLinker()).getDictionary().get(entity);
+                            Id entityId = ((EntityLinking) this.linker.getLinker()).getUriDictionary().get(entity);
                             Pair<Integer, Integer> location = new Pair<>(row, column);
                             ((EntityTableLink) this.entityTableLink.getIndex()).
                                     addLocation(entityId, tableName, List.of(location));
@@ -210,7 +210,7 @@ public class IndexWriter implements IndexIO
         while (entities.hasNext())
         {
             entityCount++;
-            Id entityId = ((EntityLinking) this.linker.getLinker()).getDictionary().get(entities.next());
+            Id entityId = ((EntityLinking) this.linker.getLinker()).getUriDictionary().get(entities.next());
 
             if (entityId == null)
                 continue;
@@ -306,7 +306,7 @@ public class IndexWriter implements IndexIO
 
     private void loadEntityIDFs()
     {
-        Iterator<Id> idIter = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
+        Iterator<Id> idIter = ((EntityLinking) this.linker.getLinker()).getUriDictionary().elements().asIterator();
 
         while (idIter.hasNext())
         {
@@ -323,7 +323,7 @@ public class IndexWriter implements IndexIO
     private void loadTypeIDFs()
     {
         Map<Type, Integer> entityTypeFrequency = new HashMap<>();
-        Iterator<Id> idIterator = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
+        Iterator<Id> idIterator = ((EntityLinking) this.linker.getLinker()).getUriDictionary().elements().asIterator();
 
         while (idIterator.hasNext())
         {
@@ -345,7 +345,7 @@ public class IndexWriter implements IndexIO
         }
 
         int totalEntityCount = this.entityTable.size();
-        idIterator = ((EntityLinking) this.linker.getLinker()).getDictionary().elements().asIterator();
+        idIterator = ((EntityLinking) this.linker.getLinker()).getUriDictionary().elements().asIterator();
 
         while (idIterator.hasNext())
         {
@@ -392,7 +392,7 @@ public class IndexWriter implements IndexIO
     {
         FileOutputStream outputStream = new FileOutputStream(this.outputPath + "/" + Configuration.getTableToEntitiesFile());
         OutputStreamWriter writer = new OutputStreamWriter(outputStream);
-        IdDictionary<String> dictionary = ((EntityLinking) this.linker.getLinker()).getDictionary();
+        IdDictionary<String> dictionary = ((EntityLinking) this.linker.getLinker()).getUriDictionary();
         Iterator<String> entityIter = dictionary.keys().asIterator();
 
         while (entityIter.hasNext())

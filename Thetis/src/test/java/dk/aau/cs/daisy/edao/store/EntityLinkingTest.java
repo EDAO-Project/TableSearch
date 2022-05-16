@@ -25,13 +25,12 @@ public class EntityLinkingTest
     public void testGetDictionary()
     {
         Set<Integer> ids = new HashSet<>();
-        IdDictionary<String> dict = this.linker.getDictionary();
-        ids.add(dict.get("wiki1").getId());
-        ids.add(dict.get("wiki2").getId());
-        ids.add(dict.get("wiki3").getId());
-        ids.add(dict.get("uri1").getId());
-        ids.add(dict.get("uri2").getId());
-        ids.add(dict.get("uri3").getId());
+        ids.add(this.linker.getWikiDictionary().get("wiki1").getId());
+        ids.add(this.linker.getWikiDictionary().get("wiki2").getId());
+        ids.add(this.linker.getWikiDictionary().get("wiki3").getId());
+        ids.add(this.linker.getUriDictionary().get("uri1").getId());
+        ids.add(this.linker.getUriDictionary().get("uri2").getId());
+        ids.add(this.linker.getUriDictionary().get("uri3").getId());
 
         assertEquals(6, ids.size());
         ids.forEach(id -> assertTrue(id >= 0));
@@ -40,23 +39,24 @@ public class EntityLinkingTest
     @Test
     public void testDictionaryNotExists()
     {
-        assertNull(this.linker.getDictionary().get("wiki0"));
+        assertNull(this.linker.getWikiDictionary().get("wiki0"));
+        assertNull(this.linker.getUriDictionary().get("uri0"));
     }
 
     @Test
     public void testAddDuplicates()
     {
-        Set<Integer> ids1 = Set.of(this.linker.getDictionary().get("uri1").getId(),
-                this.linker.getDictionary().get("uri2").getId(),
-                this.linker.getDictionary().get("uri3").getId());
+        Set<Integer> ids1 = Set.of(this.linker.getUriDictionary().get("uri1").getId(),
+                this.linker.getUriDictionary().get("uri2").getId(),
+                this.linker.getUriDictionary().get("uri3").getId());
         assertEquals(3, ids1.size());
         this.linker.addMapping("wiki:wiki1", "uri:uri1");
         this.linker.addMapping("wiki:wiki1", "uri:uri2");
         this.linker.addMapping("wiki:wiki1", "uri:uri3");
 
-        Set<Integer> ids2 = Set.of(this.linker.getDictionary().get("uri1").getId(),
-                this.linker.getDictionary().get("uri2").getId(),
-                this.linker.getDictionary().get("uri3").getId());
+        Set<Integer> ids2 = Set.of(this.linker.getUriDictionary().get("uri1").getId(),
+                this.linker.getUriDictionary().get("uri2").getId(),
+                this.linker.getUriDictionary().get("uri3").getId());
         assertEquals(3, ids2.size());
         ids2.forEach(id -> assertTrue(ids1.contains(id)));
     }

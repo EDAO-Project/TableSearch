@@ -13,29 +13,36 @@ import java.util.Map;
  */
 public class EntityLinking implements Linker<String, String>, Serializable
 {
-    private IdDictionary<String> dict;
+    private IdDictionary<String> uriDict, wikiDict;
     private Map<Id, Id> wikiLinkToUri;    // Wikipedia link to entity URI
     private Map<Id, Id> uriToWikiLink;    // entity URI to Wikipedia link
     String wikiPrefix, uriPrefix;
 
     public EntityLinking(String wikiPrefix, String uriPrefix)
     {
-        this.dict = new IdDictionary<>(false);
+        this.uriDict = new IdDictionary<>(false);
+        this.wikiDict = new IdDictionary<>(false);
         this.wikiLinkToUri = new HashMap<>();
         this.uriToWikiLink = new HashMap<>();
         this.wikiPrefix = wikiPrefix;
         this.uriPrefix = uriPrefix;
     }
 
-    public EntityLinking(IdDictionary<String> dict, String wikiPrefix, String uriPrefix)
+    public EntityLinking(IdDictionary<String> uriDict, IdDictionary wikiDict, String wikiPrefix, String uriPrefix)
     {
         this(wikiPrefix, uriPrefix);
-        this.dict = dict;
+        this.uriDict = uriDict;
+        this.wikiDict = wikiDict;
     }
 
-    public IdDictionary<String> getDictionary()
+    public IdDictionary<String> getUriDictionary()
     {
-        return this.dict;
+        return this.uriDict;
+    }
+
+    public IdDictionary<String> getWikiDictionary()
+    {
+        return this.wikiDict;
     }
 
     /**
@@ -49,7 +56,7 @@ public class EntityLinking implements Linker<String, String>, Serializable
         if (!wikipedia.startsWith(this.wikiPrefix))
             throw new IllegalArgumentException("Wikipedia link does not start with specified prefix");
 
-        Id wikiId = this.dict.get(wikipedia.substring(this.wikiPrefix.length()));
+        Id wikiId = this.wikiDict.get(wikipedia.substring(this.wikiPrefix.length()));
 
         if (wikiId == null)
             return null;
@@ -59,7 +66,7 @@ public class EntityLinking implements Linker<String, String>, Serializable
         if (uriId == null)
             return null;
 
-        return this.uriPrefix + this.dict.get(uriId);
+        return this.uriPrefix + this.uriDict.get(uriId);
     }
 
     /**
@@ -73,7 +80,7 @@ public class EntityLinking implements Linker<String, String>, Serializable
         if (!uri.startsWith(this.uriPrefix))
             throw new IllegalArgumentException("Entity URI does not start with specified prefix");
 
-        Id uriId = this.dict.get(uri.substring(this.uriPrefix.length()));
+        Id uriId = this.uriDict.get(uri.substring(this.uriPrefix.length()));
 
         if (uriId == null)
             return null;
@@ -83,7 +90,7 @@ public class EntityLinking implements Linker<String, String>, Serializable
         if (wikiId == null)
             return null;
 
-        return this.wikiPrefix + this.dict.get(wikiId);
+        return this.wikiPrefix + this.wikiDict.get(wikiId);
     }
 
     /**
@@ -99,13 +106,13 @@ public class EntityLinking implements Linker<String, String>, Serializable
 
         String wikiNoPrefix = wikipedia.substring(this.wikiPrefix.length()),
                 uriNoPrefix = uri.substring(this.uriPrefix.length());
-        Id wikiId = this.dict.get(wikiNoPrefix), uriId = this.dict.get(uriNoPrefix);
+        Id wikiId = this.wikiDict.get(wikiNoPrefix), uriId = this.uriDict.get(uriNoPrefix);
 
         if (wikiId == null)
-            this.dict.put(wikiNoPrefix, (wikiId = Id.alloc()));
+            this.wikiDict.put(wikiNoPrefix, (wikiId = Id.alloc()));
 
         if (uriId == null)
-            this.dict.put(uriNoPrefix, (uriId = Id.alloc()));
+            this.uriDict.put(uriNoPrefix, (uriId = Id.alloc()));
 
         this.wikiLinkToUri.putIfAbsent(wikiId, uriId);
         this.uriToWikiLink.putIfAbsent(uriId, wikiId);
@@ -119,6 +126,7 @@ public class EntityLinking implements Linker<String, String>, Serializable
     {
         this.wikiLinkToUri.clear();
         this.uriToWikiLink.clear();
-        this.dict.clear();
+        this.uriDict.clear();
+        this.wikiDict.clear();
     }
 }
