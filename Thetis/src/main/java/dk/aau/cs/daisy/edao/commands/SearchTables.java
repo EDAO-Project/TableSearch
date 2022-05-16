@@ -178,20 +178,30 @@ public class SearchTables extends Command {
         hashmapDir = value;
     }
 
-    private File queryDir = null;
-    @CommandLine.Option(names = { "-q", "--query-dir" }, paramLabel = "QUERY", description = "Path to directory of query json files", required = true)
+    private File queriesLocation;
+    private List<Path> queryFiles;
+    @CommandLine.Option(names = { "-q", "--queries" }, paramLabel = "QUERY", description = "Path to directory of query json files", required = true)
     public void setQueryFile(File value) {
         if(!value.exists()){
             throw new CommandLine.ParameterException(spec.commandLine(),
                     String.format("Invalid value '%s' for option '--query-dir': " + "the directory does not exists.", value));
         }
 
-        if (value.isFile()) {
-            throw new CommandLine.ParameterException(spec.commandLine(),
-                    String.format("Invalid value '%s' for option '--query-dir': " + "the path is a file.", value));
-        }
+        this.queriesLocation = value;
 
-        queryDir = value;
+        if (value.isFile())
+            this.queryFiles = List.of(value.toPath());
+
+        else {
+            try {
+                Stream<Path> queryStream = Files.find(value.toPath(), Integer.MAX_VALUE,
+                        (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
+                this.queryFiles = queryStream.collect(Collectors.toList());
+            }
+            catch (IOException e) {
+                System.out.println("Exception when finding query files: " + e.getMessage());
+            }
+        }
     }
 
     private File tableDir = null;
@@ -245,7 +255,7 @@ public class SearchTables extends Command {
     @Override
     public Integer call() {
         System.out.println("Hashmap Directory: " + hashmapDir);
-        System.out.println("Query Directory: " + queryDir);
+        System.out.println("Queries location: " + queriesLocation.toString());
         System.out.println("Table Directory: " + tableDir);
         System.out.println("Output Directory: " + outputDir);
         System.out.println("Single Column per Query Entity: " + singleColumnPerQueryEntity);
@@ -257,18 +267,6 @@ public class SearchTables extends Command {
 
         if (this.embeddingsInputMode == EmbeddingsInputMode.DATABASE)
             this.store = Factory.fromConfig(false);
-
-        List<Path> queryPaths;
-
-        try {
-            Stream<Path> queryStream = Files.find(this.queryDir.toPath(), Integer.MAX_VALUE,
-                    (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
-            queryPaths = queryStream.collect(Collectors.toList());
-        }
-        catch (IOException exception) {
-            System.out.println("Failed collecting query files: " + exception.getMessage());
-            return -1;
-        }
 
         // Perform De-Serialization of the indices
         long startTime = System.nanoTime();
@@ -282,7 +280,7 @@ public class SearchTables extends Command {
             return -1;
         }
 
-        for (Path queryPath : queryPaths) {
+        for (Path queryPath : this.queryFiles) {
             String[] split = queryPath.toFile().toString().split("/");
             String queryName = split[split.length - 1].split("\\.")[0];
 
