@@ -311,12 +311,8 @@ public class IndexWriter implements IndexIO
         while (idIter.hasNext())
         {
             Id entityId = idIter.next();
-
-            if (this.entityTableLink.contains(entityId))    // Some Ids belong to Wikipedia links, not entity URIs
-            {
-                double idf = Math.log10((double) this.loadedTables.get() / this.entityTableLink.find(entityId).size()) + 1;
-                this.entityTable.find(entityId).setIDF(idf);
-            }
+            double idf = Math.log10((double) this.loadedTables.get() / this.entityTableLink.find(entityId).size()) + 1;
+            this.entityTable.find(entityId).setIDF(idf);
         }
     }
 
@@ -328,19 +324,15 @@ public class IndexWriter implements IndexIO
         while (idIterator.hasNext())
         {
             Id id = idIterator.next();
+            List<Type> entityTypes = this.entityTable.find(id).getTypes();
 
-            if (this.entityTable.contains(id))  // Some IDs do not belong to entity URIs
+            for (Type t : entityTypes)
             {
-                List<Type> entityTypes = this.entityTable.find(id).getTypes();
+                if (entityTypeFrequency.containsKey(t))
+                    entityTypeFrequency.put(t, entityTypeFrequency.get(t) + 1);
 
-                for (Type t : entityTypes)
-                {
-                    if (entityTypeFrequency.containsKey(t))
-                        entityTypeFrequency.put(t, entityTypeFrequency.get(t) + 1);
-
-                    else
-                        entityTypeFrequency.put(t, 1);
-                }
+                else
+                    entityTypeFrequency.put(t, 1);
             }
         }
 
@@ -350,17 +342,13 @@ public class IndexWriter implements IndexIO
         while (idIterator.hasNext())
         {
             Id id = idIterator.next();
-
-            if (this.entityTable.contains(id))  // Check if ID belongs to KG entity
-            {
-                this.entityTable.find(id).getTypes().forEach(t -> {
-                    if (entityTypeFrequency.containsKey(t))
-                    {
-                        double idf = Utils.log2((double) totalEntityCount / entityTypeFrequency.get(t));
-                        t.setIdf(idf);
-                    }
-                });
-            }
+            this.entityTable.find(id).getTypes().forEach(t -> {
+                if (entityTypeFrequency.containsKey(t))
+                {
+                    double idf = Utils.log2((double) totalEntityCount / entityTypeFrequency.get(t));
+                    t.setIdf(idf);
+                }
+            });
         }
     }
 
