@@ -364,7 +364,7 @@ public class SearchTables extends Command {
 
             for (int j = 0; j < rowSize; j++)
             {
-                Id entityId = linker.uriLookup(linker.mapTo(row.get(j)));
+                Id entityId = linker.uriLookup(row.get(j));
 
                 if (!tableLink.contains(entityId))
                     return false;
