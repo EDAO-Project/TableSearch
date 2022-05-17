@@ -56,7 +56,7 @@ public class IndexReader implements IndexIO
             if (tmpCompleted != completed)
             {
                 completed = tmpCompleted;
-                Logger.log(Logger.Level.INFO, "Loading indexes: " + completed + "/" + INDEX_COUNT);
+                Logger.log(Logger.Level.INFO, "Loaded indexes: " + completed + "/" + INDEX_COUNT);
             }
         }
 
