@@ -4,6 +4,7 @@ import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
+import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.IdDictionary;
 import dk.aau.cs.daisy.edao.structures.graph.Entity;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
@@ -14,6 +15,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -52,7 +54,17 @@ public class IndexReaderTest
         EntityTable entityTable = this.reader.getEntityTable();
         EntityTableLink entityTableLink = this.reader.getEntityTableLink();
         assertEquals(entityTable.size(), entityTableLink.size());
-        assertEquals(entityTable.size(), linker.getUriDictionary().size());
+
+        int count = 0;
+        Iterator<Id> iter = linker.uriIds();
+
+        while (iter.hasNext())
+        {
+            count++;
+            iter.next();
+        }
+
+        assertEquals(entityTable.size(), count);
     }
 
     @Test
@@ -64,19 +76,19 @@ public class IndexReaderTest
         assertEquals("http://dbpedia.org/resource/Windows_Phone_7", linker.mapTo("http://www.wikipedia.org/wiki/Windows_Phone_7"));
         assertEquals("http://www.wikipedia.org/wiki/Windows_Phone_7", linker.mapFrom("http://dbpedia.org/resource/Windows_Phone_7"));
 
-        assertNotNull(linker.getUriDictionary().get("http://dbpedia.org/resource/1963_Formula_One_season"));
-        assertNotNull(linker.getWikiDictionary().get("http://www.wikipedia.org/wiki/1963_Formula_One_season"));
-        assertNotNull(linker.getUriDictionary().get("http://dbpedia.org/resource/Windows_Phone_7"));
-        assertNotNull(linker.getWikiDictionary().get("http://www.wikipedia.org/wiki/Windows_Phone_7"));
+        assertNotNull(linker.uriLookup("http://dbpedia.org/resource/1963_Formula_One_season"));
+        assertNotNull(linker.wikiLookup("http://www.wikipedia.org/wiki/1963_Formula_One_season"));
+        assertNotNull(linker.uriLookup("http://dbpedia.org/resource/Windows_Phone_7"));
+        assertNotNull(linker.wikiLookup("http://www.wikipedia.org/wiki/Windows_Phone_7"));
     }
 
     @Test
     public void testEntityTable()
     {
         EntityTable entityTable = this.reader.getEntityTable();
-        IdDictionary<String> dictionary = this.reader.getLinker().getUriDictionary();
-        Entity ent1 = entityTable.find(dictionary.get("http://dbpedia.org/resource/1963_Formula_One_season")),
-                ent2 = entityTable.find(dictionary.get("http://dbpedia.org/resource/Windows_Phone_7"));
+        EntityLinking linker = this.reader.getLinker();
+        Entity ent1 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/1963_Formula_One_season")),
+                ent2 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/Windows_Phone_7"));
         Set<String> ent1Types = Set.of("dbo:FootballLeagueSeason", "yago:YagoPermanentlyLocatedEntity",
                 "yago:Abstraction100002137", "yago:Event100029378", "yago:FundamentalQuantity113575869",
                 "yago:Measure100033615", "yago:PsychologicalFeature100023100", "yago:Season115239579",
@@ -111,14 +123,14 @@ public class IndexReaderTest
     public void testEntityTableLink()
     {
         EntityTableLink entityTableLink = this.reader.getEntityTableLink();
-        IdDictionary<String> dictionary = this.reader.getLinker().getUriDictionary();
+        EntityLinking linking = this.reader.getLinker();
 
-        assertEquals(1, entityTableLink.find(dictionary.get("http://dbpedia.org/resource/1963_Formula_One_season")).size());
-        assertEquals("table-0072-223.json", entityTableLink.find(dictionary.get("http://dbpedia.org/resource/1963_Formula_One_season")).get(0));
-        assertEquals(1, entityTableLink.getLocations(dictionary.get("http://dbpedia.org/resource/1963_Formula_One_season"), "table-0072-223.json").size());
+        assertEquals(1, entityTableLink.find(linking.uriLookup("http://dbpedia.org/resource/1963_Formula_One_season")).size());
+        assertEquals("table-0072-223.json", entityTableLink.find(linking.uriLookup("http://dbpedia.org/resource/1963_Formula_One_season")).get(0));
+        assertEquals(1, entityTableLink.getLocations(linking.uriLookup("http://dbpedia.org/resource/1963_Formula_One_season"), "table-0072-223.json").size());
 
-        assertEquals(1, entityTableLink.find(dictionary.get("http://dbpedia.org/resource/Windows_Phone_7")).size());
-        assertEquals("table-0782-820.json", entityTableLink.find(dictionary.get("http://dbpedia.org/resource/Windows_Phone_7")).get(0));
-        assertEquals(2, entityTableLink.getLocations(dictionary.get("http://dbpedia.org/resource/Windows_Phone_7"), "table-0782-820.json").size());
+        assertEquals(1, entityTableLink.find(linking.uriLookup("http://dbpedia.org/resource/Windows_Phone_7")).size());
+        assertEquals("table-0782-820.json", entityTableLink.find(linking.uriLookup("http://dbpedia.org/resource/Windows_Phone_7")).get(0));
+        assertEquals(2, entityTableLink.getLocations(linking.uriLookup("http://dbpedia.org/resource/Windows_Phone_7"), "table-0782-820.json").size());
     }
 }

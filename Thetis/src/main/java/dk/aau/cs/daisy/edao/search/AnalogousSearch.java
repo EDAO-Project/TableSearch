@@ -382,7 +382,7 @@ public class AnalogousSearch extends AbstractSearch
         {
             Set<Type> entTypes1 = new HashSet<>();
             Set<Type> entTypes2 = new HashSet<>();
-            Id ent1Id = getLinker().getUriDictionary().get(ent1), ent2Id = getLinker().getUriDictionary().get(ent2);
+            Id ent1Id = getLinker().uriLookup(ent1), ent2Id = getLinker().uriLookup(ent2);
 
             if (getEntityTable().contains(ent1Id))
                 entTypes1 = new HashSet<>(getEntityTable().find(ent1Id).getTypes());
@@ -579,7 +579,7 @@ public class AnalogousSearch extends AbstractSearch
             for (int column = 0; column < rowSize; column++)
             {
                 String uri = getLinker().mapTo(query.getRow(queryRow).get(column));
-                Id entityId = getLinker().getUriDictionary().get(uri);
+                Id entityId = getLinker().uriLookup(uri);
                 curRowIDFScores.add(getEntityTable().find(entityId).getIDF());
             }
 
@@ -648,7 +648,7 @@ public class AnalogousSearch extends AbstractSearch
     private Set<String> distinctTables()
     {
         Set<String> tables = new HashSet<>();
-        Iterator<Id> entityIter = getLinker().getUriDictionary().elements().asIterator();
+        Iterator<Id> entityIter = getLinker().uriIds();
 
         while (entityIter.hasNext())
         {

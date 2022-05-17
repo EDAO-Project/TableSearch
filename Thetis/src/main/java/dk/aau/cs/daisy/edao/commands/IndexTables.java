@@ -193,7 +193,7 @@ public class IndexTables extends Command {
             Logger.logNewLine(Logger.Level.INFO, "Elapsed time: " + elapsedTime / (1e9) + " seconds\n");
 
             Set<Type> entityTypes = new HashSet<>();
-            Iterator<Id> idIter = indexWriter.getEntityLinker().getUriDictionary().elements().asIterator();
+            Iterator<Id> idIter = indexWriter.getEntityLinker().uriIds();
 
             while (idIter.hasNext())
             {

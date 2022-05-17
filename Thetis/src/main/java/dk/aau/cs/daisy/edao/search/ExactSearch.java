@@ -42,7 +42,7 @@ public class ExactSearch extends AbstractSearch
             for (int i = 0; i < entityCount; i++)
             {
                 String uri = getLinker().mapTo(flattenedQuery.get(i));
-                Id entityID = getLinker().getUriDictionary().get(uri);
+                Id entityID = getLinker().uriLookup(uri);
                 List<Pair<Integer, Integer>> locations = getEntityTableLink().getLocations(entityID, fileName);
                 Set<Integer> rows = new HashSet<>(locations.size());
                 locations.forEach(l -> rows.add(l.getFirst()));
@@ -88,13 +88,13 @@ public class ExactSearch extends AbstractSearch
     {
         int queryEntityCount = row.size();
         String uri = getLinker().mapTo(row.get(0));
-        Id firstEntity = getLinker().getUriDictionary().get(uri);
+        Id firstEntity = getLinker().uriLookup(uri);
         List<String> sharedTableFiles = getEntityTableLink().find(firstEntity);
 
         for (int i = 1; i < queryEntityCount; i++)
         {
             uri = getLinker().mapTo(row.get(i));
-            Id entityID = getLinker().getUriDictionary().get(uri);
+            Id entityID = getLinker().uriLookup(uri);
             sharedTableFiles.retainAll(getEntityTableLink().find(entityID));
         }
 

@@ -4,8 +4,7 @@ import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.IdDictionary;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Mapping from Wikipedia link to KG entity URI
@@ -35,14 +34,34 @@ public class EntityLinking implements Linker<String, String>, Serializable
         this.wikiDict = wikiDict;
     }
 
-    public IdDictionary<String> getUriDictionary()
+    public Id uriLookup(String uri)
     {
-        return this.uriDict;
+        return this.uriDict.get(uri.substring(this.uriPrefix.length()));
     }
 
-    public IdDictionary<String> getWikiDictionary()
+    public String uriLookup(Id id)
     {
-        return this.wikiDict;
+        return this.uriPrefix + this.uriDict.get(id);
+    }
+
+    public Id wikiLookup(String wikiLink)
+    {
+        return this.wikiDict.get(wikiLink.substring(this.wikiPrefix.length()));
+    }
+
+    public String wikiLookup(Id id)
+    {
+        return this.wikiPrefix + this.wikiDict.get(id);
+    }
+
+    public Iterator<Id> uriIds()
+    {
+        return this.uriDict.elements().asIterator();
+    }
+
+    public Iterator<Id> wikiIds()
+    {
+        return this.wikiDict.elements().asIterator();
     }
 
     /**
