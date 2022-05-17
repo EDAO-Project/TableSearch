@@ -5,7 +5,6 @@ import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
 import dk.aau.cs.daisy.edao.structures.Id;
-import dk.aau.cs.daisy.edao.structures.IdDictionary;
 import dk.aau.cs.daisy.edao.structures.graph.Entity;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
 import org.junit.After;
@@ -31,8 +30,8 @@ public class IndexReaderTest
     @Before
     public void setup() throws IOException
     {
-        List<Path> paths = List.of(Path.of("table-0072-223.json", "table-0314-885.json",
-                "table-0782-820.json", "table-1019-555.json", "table-1260-258.json"));
+        List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
+                Path.of("table-0782-820.json"), Path.of("table-1019-555.json"), Path.of("table-1260-258.json"));
         paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
         IndexWriter writer = new IndexWriter(paths, this.outDir, new Neo4jEndpoint("config.properties"), 1,
                 true, "http://www.wikipedia.org/", "http://dbpedia.org/");
