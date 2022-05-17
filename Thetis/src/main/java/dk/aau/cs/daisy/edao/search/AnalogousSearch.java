@@ -578,8 +578,7 @@ public class AnalogousSearch extends AbstractSearch
 
             for (int column = 0; column < rowSize; column++)
             {
-                String uri = getLinker().mapTo(query.getRow(queryRow).get(column));
-                Id entityId = getLinker().uriLookup(uri);
+                Id entityId = getLinker().uriLookup(query.getRow(queryRow).get(column));
                 curRowIDFScores.add(getEntityTable().find(entityId).getIDF());
             }
 
