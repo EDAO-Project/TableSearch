@@ -104,24 +104,6 @@ public class SearchTables extends Command {
         }
     }
 
-    public enum EmbeddingsInputMode {
-        FILE("file"), DATABASE("data"); 
-
-        private final String mode;
-        EmbeddingsInputMode(String mode){
-            this.mode = mode;
-        }
-
-        public final String getEmbeddingsInputMode(){
-            return this.mode;
-        }
-
-        @Override
-        public String toString() {
-            return this.mode;
-        }
-    }
-
     @CommandLine.Option(names = { "-sm", "--search-mode" }, description = "Must be one of {exact, analogous}", required = true)
     private SearchMode searchMode = null;
 
@@ -136,9 +118,6 @@ public class SearchTables extends Command {
 
     @CommandLine.Option(names = { "--hungarianAlgorithmSameAlignmentAcrossTuples"}, description = "If specified, the Hungarian algorithm uses the same alignment of columns to query entities across all query tuples")
     private boolean hungarianAlgorithmSameAlignmentAcrossTuples;
-
-    @CommandLine.Option(names = { "-pem", "--embeddingsInputMode" }, description = "Specifies the manner by which the preTrainedEmbeddings are loaded from. Must be one of {file, database}", defaultValue = "file")
-    private EmbeddingsInputMode embeddingsInputMode = null;
 
     @CommandLine.Option(names = { "-ajs", "--adjustedJaccardSimilarity"}, description = "If specified, the Jaccard similarity between two entities can only be one if the two entities compared are identical. " + 
         "If two different entities share the same types then assign an adjusted score of 0.95. ")
@@ -264,11 +243,9 @@ public class SearchTables extends Command {
         if (!outputDir.exists())
             outputDir.mkdirs();
 
-        if (this.embeddingsInputMode == EmbeddingsInputMode.DATABASE)
-            this.store = Factory.fromConfig(false);
-
         // Read off the queryEntities list from a json object
         Table<String> queryTable = TableParser.toTable(this.queryFile);
+        this.store = Factory.fromConfig(false);
 
         if (queryTable == null)
         {
@@ -318,9 +295,7 @@ public class SearchTables extends Command {
                     break;
             }
 
-            if (this.embeddingsInputMode == EmbeddingsInputMode.DATABASE)
-                this.store.close();
-
+            this.store.close();
             return 1;
         }
 

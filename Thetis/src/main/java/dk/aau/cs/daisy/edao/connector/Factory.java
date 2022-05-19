@@ -27,12 +27,7 @@ public class Factory
 
     public static DBDriverBatch<List<Double>, String> makeRelational(DBDriver<ResultSet, String> driver, boolean doSetup)
     {
-        RelationalEmbeddings relational = new RelationalEmbeddings(driver);
-
-        if (doSetup)
-            relational.setup();
-
-        return relational;
+        return new EmbeddingDBWrapper(driver, doSetup);
     }
 
     public static DBDriverBatch<List<Double>, String> makeVectorized(String host, int port, String dbPath, int vectorDimension)
