@@ -1221,8 +1221,19 @@ public class SearchTables extends Command {
         JsonObject jsonObj = new JsonObject();
         JsonArray innerObjs = new JsonArray();
 
-        // Iterate over filenameToScore hashmap
-        for (String file : ProgressBar.wrap(filenameToScore.keySet(), "Processing files...")) {
+        // Select the first top-k files from the `filenameToScore hashmap`
+        Integer k=500;
+        List<String> topKFilenames = new ArrayList<String>();
+        if (filenameToScore.size() > k) {
+            List<String> filenames = new ArrayList<String>(filenameToScore.keySet());
+            topKFilenames= filenames.stream().limit(k).collect(Collectors.toList());
+        }
+        else {
+            topKFilenames = new ArrayList<String>(filenameToScore.keySet());
+        }
+
+        // Iterate over the top-k values in the filenameToScore hashmap
+        for (String file : ProgressBar.wrap(topKFilenames, "Processing files...")) {
             JsonObject tmp = new JsonObject();
             tmp.addProperty("tableID", file);
             tmp.addProperty("score", filenameToScore.get(file));
