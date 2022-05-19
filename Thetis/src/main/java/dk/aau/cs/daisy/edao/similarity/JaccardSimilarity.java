@@ -3,6 +3,7 @@ package dk.aau.cs.daisy.edao.similarity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.HashSet;
 import dk.aau.cs.daisy.edao.commands.SearchTables;
 
 public class JaccardSimilarity<E> implements Similarity
@@ -36,7 +37,7 @@ public class JaccardSimilarity<E> implements Similarity
     @Override
     public double similarity()
     {
-        List<E> intersection = intersection(), union = union();
+        HashSet<E> intersection = intersection(), union = union();
 
         if (union.isEmpty())
             return 0;
@@ -67,16 +68,16 @@ public class JaccardSimilarity<E> implements Similarity
         
     }
 
-    private List<E> intersection()
+    private HashSet<E> intersection()
     {
-        List<E> inter = new ArrayList<>(this.s1);
+        HashSet<E> inter = new HashSet<>(this.s1);
         inter.retainAll(this.s2);
         return inter;
     }
 
-    private List<E> union()
+    private HashSet<E> union()
     {
-        List<E> union = new ArrayList<>(this.s1);
+        HashSet<E> union = new HashSet<>(this.s1);
         union.addAll(this.s2);
         return union;
     }
