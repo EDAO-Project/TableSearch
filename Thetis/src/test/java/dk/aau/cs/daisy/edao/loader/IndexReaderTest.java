@@ -86,20 +86,19 @@ public class IndexReaderTest
     {
         EntityTable entityTable = this.reader.getEntityTable();
         EntityLinking linker = this.reader.getLinker();
-        Entity ent1 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/1963_Formula_One_season")),
-                ent2 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/Windows_Phone_7"));
-        Set<String> ent1Types = Set.of("dbo:FootballLeagueSeason", "yago:YagoPermanentlyLocatedEntity",
-                "yago:Abstraction100002137", "yago:Event100029378", "yago:FundamentalQuantity113575869",
-                "yago:Measure100033615", "yago:PsychologicalFeature100023100", "yago:Season115239579",
-                "yago:TimePeriod115113229", "yago:WikicatFormulaOneSeasons"),
-                ent2Types = Set.of("owl:Thing", "dbo:Software", "schema:CreativeWork", "dbo:Work",
-                        "wikidata:Q386724", "wikidata:Q7397", "yago:Abstraction100002137",
-                        "yago:Communication100033020", "yago:Explanation106738281", "yago:Interpretation107170753",
-                        "yago:Message106598915", "yago:Statement106722453", "yago:Version107173585");
+        Entity ent1 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/India")),
+                ent2 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/Baltimore"));
+        Set<String> ent1Types = Set.of("http://dbpedia.org/ontology/Place", "http://dbpedia.org/ontology/Location",
+                "http://schema.org/Place, http://www.wikidata.org/entity/Q6256", "http://dbpedia.org/ontology/Country",
+                "http://dbpedia.org/ontology/PopulatedPlace", "http://schema.org/Country"),
+                ent2Types = Set.of("http://schema.org/City", "http://www.wikidata.org/entity/Q486972",
+                        "http://dbpedia.org/ontology/City", "http://dbpedia.org/ontology/Place",
+                        "http://dbpedia.org/ontology/Location", "http://www.wikidata.org/entity/Q515", "http://schema.org/Place",
+                        "http://dbpedia.org/ontology/Settlement", "http://dbpedia.org/ontology/PopulatedPlace");
 
         // Checking URIs
-        assertEquals("http://dbpedia.org/resource/1963_Formula_One_season", ent1.getUri());
-        assertEquals("http://dbpedia.org/resource/Windows_Phone_7", ent2.getUri());
+        assertEquals("http://dbpedia.org/resource/India", ent1.getUri());
+        assertEquals("http://dbpedia.org/resource/Baltimore", ent2.getUri());
 
         // Checking types
         assertEquals(ent1Types.size(), ent1.getTypes().size());
