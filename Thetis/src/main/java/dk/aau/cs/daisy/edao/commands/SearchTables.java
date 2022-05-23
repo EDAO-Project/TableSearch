@@ -1137,7 +1137,7 @@ public class SearchTables extends Command {
 
             }
 
-            if (usePretrainedEmbeddings) {
+            if (usePretrainedEmbeddings && this.embeddingsInputMode == EmbeddingsInputMode.FILE) {
                 Gson gson = new Gson();
                 Reader reader = new FileReader(embeddingsPath);
 
