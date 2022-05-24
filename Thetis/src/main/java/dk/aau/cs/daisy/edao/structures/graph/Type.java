@@ -26,7 +26,7 @@ public class Type implements Comparable<Type>, Serializable
 
     public String getType()
     {
-        return toString();
+        return this.type;
     }
 
     public double getIdf()

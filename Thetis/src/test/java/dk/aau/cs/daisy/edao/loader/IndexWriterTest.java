@@ -93,7 +93,7 @@ public class IndexWriterTest
         Set<String> ent1Types = Set.of("<http://dbpedia.org/ontology/HockeyTeam>", "http://dbpedia.org/ontology/Agent",
                 "http://dbpedia.org/ontology/Organisation", "http://dbpedia.org/ontology/SportsTeam",
                 "http://schema.org/Organization", "http://schema.org/SportsTeam", "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#Agent",
-                "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#SocialPerson", "http://www.w3.org/2002/07/owl#Thing",
+                "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#SocialPerson",
                 "http://www.wikidata.org/entity/Q12973014", "http://www.wikidata.org/entity/Q24229398",
                 "http://www.wikidata.org/entity/Q43229", "http://www.wikidata.org/entity/Q4498974"),
                 ent2Types = Set.of();
