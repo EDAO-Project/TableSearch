@@ -60,6 +60,9 @@ public class Type implements Comparable<Type>, Serializable
         if (equals(o))
             return 0;
 
+        else if (this.type.equals(o.getType()))
+            return this.idf < o.idf ? -1 : 1;
+
         return type.compareTo(o.getType());
     }
 }
