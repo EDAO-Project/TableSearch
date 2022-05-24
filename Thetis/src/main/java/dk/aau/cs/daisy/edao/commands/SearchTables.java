@@ -168,19 +168,32 @@ public class SearchTables extends Command {
     }
 
     private File queryFile = null;
-    @CommandLine.Option(names = { "-q", "--query-file" }, paramLabel = "QUERY", description = "Path to the query json file", required = true)
+    private File queriesLocation;
+    private List<Path> queryFiles;
+    @CommandLine.Option(names = { "-q", "--queries" }, paramLabel = "QUERY", description = "Path to directory of query json files", required = true)
     public void setQueryFile(File value) {
         if(!value.exists()){
             throw new CommandLine.ParameterException(spec.commandLine(),
-                String.format("Invalid value '%s' for option '--query-file': " + "the directory does not exists.", value));
+                String.format("Invalid value '%s' for option '--queries': " + "the directory does not exists.", value));
         }
+
+        this.queriesLocation = value;
 
         if (!value.isFile()) {
-            throw new CommandLine.ParameterException(spec.commandLine(),
-                    String.format("Invalid value '%s' for option '--query-file': " + "the path does not point to a directory.", value));
+            this.queryFiles = List.of(value.toPath());
         }
 
-        queryFile = value;
+        else {
+            try {
+                Stream<Path> queryStream = Files.find(value.toPath(), Integer.MAX_VALUE,
+                        (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
+                this.queryFiles = queryStream.collect(Collectors.toList());
+            }
+            catch (IOException e) {
+                Logger.logNewLine(Logger.Level.ERROR, "Exception when finding query files: " + e.getMessage());
+                System.exit(1);
+            }
+        }
     }
 
     private File tableDir = null;
@@ -232,10 +245,11 @@ public class SearchTables extends Command {
     private DBDriverBatch<List<Double>, String> store;
 
     @Override
-    public Integer call() {
+    public Integer call()
+    {
         Logger.logNewLine(Logger.Level.INFO, "Index Directory: " + this.indexDir);
-        Logger.logNewLine(Logger.Level.INFO, "Query File: " + this.queryFile);
-        Logger.logNewLine(Logger.Level.INFO, "Table Directory: " + this.tableDir);  // TODO: Make this redundant - necessary info should be found in indexes
+        Logger.logNewLine(Logger.Level.INFO, "Query Directory: " + this.queriesLocation.toString());
+        Logger.logNewLine(Logger.Level.INFO, "Table Directory: " + this.tableDir);
         Logger.logNewLine(Logger.Level.INFO, "Output Directory: " + this.outputDir);
         Logger.logNewLine(Logger.Level.INFO, "Single Column per Query Entity: " + this.singleColumnPerQueryEntity);
 
@@ -243,21 +257,11 @@ public class SearchTables extends Command {
         if (!outputDir.exists())
             outputDir.mkdirs();
 
-        // Read off the queryEntities list from a json object
-        Table<String> queryTable = TableParser.toTable(this.queryFile);
-        this.store = Factory.fromConfig(false);
-
-        if (queryTable == null)
-        {
-            Logger.logNewLine(Logger.Level.ERROR, "Query file '" + this.queryFile + "' could not be parsed");
-            return -1;
-        }
-
-        Logger.logNewLine(Logger.Level.INFO, "Query Entities: " + queryTable + "\n");
-
         try
         {
-            // Perform De-Serialization of the indices
+            this.store = Factory.fromConfig(false);
+
+            // Perform De-Serialization of the indexes
             long startTime = System.nanoTime();
             IndexReader indexReader = new IndexReader(this.indexDir, true, true);
             indexReader.performIO();
@@ -269,30 +273,45 @@ public class SearchTables extends Command {
             EntityTable entityTable = indexReader.getEntityTable();
             EntityTableLink entityTableLink = indexReader.getEntityTableLink();
 
-            // Ensure all query entities are mappable
-            if (ensureQueryEntitiesMapping(queryTable, linker, entityTableLink))
-                Logger.logNewLine(Logger.Level.INFO, "All query entities are mappable!\n\n");
-
-            else
+            for (Path queryPath : this.queryFiles)
             {
-                Logger.logNewLine(Logger.Level.ERROR, "NOT all query entities are mappable!");
-                return -1;
-            }
+                String[] split = queryPath.toFile().toString().split("/");
+                String queryName = split[split.length - 1].split("\\.")[0];
+                Table<String> queryTable = TableParser.toTable(this.queryFile);
 
-            Logger.logNewLine(Logger.Level.INFO, "Search mode: " + this.searchMode.getMode());
+                if (queryTable == null)
+                {
+                    Logger.logNewLine(Logger.Level.ERROR, "Query file '" + this.queryFile + "' could not be parsed");
+                    return -1;
+                }
 
-            switch (this.searchMode){
-                case EXACT:
-                    exactSearch(queryTable, linker, entityTable, entityTableLink);
-                    break;
+                Logger.logNewLine(Logger.Level.INFO, "Query Entities: " + queryTable + "\n");
 
-                case ANALOGOUS:
-                    analogousSearch(queryTable, linker, entityTable, entityTableLink, this.tableDir.toPath());
-                    break;
+                if (ensureQueryEntitiesMapping(queryTable, linker, entityTableLink))
+                    Logger.logNewLine(Logger.Level.INFO, "All query entities are mappable!\n\n");
 
-                case PPR:
-                    ppr();
-                    break;
+                else
+                {
+                    Logger.logNewLine(Logger.Level.ERROR, "NOT all query entities are mappable!");
+                    return -1;
+                }
+
+                Logger.logNewLine(Logger.Level.INFO, "Search mode: " + this.searchMode.getMode());
+
+                switch (this.searchMode)
+                {
+                    case EXACT:
+                        exactSearch(queryTable, linker, entityTable, entityTableLink);
+                        break;
+
+                    case ANALOGOUS:
+                        analogousSearch(queryTable, linker, entityTable, entityTableLink, this.tableDir.toPath());
+                        break;
+
+                    case PPR:
+                        ppr();
+                        break;
+                }
             }
 
             this.store.close();
