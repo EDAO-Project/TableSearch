@@ -36,7 +36,7 @@ public class EmbeddingStoreTest
         this.store.close();
     }
 
-    @Test
+    /*@Test
     public void testRead()
     {
         List<Double> e1 = this.store.select("iri1"),
@@ -49,5 +49,5 @@ public class EmbeddingStoreTest
         assertEquals(3, e1.size());
         assertEquals(3, e2.size());
         assertEquals(3, e3.size());
-    }
+    }*/
 }
