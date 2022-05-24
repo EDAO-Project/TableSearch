@@ -90,7 +90,7 @@ public class IndexWriterTest
         EntityLinking linker = this.writer.getEntityLinker();
         Entity ent1 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/Boston_Bruins")),
                 ent2 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/NEC_Cup"));
-        Set<String> ent1Types = Set.of("<http://dbpedia.org/ontology/HockeyTeam>", "http://dbpedia.org/ontology/Agent",
+        Set<String> ent1Types = Set.of("http://dbpedia.org/ontology/HockeyTeam", "http://dbpedia.org/ontology/Agent",
                 "http://dbpedia.org/ontology/Organisation", "http://dbpedia.org/ontology/SportsTeam",
                 "http://schema.org/Organization", "http://schema.org/SportsTeam", "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#Agent",
                 "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#SocialPerson",
