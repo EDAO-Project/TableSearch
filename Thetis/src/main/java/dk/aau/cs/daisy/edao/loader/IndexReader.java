@@ -47,7 +47,7 @@ public class IndexReader implements IndexIO
         Future<?> f1 = threadPoolService.submit(this::loadEntityLinker);
         Future<?> f2 = threadPoolService.submit(this::loadEntityTable);
         Future<?> f3 = threadPoolService.submit(this::loadEntityTableLink);
-        int completed = 0;
+        int completed = -1;
 
         while (!f1.isDone() || !f2.isDone() || !f3.isDone())
         {
