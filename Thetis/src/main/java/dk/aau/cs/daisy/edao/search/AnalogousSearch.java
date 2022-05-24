@@ -181,7 +181,7 @@ public class AnalogousSearch extends AbstractSearch
 
         List<List<Integer>> queryRowToColumnMappings = new ArrayList<>();  // If each query entity needs to map to only one column find the best mapping
 
-        if (singleColumnPerQueryEntity)
+        if (this.singleColumnPerQueryEntity)
         {
             queryRowToColumnMappings = getQueryToColumnMapping(query, jTable);
             List<List<String>> queryRowToColumnNames = new ArrayList<>(); // Log in the `statisticsMap` the column names aligned with each query row
@@ -378,64 +378,70 @@ public class AnalogousSearch extends AbstractSearch
      */
     private double entitySimilarityScore(String ent1, String ent2)
     {
-        if (!this.useEmbeddings)  // Jaccard similarity
+        if (!this.useEmbeddings)
+            return jaccardSimilarity(ent1, ent2);
+
+        else if (entityExists(ent1) && entityExists(ent2))
+            return cosineSimilarity(ent2, ent2);
+
+        synchronized (this.lock)
         {
-            Set<Type> entTypes1 = new HashSet<>();
-            Set<Type> entTypes2 = new HashSet<>();
-            Id ent1Id = getLinker().uriLookup(ent1), ent2Id = getLinker().uriLookup(ent2);
-
-            if (getEntityTable().contains(ent1Id))
-                entTypes1 = new HashSet<>(getEntityTable().find(ent1Id).getTypes());
-
-            if (getEntityTable().contains(ent2Id))
-                entTypes2 = new HashSet<>(getEntityTable().find(ent2Id).getTypes());
-
-            double jaccardScore = 0.0;
-
-            if (this.weightedJaccard)   // Run weighted Jaccard Similarity
-            {
-                Set<Pair<Type, Double>> weights = entTypes1.stream().map(t -> new Pair<>(t, t.getIdf())).collect(Collectors.toSet());
-                weights.addAll(entTypes2.stream().map(t -> new Pair<>(t, t.getIdf())).collect(Collectors.toSet()));
-                weights = weights.stream().filter(p -> p.getSecond() >= 0).collect(Collectors.toSet());
-                jaccardScore = JaccardSimilarity.make(entTypes1, entTypes2, weights).similarity();
-            }
-
-            else
-                jaccardScore = JaccardSimilarity.make(entTypes1, entTypes2).similarity();
-
-            if (this.adjustedJaccard)
-                return ent1.equals(ent2) ? 1.0 : Math.min(0.95, jaccardScore);
-
-            return jaccardScore;
+            this.nonEmbeddingComparisons++;
         }
 
-        else if (entityExists(ent1) && entityExists(ent2))     // Check if the `usePretrainedEmbeddings` mode is specified and if there are embeddings for both entities
+        return 0.0;
+    }
+
+    private double jaccardSimilarity(String ent1, String ent2)
+    {
+        Set<Type> entTypes1 = new HashSet<>();
+        Set<Type> entTypes2 = new HashSet<>();
+        Id ent1Id = getLinker().uriLookup(ent1), ent2Id = getLinker().uriLookup(ent2);
+
+        if (getEntityTable().contains(ent1Id))
+            entTypes1 = new HashSet<>(getEntityTable().find(ent1Id).getTypes());
+
+        if (getEntityTable().contains(ent2Id))
+            entTypes2 = new HashSet<>(getEntityTable().find(ent2Id).getTypes());
+
+        double jaccardScore = 0.0;
+
+        if (this.weightedJaccard)   // Run weighted Jaccard Similarity
         {
-            double cosineSim = Utils.cosineSimilarity(this.embeddings.select(ent1), this.embeddings.select(ent2)), simScore = 0.0;
-
-            if (this.embeddingSimFunction == CosineSimilarityFunction.NORM_COS)
-                simScore = (cosineSim + 1.0) / 2.0;
-
-            else if (this.embeddingSimFunction == CosineSimilarityFunction.ABS_COS)
-                simScore = Math.abs(cosineSim);
-
-            else if (this.embeddingSimFunction == CosineSimilarityFunction.ANG_COS)
-                simScore = 1 - Math.acos(cosineSim) / Math.PI;
-
-            synchronized (this.lock)
-            {
-                this.embeddingComparisons++;
-            }
-
-            return simScore;
+            Set<Pair<Type, Double>> weights = entTypes1.stream().map(t -> new Pair<>(t, t.getIdf())).collect(Collectors.toSet());
+            weights.addAll(entTypes2.stream().map(t -> new Pair<>(t, t.getIdf())).collect(Collectors.toSet()));
+            weights = weights.stream().filter(p -> p.getSecond() >= 0).collect(Collectors.toSet());
+            jaccardScore = JaccardSimilarity.make(entTypes1, entTypes2, weights).similarity();
         }
+
+        else
+            jaccardScore = JaccardSimilarity.make(entTypes1, entTypes2).similarity();
+
+        if (this.adjustedJaccard)
+            return ent1.equals(ent2) ? 1.0 : Math.min(0.95, jaccardScore);
+
+        return jaccardScore;
+    }
+
+    private double cosineSimilarity(String ent1, String ent2)
+    {
+        double cosineSim = Utils.cosineSimilarity(this.embeddings.select(ent1), this.embeddings.select(ent2)), simScore = 0.0;
+
+        if (this.embeddingSimFunction == CosineSimilarityFunction.NORM_COS)
+            simScore = (cosineSim + 1.0) / 2.0;
+
+        else if (this.embeddingSimFunction == CosineSimilarityFunction.ABS_COS)
+            simScore = Math.abs(cosineSim);
+
+        else if (this.embeddingSimFunction == CosineSimilarityFunction.ANG_COS)
+            simScore = 1 - Math.acos(cosineSim) / Math.PI;
 
         synchronized (this.lock)
         {
             this.embeddingComparisons++;
         }
 
-        return 0.0;
+        return simScore;
     }
 
     /**
@@ -507,7 +513,7 @@ public class AnalogousSearch extends AbstractSearch
         // in the chosen columns (i.e. tupleToColumnMappings.get(queryTupleID) ) need to be mappable
         List<String> relevantRowEntities = new ArrayList<>();
 
-        if (singleColumnPerQueryEntity)
+        if (this.singleColumnPerQueryEntity)
         {
             for (int assignedColumn : tupleToColumnMappings.get(queryRowIndex))
             {

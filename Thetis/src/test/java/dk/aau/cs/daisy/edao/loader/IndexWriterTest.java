@@ -88,19 +88,19 @@ public class IndexWriterTest
     {
         EntityTable entityTable = this.writer.getEntityTable();
         EntityLinking linker = this.writer.getEntityLinker();
-        Entity ent1 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/India")),
-                ent2 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/Baltimore"));
-        Set<String> ent1Types = Set.of("http://dbpedia.org/ontology/Place", "http://dbpedia.org/ontology/Location",
-                "http://schema.org/Place, http://www.wikidata.org/entity/Q6256", "http://dbpedia.org/ontology/Country",
-                "http://dbpedia.org/ontology/PopulatedPlace", "http://schema.org/Country"),
-                ent2Types = Set.of("http://schema.org/City", "http://www.wikidata.org/entity/Q486972",
-                        "http://dbpedia.org/ontology/City", "http://dbpedia.org/ontology/Place",
-                        "http://dbpedia.org/ontology/Location", "http://www.wikidata.org/entity/Q515", "http://schema.org/Place",
-                        "http://dbpedia.org/ontology/Settlement", "http://dbpedia.org/ontology/PopulatedPlace");
+        Entity ent1 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/Boston_Bruins")),
+                ent2 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/NEC_Cup"));
+        Set<String> ent1Types = Set.of("<http://dbpedia.org/ontology/HockeyTeam>", "http://dbpedia.org/ontology/Agent",
+                "http://dbpedia.org/ontology/Organisation", "http://dbpedia.org/ontology/SportsTeam",
+                "http://schema.org/Organization", "http://schema.org/SportsTeam", "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#Agent",
+                "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#SocialPerson", "http://www.w3.org/2002/07/owl#Thing",
+                "http://www.wikidata.org/entity/Q12973014", "http://www.wikidata.org/entity/Q24229398",
+                "http://www.wikidata.org/entity/Q43229", "http://www.wikidata.org/entity/Q4498974"),
+                ent2Types = Set.of();
 
         // Checking URIs
-        assertEquals("http://dbpedia.org/resource/India", ent1.getUri());
-        assertEquals("http://dbpedia.org/resource/Baltimore", ent2.getUri());
+        assertEquals("http://dbpedia.org/resource/Boston_Bruins", ent1.getUri());
+        assertEquals("http://dbpedia.org/resource/NEC_Cup", ent2.getUri());
 
         // Checking entity IDFs
         assertEquals(Math.log10(this.writer.loadedTables()) + 1, ent1.getIDF(), 0.0001);
