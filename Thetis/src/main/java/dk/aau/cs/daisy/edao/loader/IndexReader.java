@@ -60,6 +60,8 @@ public class IndexReader implements IndexIO
             }
         }
 
+        Logger.log(Logger.Level.INFO, "Loaded indexes: " + INDEX_COUNT + "/" + INDEX_COUNT);
+
         try
         {
             f1.get();

@@ -28,7 +28,6 @@ import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
 import dk.aau.cs.daisy.edao.structures.Id;
-import dk.aau.cs.daisy.edao.structures.IdDictionary;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
@@ -167,7 +166,6 @@ public class SearchTables extends Command {
         this.indexDir = value;
     }
 
-    private File queryFile = null;
     private File queriesLocation;
     private List<Path> queryFiles;
     @CommandLine.Option(names = { "-q", "--queries" }, paramLabel = "QUERY", description = "Path to directory of query json files", required = true)
@@ -179,7 +177,7 @@ public class SearchTables extends Command {
 
         this.queriesLocation = value;
 
-        if (!value.isFile()) {
+        if (value.isFile()) {
             this.queryFiles = List.of(value.toPath());
         }
 
@@ -254,8 +252,8 @@ public class SearchTables extends Command {
         Logger.logNewLine(Logger.Level.INFO, "Single Column per Query Entity: " + this.singleColumnPerQueryEntity);
 
         // Create output directory if it doesn't exist
-        if (!outputDir.exists())
-            outputDir.mkdirs();
+        if (!this.outputDir.exists())
+            this.outputDir.mkdirs();
 
         try
         {
@@ -277,11 +275,11 @@ public class SearchTables extends Command {
             {
                 String[] split = queryPath.toFile().toString().split("/");
                 String queryName = split[split.length - 1].split("\\.")[0];
-                Table<String> queryTable = TableParser.toTable(this.queryFile);
+                Table<String> queryTable = TableParser.toTable(queryPath.toFile());
 
                 if (queryTable == null)
                 {
-                    Logger.logNewLine(Logger.Level.ERROR, "Query file '" + this.queryFile + "' could not be parsed");
+                    Logger.logNewLine(Logger.Level.ERROR, "Query file '" + queryPath.toFile() + "' could not be parsed");
                     return -1;
                 }
 
@@ -305,11 +303,11 @@ public class SearchTables extends Command {
                         break;
 
                     case ANALOGOUS:
-                        analogousSearch(queryTable, linker, entityTable, entityTableLink, this.tableDir.toPath());
+                        analogousSearch(queryTable, queryName, linker, entityTable, entityTableLink, this.tableDir.toPath());
                         break;
 
                     case PPR:
-                        ppr();
+                        ppr(queryName);
                         break;
                 }
             }
@@ -430,7 +428,8 @@ public class SearchTables extends Command {
     /**
      * Given a list of entities, return a ranked list of table candidates
      */
-    public void analogousSearch(Table<String> query, EntityLinking linker, EntityTable table, EntityTableLink tableLink, Path tableDir) throws IOException
+    public void analogousSearch(Table<String> query, String queryName, EntityLinking linker, EntityTable table,
+                                EntityTableLink tableLink, Path tableDir) throws IOException
     {
         Stream<Path> fileStream = Files.find(tableDir, Integer.MAX_VALUE,
                 (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
@@ -456,12 +455,12 @@ public class SearchTables extends Command {
             Logger.logNewLine(Logger.Level.RESULT, "Filename = " + next.getFirst() + ", score = " + next.getSecond());
         }
 
-        saveFilenameScores(this.outputDir, scores, search.getTableStats(), search.getQueryEntitiesMissingCoverage(),
-                search.elapsedNanoSeconds(), search.getEmbeddingComparisons(), search.getNonEmbeddingComparisons(),
-                search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails());
+        saveFilenameScores(this.outputDir, queryName, scores, search.getTableStats(),
+                search.getQueryEntitiesMissingCoverage(), search.elapsedNanoSeconds(), search.getEmbeddingComparisons(),
+                search.getNonEmbeddingComparisons(), search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails());
     }
 
-    public int ppr() {
+    public int ppr(String queryName) {
         // Initialize the connector
         try {
             this.connector = new Neo4jEndpoint(this.configFile);
@@ -522,7 +521,7 @@ public class SearchTables extends Command {
         filenameToScore = sortByValue(filenameToScore);
 
         // Save the PPR scores to a json file
-        this.saveFilenameScores(outputDir, List.of(), null, null, -1, -1, -1, -1, -1);
+        saveFilenameScores(outputDir, queryName, List.of(), null, null, -1, -1, -1, -1, -1);
 
         return 1;
     }
@@ -543,7 +542,7 @@ public class SearchTables extends Command {
         });
           
         // put data from sorted list to hashmap 
-        Map<String, Double> temp = new LinkedHashMap<String, Double>();
+        Map<String, Double> temp = new LinkedHashMap<>();
         for (Map.Entry<String, Double> aa : list) {
             temp.put(aa.getKey(), aa.getValue());
         }
@@ -554,14 +553,15 @@ public class SearchTables extends Command {
      * Saves the data of the filenameToScore Hashmap into the "filenameToScore.json" file at the specified output directory
      */
     // TODO: Wrap this in RAII for better control
-    public synchronized void saveFilenameScores(File outputDir, List<Pair<String, Double>> scores, Map<String, Stats> tableStats,
-                                                Set<String> queryEntitiesMissingCoverage, long runtime, int embeddingComparisons,
-                                                int nonEmbeddingComparisons, int embeddingCoverageSuccesses, int embeddingCoverageFails)
+    public synchronized void saveFilenameScores(File outputDir, String queryName, List<Pair<String, Double>> scores,
+                                                Map<String, Stats> tableStats, Set<String> queryEntitiesMissingCoverage,
+                                                long runtime, int embeddingComparisons, int nonEmbeddingComparisons,
+                                                int embeddingCoverageSuccesses, int embeddingCoverageFails)
     {
-        File saveDir = new File(outputDir, "/search_output/");
+        File saveDir = new File(outputDir, "/search_output/" + queryName);
 
         if (!saveDir.exists())
-            saveDir.mkdir();
+            saveDir.mkdirs();
 
         Logger.logNewLine(Logger.Level.INFO, "\nConstructing the filenameToScore.json file...");
 
