@@ -50,7 +50,7 @@ def get_ndcg_scores_over_labeled(df, scores_path, tables_path, seed=0):
 
     # Loop over each query output and compute a top-k NDCG score where k is 2 times the number of truly relevant tables
     for file in tqdm(os.listdir(scores_path)):
-        filepath = Path(scores_path+file+'/search_output/filenameToScore.json')
+        filepath = Path(scores_path+file+'/filenameToScore.json')
         if filepath.is_file():
             wikipage_id = int(file.split('_')[1])
             
@@ -58,7 +58,7 @@ def get_ndcg_scores_over_labeled(df, scores_path, tables_path, seed=0):
             num_tables = len(df[df['wikipage_id']==wikipage_id]['tables'].values[0])
             
             # Read scores
-            with open(scores_path + file + '/search_output/filenameToScore.json', 'r') as fp:
+            with open(scores_path + file + '/filenameToScore.json', 'r') as fp:
                 scored_tables_json = json.load(fp)['scores']
             
             table_id_to_score = {}
@@ -90,17 +90,24 @@ def get_ndcg_scores_over_labeled(df, scores_path, tables_path, seed=0):
 
 
 
-def get_ndcg_scores_over_output(full_df, query_df, scores_path, groundtruth_relevance_scores_dir, tables_list,
+def get_scores_over_output(full_df, query_df, scores_path, groundtruth_relevance_scores_dir, tables_list,
     remove_query_tables_from_evaluation_mode=None, k=10):
     '''
-    Compute the NDCG scores for every query scored in the `scores_path`
+    Compute evaluation metrics for every query scored in the `scores_path`
+
+    The following measures are computed/logged:
+        * Number of relevant tables @k
+        * Precision@k
+        * Recall@k
+        * NDCG@k
+        * AUC score
 
     The NDCG score is computed over the top-k results from the output of each query
 
     If `remove_query_tables_from_evaluation_mode` is specified then query tables are not evaluated and removed from the groundtruth
 
     Return a dictionary indexed by wikipage_id that maps to a dictionary specifying the
-    ndcg_score@k, as well as the number of true relevant tables found at k
+    various evaluation metrics computed 
     '''
 
     # Maps a wikipage_id to its respective ndcg score
@@ -108,16 +115,16 @@ def get_ndcg_scores_over_output(full_df, query_df, scores_path, groundtruth_rele
 
     # Loop over each query output and compute a top-k NDCG score
     for file in tqdm(sorted(os.listdir(scores_path))):
-        filepath = Path(scores_path+file+'/search_output/filenameToScore.json')
+        filepath = Path(scores_path+file+'/filenameToScore.json')
         if filepath.is_file():
             wikipage_id = int(file.split('_')[1])
 
             filtered_tables_list = tables_list
             # Update the `filtered_tables_list` if `remove_query_tables_from_evaluation_mode` is specified
-            if args.remove_query_tables_from_evaluation_mode:
+            if remove_query_tables_from_evaluation_mode:
                 filtered_tables_list, tables_removed = utils.filter_tables_list(
                     query_df=query_df, tables_list=tables_list,
-                    mode=args.remove_query_tables_from_evaluation_mode, wikipage_id=wikipage_id
+                    mode=remove_query_tables_from_evaluation_mode, wikipage_id=wikipage_id
                 )
 
             # Get the gt_to_relevance_scores_dict
@@ -127,7 +134,7 @@ def get_ndcg_scores_over_output(full_df, query_df, scores_path, groundtruth_rele
             )
 
             # Read scores and populate table_id_to_pred_score
-            with open(scores_path + file + '/search_output/filenameToScore.json', 'r') as fp:
+            with open(scores_path + file + '/filenameToScore.json', 'r') as fp:
                 scored_tables_json = json.load(fp)['scores']
             table_id_to_pred_score = {table_dict['tableID']:table_dict['score'] for table_dict in scored_tables_json}
 
@@ -136,45 +143,40 @@ def get_ndcg_scores_over_output(full_df, query_df, scores_path, groundtruth_rele
 
 
             # Construct the predicted relevance scores by querying the predicted score
-            # for all tables specified in the `gt_to_relevance_scores_dict`
+            # for all tables specified in the `gt_to_relevance_scores_dict`.
+            # A table not found in the `table_id_to_pred_score` dictionary is set to a default score of 0 
             pred_tables_to_relevance_scores_dict = {table:0 for table in gt_tables_to_relevance_scores_dict}
-            for table in gt_tables_to_relevance_scores_dict:
+            for table in table_id_to_pred_score:
                 pred_tables_to_relevance_scores_dict[table] = table_id_to_pred_score[table]
 
-            # Compute the num_relevant tables in the top-k of the `table_id_to_pred_score` dictionary
-            num_relevant_tables = 0
-            for table in list(table_id_to_pred_score.keys())[:k]:
-                if table in gt_tables_to_relevance_scores_dict and gt_tables_to_relevance_scores_dict[table]>0:
-                    num_relevant_tables+=1
+            # Compute the number of relevant tables in the top-k of the `table_id_to_pred_score` dictionary
+            num_relevant_tables_at_k = utils.evaluation_helpers.get_num_relevant_tables_at_k(gt_tables_to_relevance_scores_dict, table_id_to_pred_score, k)
 
+            # Compute the precision and recall @k
+            precision_at_k=utils.evaluation_helpers.get_precision_at_k(num_relevant_tables_at_k, k)
+            recall_at_k=utils.evaluation_helpers.get_recall_at_k(gt_tables_to_relevance_scores_dict, num_relevant_tables_at_k)
             
+            # Compute the NDCG@k score 
             gt_relevance = np.array([list(gt_tables_to_relevance_scores_dict.values())])
             predicted_relevance = np.array([list(pred_tables_to_relevance_scores_dict.values())])
+            score_ndcg = ndcg_score(gt_relevance, predicted_relevance, k=k)
+                        
+            # Compute AUC score (using AUC formula from: https://arxiv.org/pdf/1912.02263.pdf)
+            auc_score = utils.evaluation_helpers.get_AUC_score(
+                gt_tables_to_relevance_scores_dict=gt_tables_to_relevance_scores_dict,
+                table_id_to_pred_score=table_id_to_pred_score
+            )
 
-            score = ndcg_score(gt_relevance, predicted_relevance, k=k)
-            scores_dict[wikipage_id] = {'ndcg': score, 'num_relevant_tables': num_relevant_tables}
+            # Update the `scores_dict`            
+            scores_dict[wikipage_id] = {
+                'ndcg': score_ndcg, 'num_relevant_tables_at_k': num_relevant_tables_at_k,
+                "auc": auc_score, "precision_at_k": precision_at_k, "recall_at_k": recall_at_k
+            }
         else:
             # Ignore this query if scores not found
             pass
         
     return scores_dict
-
-# def filter_tables_list(query_df, tables_list, mode, wikipage_id):
-#     '''
-#     Returns an updated `tables_list` based on the specified `mode` of removing query tables from the evaluation
-#     as well as a list of the tables removed
-#     '''
-#     row = query_df[query_df['wikipage_id']==wikipage_id]
-#     tables_to_remove = []
-#     if mode == 'remove_query_table':
-#         tables_to_remove.extend(row['selected_table'])
-#     elif mode == 'remove_query_wikipage_tables':
-#         [tables_to_remove.append(table) for table in row['tables'].to_list()[0]]
-
-#     # Remove all `tables_to_remove` from `tables_list`
-#     tables_list = [table for table in tables_list if table not in tables_to_remove]
-
-#     return tables_list, tables_to_remove
 
 def main(args):
 
@@ -184,7 +186,7 @@ def main(args):
     # Extract the names of all tables in our search space
     tables_list = os.listdir(args.tables_dir)
 
-    scores_over_output = get_ndcg_scores_over_output(
+    scores_over_output = get_scores_over_output(
         full_df=full_df,
         query_df=df,
         scores_path=args.scores_dir,

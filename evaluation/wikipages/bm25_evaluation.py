@@ -18,22 +18,8 @@ from tqdm import tqdm
 # query_df_base_dir = '../../data/queries/wikipages/query_dataframes/wikipages_test_dataset/filtered_queries/'
 min_tuple_width=2
 tuples_per_query_list = [1, 2, 5, 10]
-top_k_vals = [1,5,10,15,20,30]
+top_k_vals = [5,10,15,20,50,100,150,200]
 
-
-
-
-# full_df_path="../../data/tables/wikipages/wikipages_expanded_dataset/wikipages_df.pickle"
-# full_df = pd.read_pickle(full_df_path)
-# groundtruth_relevance_scores_dir_categories='../../data/queries/wikipages/groundtruth_generation/wikipage_relevance_scores/wikipages_testing_dataset/jaccard_categories_new/'
-# tables_path = '../../data/tables/wikipages/wikipages_test_dataset/tables/'
-# output_df_path = 'evaluation_dataframes/wikipages_testing_filtered_queries_bm25_dfs_dict.pickle'
-
-# # Extract the names of all tables in our search space
-# tables_list = os.listdir(tables_path)
-
-
-# bm25_scores_base_path='../../Web-Table-Retrieval-Benchmark/data/wikipages_testing/ranking/filtered_queries/'
 
 def get_bm25_ndcg_scores_over_output(args, full_df, tables_list, remove_query_tables_from_evaluation_mode=None):
     '''
@@ -54,13 +40,13 @@ def get_bm25_ndcg_scores_over_output(args, full_df, tables_list, remove_query_ta
 
         # Construct the modified dataframes with the NDCG scores
 
-        # Text Queries
-        df_content_text_categories = utils.evaluation_helpers.get_updated_df(
-            query_df=query_df.copy(), full_df=full_df, scores_path=bm25_scores_path_text+'content.txt',
-            k_vals=top_k_vals, tables_list=tables_list, groundtruth_relevance_scores_dir=args.groundtruth_relevance_scores_dir,
-            remove_query_tables_from_evaluation_mode=args.remove_query_tables_from_evaluation_mode
-        )
-        print("Finished text query with categories for", tuples_per_query, "tuples per query")
+        # # Text Queries
+        # df_content_text_categories = utils.evaluation_helpers.get_updated_df(
+        #     query_df=query_df.copy(), full_df=full_df, scores_path=bm25_scores_path_text+'content.txt',
+        #     k_vals=top_k_vals, tables_list=tables_list, groundtruth_relevance_scores_dir=args.groundtruth_relevance_scores_dir,
+        #     remove_query_tables_from_evaluation_mode=args.remove_query_tables_from_evaluation_mode
+        # )
+        # print("Finished text query with categories for", tuples_per_query, "tuples per query")
 
         # Entity Queries
         df_content_entities_categories = utils.evaluation_helpers.get_updated_df(
@@ -73,7 +59,7 @@ def get_bm25_ndcg_scores_over_output(args, full_df, tables_list, remove_query_ta
         # Update dfs_dict
         dfs_dict[tuples_per_query] = {}
         dfs_dict[tuples_per_query]['entities'] = {'content_categories': df_content_entities_categories, 'content_navigation_links': []}
-        dfs_dict[tuples_per_query]['text'] = {'content_categories': df_content_text_categories,'content_navigation_links': []} 
+        # dfs_dict[tuples_per_query]['text'] = {'content_categories': df_content_text_categories,'content_navigation_links': []} 
 
     return dfs_dict
 
