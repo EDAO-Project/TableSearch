@@ -38,6 +38,11 @@ public class TableParser
         }
     }
 
+    public static Table<String> toTable(List<List<String>> matrix)
+    {
+        return new DynamicTable<>(matrix);
+    }
+
     public static JsonTable parse(Path path)
     {
         JsonTable table = Utils.getTableFromPath(path);

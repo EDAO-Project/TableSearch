@@ -1,5 +1,6 @@
 package dk.aau.cs.daisy.edao.structures.table;
 
+import java.util.Iterator;
 import java.util.List;
 
 public interface Table<T>
@@ -26,7 +27,7 @@ public interface Table<T>
         return builder.toString();
     }
 
-    class Row<E>
+    class Row<E> implements Iterable<E>
     {
         private List<E> row;
 
@@ -73,9 +74,15 @@ public interface Table<T>
             builder.deleteCharAt(builder.length() - 1).deleteCharAt(builder.length() - 1).append("]");
             return builder.toString();
         }
+
+        @Override
+        public Iterator<E> iterator()
+        {
+            return this.row.iterator();
+        }
     }
 
-    class Column<E>
+    class Column<E> implements Iterable<E>
     {
         private String label;
         private List<E> elements;
@@ -104,6 +111,12 @@ public interface Table<T>
         public int size()
         {
             return this.elements.size();
+        }
+
+        @Override
+        public Iterator<E> iterator()
+        {
+            return this.elements.iterator();
         }
     }
 }

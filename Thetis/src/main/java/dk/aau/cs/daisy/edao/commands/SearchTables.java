@@ -20,10 +20,7 @@ import dk.aau.cs.daisy.edao.commands.parser.TableParser;
 import dk.aau.cs.daisy.edao.connector.*;
 import dk.aau.cs.daisy.edao.loader.IndexReader;
 import dk.aau.cs.daisy.edao.loader.Stats;
-import dk.aau.cs.daisy.edao.search.AnalogousSearch;
-import dk.aau.cs.daisy.edao.search.ExactSearch;
-import dk.aau.cs.daisy.edao.search.Result;
-import dk.aau.cs.daisy.edao.search.Search;
+import dk.aau.cs.daisy.edao.search.*;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
@@ -33,8 +30,8 @@ import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 import dk.aau.cs.daisy.edao.system.Logger;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
+import dk.aau.cs.daisy.edao.utilities.Ppr;
 import dk.aau.cs.daisy.edao.utilities.Utils;
-import dk.aau.cs.daisy.edao.utilities.ppr;
 
 import org.neo4j.driver.exceptions.AuthenticationException;
 import org.neo4j.driver.exceptions.ServiceUnavailableException;
@@ -237,8 +234,6 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = {"-t", "--threads"}, description = "Number of threads", required = true, defaultValue = "1")
     private int threads;
 
-    private Neo4jEndpoint connector;
-
     // Initialize a connection with the embeddings Database
     private DBDriverBatch<List<Double>, String> store;
 
@@ -307,7 +302,7 @@ public class SearchTables extends Command {
                         break;
 
                     case PPR:
-                        ppr(queryName);
+                        ppr(queryTable, queryName, linker, entityTable, entityTableLink);
                         break;
                 }
             }
@@ -328,22 +323,6 @@ public class SearchTables extends Command {
             return -1;
         }
     }
-
-    //********************* Global Variables *********************//
-
-    // A doubly nested list of strings containing the entities for each tuple. If the query mode is entities the array is still doubly nested but there is only one row with the list of entities.
-    private List<List<String>> queryEntities = new Vector<>();
-
-    // Maps each filename to its relevance score according to the query
-    private Map<String, Double> filenameToScore = Collections.synchronizedMap(new HashMap<>());
-
-    // Maps each entity to its IDF score. The idf score of an entity is given by log(N/(1+n_t)) + 1 where N is the number of filenames/tables in the repository
-    // and n_t is the number of tables that contain the entity in question.
-    private Map<String, Double> entityToIDF = Collections.synchronizedMap(new HashMap<>());
-
-    //********************* Global Variables of Statistics *********************//
-
-    private Double elapsedTime = 0.0;
 
     public boolean ensureQueryEntitiesMapping(Table<String> query, EntityLinking linker, EntityTableLink tableLink)
     {
@@ -460,11 +439,29 @@ public class SearchTables extends Command {
                 search.getNonEmbeddingComparisons(), search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails());
     }
 
-    public int ppr(String queryName) {
+    public int ppr(Table<String> query, String queryName, EntityLinking linker, EntityTable table, EntityTableLink tableLink) {
         // Initialize the connector
         try {
-            this.connector = new Neo4jEndpoint(this.configFile);
-            connector.testConnection();
+            Neo4jEndpoint neo4j = new Neo4jEndpoint(this.configFile);
+            neo4j.testConnection();
+
+            if (this.pprSingleRequestForAllQueryTuples)
+                query = Ppr.combineQueryTuplesInSingleTuple(query);
+
+            PPRSearch search = new PPRSearch(linker, table, tableLink, neo4j, this.weightedPPR, this.minThreshold,
+                    this.numParticles, this.topK);
+            Result result = search.search(query);
+            Iterator<Pair<String, Double>> resultIter = result.getResults();
+            List<Pair<String, Double>> scores = new ArrayList<>();
+
+            while (resultIter.hasNext())
+            {
+                Pair<String, Double> next = resultIter.next();
+                scores.add(next);
+                Logger.logNewLine(Logger.Level.RESULT, "Filename = " + next.getFirst() + ", score = " + next.getSecond());
+            }
+
+            saveFilenameScores(this.outputDir, queryName, scores, new HashMap<>(), Set.of(), search.elapsedNanoSeconds(), -1, -1, -1, -1);
         } catch(AuthenticationException ex){
             Logger.logNewLine(Logger.Level.ERROR, "Could not Login to Neo4j Server (user or password do not match)");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
@@ -479,74 +476,7 @@ public class SearchTables extends Command {
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         }
 
-
-        if (pprSingleRequestForAllQueryTuples) {
-            queryEntities = ppr.combineQueryTuplesInSingleTuple(queryEntities);
-        }
-
-        List<List<Double>> weights;
-        if (weightedPPR) {
-            // Extract weights for each query tuple
-            weights = ppr.getWeights(connector, queryEntities, entityToIDF);
-        }
-        else {
-            weights = ppr.getUniformWeights(queryEntities);
-        }
-
-        long startTime = System.nanoTime();
-        Logger.logNewLine(Logger.Level.INFO, "\n\nRunning PPR over the " + queryEntities.size() + " provided Query Tuple(s)...");
-        Logger.logNewLine(Logger.Level.INFO, "PPR Weights: " + weights);
-
-        // Run PPR once from each query tuple
-        for (int i = 0; i < queryEntities.size(); i++) {
-            Map<String, Double> curTupleFilenameToScore = connector.runPPR(queryEntities.get(i), weights.get(i), minThreshold, numParticles, this.topK);
-            
-            // Update the 'filenameToScore' accordingly
-            for (String s : curTupleFilenameToScore.keySet()) {
-                if (!filenameToScore.containsKey(s)) {
-                    filenameToScore.put(s, curTupleFilenameToScore.get(s));
-                }
-                else {
-                    filenameToScore.put(s, filenameToScore.get(s) + curTupleFilenameToScore.get(s));
-                }
-            }
-
-            Logger.logNewLine(Logger.Level.INFO, "Finished computing PPR for tuple: " + i);
-        }
-        elapsedTime = (System.nanoTime() - startTime) / 1e9;
-        Logger.logNewLine(Logger.Level.INFO, "\n\nFinished running PPR over the given Query Tuple(s)");
-        Logger.logNewLine(Logger.Level.INFO, "Elapsed time: " + elapsedTime + " seconds\n");
-
-        // Sort the scores for each file
-        filenameToScore = sortByValue(filenameToScore);
-
-        // Save the PPR scores to a json file
-        saveFilenameScores(outputDir, queryName, List.of(), null, null, -1, -1, -1, -1, -1);
-
         return 1;
-    }
-
-    // function to sort hashmap by values
-    public static Map<String, Double> sortByValue(Map<String, Double> hm)
-    {
-        // Create a list from elements of HashMap
-        List<Map.Entry<String, Double> > list = new LinkedList<Map.Entry<String, Double> >(hm.entrySet());
-  
-        // Sort the list
-        Collections.sort(list, new Comparator<Map.Entry<String, Double> >() {
-            public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
-                int i = (o1.getValue()).compareTo(o2.getValue());
-                if(i != 0) return -i;
-                return i;
-            }
-        });
-          
-        // put data from sorted list to hashmap 
-        Map<String, Double> temp = new LinkedHashMap<>();
-        for (Map.Entry<String, Double> aa : list) {
-            temp.put(aa.getKey(), aa.getValue());
-        }
-        return temp;
     }
 
     /**
