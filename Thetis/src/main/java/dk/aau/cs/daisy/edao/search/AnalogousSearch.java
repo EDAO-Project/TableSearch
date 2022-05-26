@@ -51,7 +51,7 @@ public class AnalogousSearch extends AbstractSearch
     private int topK, threads, embeddingComparisons, nonEmbeddingComparisons,
             embeddingCoverageSuccesses, embeddingCoverageFails;
     Set<String> queryEntitiesMissingCoverage = new HashSet<>();
-    private long elapsed = -1;
+    private long elapsed = -1, parsedTables;
     private boolean useEmbeddings, singleColumnPerQueryEntity, weightedJaccard, adjustedJaccard,
             useMaxSimilarityPerColumn, hungarianAlgorithmSameAlignmentAcrossTuples;
     private CosineSimilarityFunction embeddingSimFunction;
@@ -144,6 +144,7 @@ public class AnalogousSearch extends AbstractSearch
             }).count();
 
             this.elapsed = System.nanoTime() - start;
+            this.parsedTables = parsedTables;
             Logger.logNewLine(Logger.Level.INFO, "A total of " + parsedTables + " tables were parsed.");
             Logger.logNewLine(Logger.Level.INFO, "Elapsed time: " + this.elapsed / 1e9 + " seconds\n");
 
@@ -691,5 +692,10 @@ public class AnalogousSearch extends AbstractSearch
     public Map<String, Stats> getTableStats()
     {
         return this.tableStats;
+    }
+
+    public long getParsedTables()
+    {
+        return this.parsedTables;
     }
 }

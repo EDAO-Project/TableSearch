@@ -22,7 +22,6 @@ public class AnalogousSearchTest
 {
     private AnalogousSearch search;
     private final File outDir = new File("testing/output");
-    private int corpusSize;
 
     @Before
     public void setup() throws IOException
@@ -34,9 +33,8 @@ public class AnalogousSearchTest
                 true, "http://www.wikipedia.org/", "http://dbpedia.org/");
         indexWriter.performIO();
 
-        this.corpusSize = indexWriter.loadedTables();
         this.search = new AnalogousSearch(indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
-                10000, 1, false, null, true, false,
+                5, 1, false, null, true, false,
                 true, false, false, AnalogousSearch.SimilarityMeasure.EUCLIDEAN,
                 null);
     }
@@ -47,8 +45,8 @@ public class AnalogousSearchTest
         Table<String> query = new SimpleTable<>(List.of(List.of("http://dbpedia.org/resource/1963_Formula_One_season",
                 "http://dbpedia.org/resource/Team_Lotus")));
         Result result = this.search.search(query);
-        assertEquals(10000, result.getK());
-        assertEquals(this.corpusSize, result.getSize());
+        assertEquals(5, result.getK());
+        assertEquals(this.search.getParsedTables(), result.getSize());
 
         List<Pair<String, Double>> resultList = new ArrayList<>(result.getSize());
         Iterator<Pair<String, Double>> resultIter = result.getResults();
@@ -58,7 +56,7 @@ public class AnalogousSearchTest
             resultList.add(resultIter.next());
         }
 
-        assertEquals(this.corpusSize, resultList.size());
+        assertEquals(this.search.getParsedTables(), resultList.size());
         assertEquals("table-0072-223.json", resultList.get(0).getFirst());
     }
 
@@ -69,8 +67,8 @@ public class AnalogousSearchTest
                 "http://dbpedia.org/resource/Montreal_Canadiens"),
                 List.of("http://dbpedia.org/resource/St._Louis_Blues", "http://dbpedia.org/resource/California_Golden_Seals")));
         Result result = this.search.search(query);
-        assertEquals(10000, result.getK());
-        assertEquals(this.corpusSize, result.getSize());
+        assertEquals(5, result.getK());
+        assertEquals(this.search.getParsedTables(), result.getSize());
 
         List<Pair<String, Double>> resultList = new ArrayList<>(result.getSize());
         Iterator<Pair<String, Double>> resultIter = result.getResults();
@@ -80,7 +78,7 @@ public class AnalogousSearchTest
             resultList.add(resultIter.next());
         }
 
-        assertEquals(this.corpusSize, resultList.size());
+        assertEquals(this.search.getParsedTables(), resultList.size());
         assertEquals("table-0314-885.json", resultList.get(0).getFirst());
     }
 
@@ -90,8 +88,8 @@ public class AnalogousSearchTest
         Table<String> query = new SimpleTable<>(List.of(List.of("http://dbpedia.org/resource/Windows_Mobile"),
                 List.of("http://dbpedia.org/resource/Maemo"), List.of("http://dbpedia.org/resource/BlackBerry_10")));
         Result result = this.search.search(query);
-        assertEquals(10000, result.getK());
-        assertEquals(this.corpusSize, result.getSize());
+        assertEquals(5, result.getK());
+        assertEquals(this.search.getParsedTables(), result.getSize());
 
         List<Pair<String, Double>> resultList = new ArrayList<>(result.getSize());
         Iterator<Pair<String, Double>> resultIter = result.getResults();
@@ -101,7 +99,7 @@ public class AnalogousSearchTest
             resultList.add(resultIter.next());
         }
 
-        assertEquals(this.corpusSize, resultList.size());
+        assertEquals(this.search.getParsedTables(), resultList.size());
         assertEquals("table-0782-820.json", resultList.get(0).getFirst());
         assertEquals(1.0, resultList.get(0).getSecond(), 0.01);    // Score should be 0.923
     }
