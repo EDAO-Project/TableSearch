@@ -8,7 +8,7 @@ import java.util.List;
 public class Result
 {
     private int k, size;
-    List<Pair<String, Double>> tableScores;
+    private List<Pair<String, Double>> tableScores;
 
     public Result(int k, List<Pair<String, Double>> tableScores)
     {
