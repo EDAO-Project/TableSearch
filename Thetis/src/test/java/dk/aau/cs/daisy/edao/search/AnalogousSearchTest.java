@@ -63,8 +63,8 @@ public class AnalogousSearchTest
     @Test
     public void testTwoTupleQuery()
     {
-        Table<String> query = new SimpleTable<>(List.of(List.of("http://dbpedia.org/resource/Boston_Bruins", "" +
-                "http://dbpedia.org/resource/Montreal_Canadiens"),
+        Table<String> query = new SimpleTable<>(List.of(List.of("http://dbpedia.org/resource/1971_Formula_One_season",
+                "http://dbpedia.org/resource/North_American_Racing_Team"),
                 List.of("http://dbpedia.org/resource/St._Louis_Blues", "http://dbpedia.org/resource/California_Golden_Seals")));
         Result result = this.search.search(query);
         assertEquals(5, result.getK());
@@ -79,7 +79,7 @@ public class AnalogousSearchTest
         }
 
         assertEquals(this.search.getParsedTables(), resultList.size());
-        assertEquals("table-0314-885.json", resultList.get(0).getFirst());
+        assertEquals("table-0072-223.json", resultList.get(0).getFirst());
     }
 
     @Test
