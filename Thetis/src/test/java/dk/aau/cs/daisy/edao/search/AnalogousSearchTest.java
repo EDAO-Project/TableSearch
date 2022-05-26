@@ -90,7 +90,7 @@ public class AnalogousSearchTest
         Table<String> query = new SimpleTable<>(List.of(List.of("http://dbpedia.org/resource/Windows_Mobile"),
                 List.of("http://dbpedia.org/resource/Maemo"), List.of("http://dbpedia.org/resource/BlackBerry_10")));
         Result result = this.search.search(query);
-        assertEquals(5, result.getK());
+        assertEquals(10000, result.getK());
         assertEquals(this.corpusSize, result.getSize());
 
         List<Pair<String, Double>> resultList = new ArrayList<>(result.getSize());
