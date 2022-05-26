@@ -59,6 +59,9 @@ public class IndexWriter implements IndexIO
         else if (!outputDir.isDirectory())
             throw new IllegalArgumentException("Output directory '" + outputDir + "' is not a directory");
 
+        else if (files.isEmpty())
+            throw new IllegalArgumentException("Missing files to load");
+
         this.files = files;
         this.logProgress = logProgress;
         this.outputPath = outputDir;
@@ -67,6 +70,7 @@ public class IndexWriter implements IndexIO
         this.linker = SynchronizedLinker.wrap(new EntityLinking(wikiPrefix, uriPrefix));
         this.entityTable = SynchronizedIndex.wrap(new EntityTable());
         this.entityTableLink = SynchronizedIndex.wrap(new EntityTableLink());
+        ((EntityTableLink) this.entityTableLink.getIndex()).setDirectory(files.get(0).toFile().getPath());
     }
 
     /**

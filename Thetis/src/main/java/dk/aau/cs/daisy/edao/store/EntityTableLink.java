@@ -15,12 +15,29 @@ import java.util.*;
 public class EntityTableLink implements Index<Id, List<String>>, Externalizable
 {
     private Map<Id, Map<String, List<Pair<Integer, Integer>>>> idx;   // Indexing from entity to table file names of locations where the entity is found
+    private String dir;
 
     public EntityTableLink()
     {
+        this.dir = null;
         this.idx = new HashMap<>();
     }
 
+    public void setDirectory(String dir)
+    {
+        this.dir = dir;
+    }
+
+    public String getDirectory()
+    {
+        return this.dir;
+    }
+
+    /**
+     * Insertion of entity mention in table
+     * @param key Entity URI ID
+     * @param fileNames File name of table. This must exclude the directory.
+     */
     @Override
     public void insert(Id key, List<String> fileNames)
     {

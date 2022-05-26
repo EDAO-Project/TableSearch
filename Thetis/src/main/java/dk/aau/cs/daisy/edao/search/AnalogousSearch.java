@@ -173,7 +173,7 @@ public class AnalogousSearch extends AbstractSearch
 
     private Pair<String, Double> searchTable(Table<String> query, String table)
     {
-        JsonTable jTable = TableParser.parse(new File(table));
+        JsonTable jTable = TableParser.parse(new File(this.getEntityTableLink().getDirectory() + table));
         Stats.StatBuilder statBuilder = Stats.build();
 
         if (jTable == null || jTable.numDataRows == 0)
