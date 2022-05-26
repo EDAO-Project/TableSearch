@@ -70,7 +70,7 @@ public class IndexWriter implements IndexIO
         this.linker = SynchronizedLinker.wrap(new EntityLinking(wikiPrefix, uriPrefix));
         this.entityTable = SynchronizedIndex.wrap(new EntityTable());
         this.entityTableLink = SynchronizedIndex.wrap(new EntityTableLink());
-        ((EntityTableLink) this.entityTableLink.getIndex()).setDirectory(files.get(0).toFile().getPath());
+        ((EntityTableLink) this.entityTableLink.getIndex()).setDirectory(files.get(0).toFile().getParent() + "/");
     }
 
     /**
