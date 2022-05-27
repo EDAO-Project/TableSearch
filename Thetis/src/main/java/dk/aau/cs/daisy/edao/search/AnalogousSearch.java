@@ -85,6 +85,14 @@ public class AnalogousSearch extends AbstractSearch
     public void setCorpus(Set<String> tableFiles)
     {
         this.corpus = tableFiles;
+        this.corpus = this.corpus.stream().map(t -> {
+            String[] split = t.split("/");
+
+            if (split.length == 0)
+                return t;
+
+            return split[split.length - 1];
+        }).collect(Collectors.toSet());
     }
 
     /**
