@@ -15,11 +15,10 @@ import java.util.*;
 public class EntityTableLink implements Index<Id, List<String>>, Externalizable
 {
     private Map<Id, Map<String, List<Pair<Integer, Integer>>>> idx;   // Indexing from entity to table file names of locations where the entity is found
-    private String dir;
+    private String dir = null;
 
     public EntityTableLink()
     {
-        this.dir = null;
         this.idx = new HashMap<>();
     }
 
