@@ -184,6 +184,12 @@ public class EntityTableLink implements Index<Id, List<String>>, Externalizable
         }
 
         out.writeObject(tuples);
+
+        if (this.idx == null)
+            out.writeObject("null");
+
+        else
+            out.writeObject(this.dir);
     }
 
     /**
@@ -207,5 +213,13 @@ public class EntityTableLink implements Index<Id, List<String>>, Externalizable
             else
                 addLocation(tuple.getFirst(), tuple.getSecond().getFirst(), List.of(tuple.getSecond().getSecond()));
         }
+
+        String dir = (String) in.readObject();
+
+        if (dir.equals("null"))
+            this.dir = null;
+
+        else
+            this.dir = dir;
     }
 }
