@@ -10,6 +10,7 @@ import dk.aau.cs.daisy.edao.store.EntityTableLink;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
+import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 import dk.aau.cs.daisy.edao.system.Logger;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
@@ -19,6 +20,7 @@ import dk.aau.cs.daisy.edao.utilities.Utils;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class AnalogousSearch extends AbstractSearch
@@ -211,88 +213,73 @@ public class AnalogousSearch extends AbstractSearch
             statBuilder.tupleQueryAlignment(queryRowToColumnNames);
         }
 
-        Map<Integer, Map<Integer, List<Double>>> tableRowToQueryRowSims = new HashMap<>(); // Map each row number of the table to each query tuple and its respective similarity vector
         int numEntityMappedRows = 0;    // Number of rows in a table that have at least one cell mapping ot a known entity
-        int queryRowCounter = 0;   // TODO: Treat this on a tuple by tuple basis
+        int queryRowsCount = query.rowCount();
+        Table<List<Double>> scores = new DynamicTable<>();
 
-        for(List<JsonTable.TableCell> row : jTable.rows)
+        for (int queryRowCounter = 0; queryRowCounter < queryRowsCount; queryRowCounter++)
         {
-            Map<Integer, String> columnToEntity = new HashMap<>();   // In a given row map a colId to its respective entity value
+            int queryRowSize = query.getRow(queryRowCounter).size();
+            List<List<Double>> queryRowScores = new ArrayList<>(Collections.nCopies(queryRowSize, new ArrayList<>()));
 
-            for (int column = 0; column < row.size(); column++)
+            for (List<JsonTable.TableCell> tableRow : jTable.rows)
             {
-                if (!row.get(column).links.isEmpty())    // A cell value may map to multiple entities. Currently use the first one (TODO: Consider all of them?)
+                Map<Integer, String> columnToEntity = new HashMap<>();
+
+                for (int tableColumn = 0; tableColumn < tableRow.size(); tableColumn++)
                 {
-                    for (String link : row.get(column).links)
+                    for (String link : tableRow.get(tableColumn).links)
                     {
-                        if (getLinker().mapTo(link) != null)    // Only consider links for which we have a known entity mapping
+                        String uri = getLinker().mapTo(link);
+
+                        if (uri != null)
                         {
-                            columnToEntity.put(column, getLinker().mapTo(link));
-                            break;
+                            columnToEntity.put(tableColumn, uri);
                         }
                     }
                 }
-            }
 
-            if (!columnToEntity.isEmpty())   // Compute similarity vectors only for rows that map to at least one entity
-            {
+                if (columnToEntity.isEmpty())   // Compute similarity vectors only for rows that map to at least one entity
+                    continue;
+
                 numEntityMappedRows++;
-                Map<Integer, List<Double>> queryRowVectors = new HashMap<>();
 
-                for (int queryRow = 0; queryRow < query.rowCount(); queryRow++)    // For each row and for each query tuple compute the maximal similarity vector
+                if (!this.useEmbeddings || hasEmbeddingCoverage(query.getRow(queryRowCounter), columnToEntity, queryRowToColumnMappings, queryRowCounter))
                 {
-                    // If pre-trained embeddings are being used, we need to ensure that all entities
-                    // of the current query tuple as well as its corresponding row entities are all mappable to known pre-trained embeddings
-                    if (!this.useEmbeddings || hasEmbeddingCoverage(query.getRow(queryRow), columnToEntity, queryRowToColumnMappings, queryRow))
+                    for (int queryColumn = 0; queryColumn < queryRowSize; queryColumn++)
                     {
-                        // Initialize the maximum vector for the current tuple, to a zero vector of size equal to the query tuple size.
-                        List<Double> maximumQueryRowVector = new ArrayList<>(Collections.nCopies(query.getRow(queryRow).size(), 0.0));    // Initialize the maximum vector for the current tuple, to a zero vector of size equal to the query tuple size.
+                        String queryEntity = query.getRow(queryRowCounter).get(queryColumn);
+                        double bestSimScore = 0.0;
 
-                        for (int queryColumn = 0; queryColumn < query.getRow(queryRow).size(); queryColumn++)
+                        if (this.singleColumnPerQueryEntity)
                         {
-                            String queryEntity = query.getRow(queryRow).get(queryColumn);
-                            double bestSimScore = 0.0;
+                            int assignedColumn = queryRowToColumnMappings.get(queryRowCounter).get(queryColumn);
 
-                            if (this.singleColumnPerQueryEntity)
-                            {
-                                // Each query entity maps to only one entity from a single column (if it exists)
-                                Integer assignedColumn = queryRowToColumnMappings.get(queryRow).get(queryColumn);
-
-                                if (columnToEntity.containsKey(assignedColumn))
-                                    bestSimScore = entitySimilarityScore(queryEntity, columnToEntity.get(assignedColumn));
-                            }
-
-                            else
-                            {
-                                for (String rowEntity : columnToEntity.values()) // Loop over each entity in the row
-                                {
-                                    double simScore = entitySimilarityScore(queryEntity, rowEntity);    // Compute pairwise entity similarity between 'queryEntity' and 'rowEntity'
-                                    bestSimScore = Math.max(bestSimScore, simScore);
-                                }
-                            }
-
-                            maximumQueryRowVector.set(queryColumn, bestSimScore);
+                            if (columnToEntity.containsKey(assignedColumn))
+                                bestSimScore = entitySimilarityScore(queryEntity, columnToEntity.get(assignedColumn));
                         }
 
-                        queryRowVectors.put(queryRow, maximumQueryRowVector);
-                    }
+                        else
+                        {
+                            for (String rowEntity : columnToEntity.values()) // Loop over each entity in the table row
+                            {
+                                double simScore = entitySimilarityScore(queryEntity, rowEntity);
+                                bestSimScore = Math.max(bestSimScore, simScore);
+                            }
+                        }
 
-                    else
-                    {
-                        // TODO: Track how many (tupleID, rowID) pairs were skipped due to lack of embedding mappings
+                        queryRowScores.get(queryColumn).add(bestSimScore);
                     }
                 }
-
-                tableRowToQueryRowSims.put(queryRowCounter, queryRowVectors);
             }
 
-            queryRowCounter++;
+            scores.addRow(new Table.Row<>(queryRowScores));
         }
 
         // Update Statistics
         statBuilder.entityMappedRows(numEntityMappedRows);
         statBuilder.fractionOfEntityMappedRows((double) numEntityMappedRows / jTable.numDataRows);
-        Double score = aggregateTableSimilarities(query, tableRowToQueryRowSims, statBuilder);
+        Double score = aggregateTableSimilarities(query, scores, statBuilder);
         this.tableStats.put(table, statBuilder.finish());
 
         return new Pair<>(table, score);
@@ -555,36 +542,15 @@ public class AnalogousSearch extends AbstractSearch
 
     /**
      * Aggregates scores into a single table score
-     * @param query
-     * @param tableRowSimilarities
-     * @param statBuilder
-     * @return
+     * @param query Query table
+     * @param scores Table of query entity scores
+     * @param statBuilder Statistics
+     * @return Single score of table
      */
-    private Double aggregateTableSimilarities(Table<String> query, Map<Integer, Map<Integer, List<Double>>> tableRowSimilarities,
-                                    Stats.StatBuilder statBuilder)
+    private Double aggregateTableSimilarities(Table<String> query, Table<List<Double>> scores, Stats.StatBuilder statBuilder)
     {
-        Map<Integer, List<List<Double>>> queryRowToListOfSimVectors = new HashMap<>();   // Map each query tupleID to a list of all similarity vectors concerning the current filename
-
-        for (int row : tableRowSimilarities.keySet())    // Loop over each row and query tuple to populate the `tupleIDToListOfSimVectors` HashMap
-        {
-            for (int queryRow : tableRowSimilarities.get(row).keySet())
-            {
-                List<Double> curSimVector = tableRowSimilarities.get(row).get(queryRow);
-
-                if (!queryRowToListOfSimVectors.containsKey(queryRow))
-                {
-                    List<List<Double>> ListOfSimVectors = new ArrayList<>();
-                    ListOfSimVectors.add(curSimVector);
-                    queryRowToListOfSimVectors.put(queryRow, ListOfSimVectors);
-                }
-
-                else
-                    queryRowToListOfSimVectors.get(queryRow).add(curSimVector);
-            }
-        }
-
         // Compute the weighted vector (i.e. considers IDF scores of query entities) for each query tuple
-        Map<Integer, List<Double>> queryRowToWeightVector  = new HashMap<>();
+        Map<Integer, List<Double>> queryRowToWeightVector = new HashMap<>();
 
         for (int queryRow = 0; queryRow < query.rowCount(); queryRow++)
         {
@@ -600,7 +566,6 @@ public class AnalogousSearch extends AbstractSearch
             queryRowToWeightVector.put(queryRow, Utils.normalizeVector(curRowIDFScores));
         }
 
-
         // Compute a score for the current file with respect to each query tuple
         // The score takes into account the weight vector associated with each tuple
         Map<Integer, Double> tupleIDToScore = new HashMap<>();
@@ -608,36 +573,33 @@ public class AnalogousSearch extends AbstractSearch
 
         for (int queryRow = 0; queryRow < query.rowCount(); queryRow++)
         {
-            if (tableRowSimilarities.size() > 0)
+            if (tableRowExists(scores.getRow(queryRow), l -> !l.isEmpty())) // Ensure that the current query row has at least one similarity vector with some row
             {
-                if (queryRowToListOfSimVectors.containsKey(queryRow)) // Ensure that the current tupleID has at least one similarity vector with some row
+                List<Double> curQueryRowVec;
+
+                if (this.useMaxSimilarityPerColumn)  // Use the maximum similarity score per column as the tuple vector
+                    curQueryRowVec = Utils.getMaxPerColumnVector(scores.getRow(queryRow));
+
+                else
+                    curQueryRowVec = Utils.getAverageVector(scores.getRow(queryRow));
+
+                List<Double> identityVector = new ArrayList<>(Collections.nCopies(curQueryRowVec.size(), 1.0));
+                double score = 0.0;
+
+                if (this.measure == SimilarityMeasure.COSINE)   // Note: Cosine similarity doesn't make sense if we are operating in a vector similarity space
+                    score = Utils.cosineSimilarity(curQueryRowVec, identityVector);
+
+                else if (this.measure == SimilarityMeasure.EUCLIDEAN)   // Perform weighted euclidean distance between the `curTupleVec` and `identity
                 {
-                    List<Double> curQueryRowVec;
-
-                    if (this.useMaxSimilarityPerColumn)  // Use the maximum similarity score per column as the tuple vector
-                        curQueryRowVec = Utils.getMaxPerColumnVector(queryRowToListOfSimVectors.get(queryRow));
-
-                    else
-                        curQueryRowVec = Utils.getAverageVector(queryRowToListOfSimVectors.get(queryRow));
-
-                    List<Double> identityVector = new ArrayList<>(Collections.nCopies(curQueryRowVec.size(), 1.0));
-                    double score = 0.0;
-
-                    if (this.measure == SimilarityMeasure.COSINE)   // Note: Cosine similarity doesn't make sense if we are operating in a vector similarity space
-                        score = Utils.cosineSimilarity(curQueryRowVec, identityVector);
-
-                    else if (this.measure == SimilarityMeasure.EUCLIDEAN)
-                    {// Perform weighted euclidean distance between the `curTupleVec` and `identity
-                        score = Utils.euclideanDistance(curQueryRowVec, identityVector, queryRowToWeightVector.get(queryRow));
-                        score = 1 / (score + 1);    // Convert euclidean distance to similarity, high similarity (i.e. close to 1) means euclidean distance is small
-                    }
-
-                    tupleIDToScore.put(queryRow, score);
-                    queryRowVectors.add(curQueryRowVec);  // Update the tupleVectors array
+                    score = Utils.euclideanDistance(curQueryRowVec, identityVector, queryRowToWeightVector.get(queryRow));
+                    score = 1 / (score + 1);    // Convert euclidean distance to similarity, high similarity (i.e. close to 1) means euclidean distance is small
                 }
+
+                tupleIDToScore.put(queryRow, score);
+                queryRowVectors.add(curQueryRowVec);  // Update the tupleVectors array
             }
 
-            else    // No entity maps to any value in any row in this table so we give the file a score of zero
+            else
                 tupleIDToScore.put(queryRow, 0.0);
         }
 
@@ -651,6 +613,17 @@ public class AnalogousSearch extends AbstractSearch
         }
 
         return 0.0;
+    }
+
+    private <E> boolean tableRowExists(Table.Row<E> row, Predicate<E> function)
+    {
+        for (int i = 0; i < row.size(); i++)
+        {
+            if (function.test(row.get(i)))
+                return true;
+        }
+
+        return false;
     }
 
     @Override

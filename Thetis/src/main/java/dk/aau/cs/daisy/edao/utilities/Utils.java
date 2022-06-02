@@ -14,6 +14,7 @@ import com.google.gson.stream.JsonReader;
 import dk.aau.cs.daisy.edao.commands.parser.EmbeddingsParser;
 import dk.aau.cs.daisy.edao.commands.parser.Parser;
 import dk.aau.cs.daisy.edao.similarity.CosineSimilarity;
+import dk.aau.cs.daisy.edao.structures.table.Table;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 
 public class Utils {
@@ -49,27 +50,24 @@ public class Utils {
         return table;
     }
 
-
     /**
-     * Returns the average vector given a list of vectors
+     * Returns the average vector given a row of vector scores
      */
-    public static List<Double> getAverageVector(List<List<Double>> vecList) {
-        // Initialize the avgVec to a vector of zeroes
+    public static List<Double> getAverageVector(Table.Row<List<Double>> row) {
         List<Double> avgVec = new ArrayList<>();
-        for (Integer i=0;i<vecList.get(0).size(); i++) {
+
+        for (int i = 0; i < row.get(0).size(); i++) {
             avgVec.add(0.0);
         }
 
-        // Construct sum
-        for (List<Double> vec : vecList) {
-            for (Integer i=0; i<vec.size(); i++) {
-                avgVec.set(i, avgVec.get(i) + vec.get(i));
+        for (int i = 0; i < row.size(); i++) {
+            for (int j = 0; j < row.get(i).size(); j++) {
+                avgVec.set(j, avgVec.get(j) + row.get(i).get(j));
             }
-        } 
+        }
 
-        // Get the Average
-        for (Integer i=0; i<avgVec.size(); i++) {
-            avgVec.set(i, avgVec.get(i) / vecList.size());
+        for (int i = 0; i < avgVec.size(); i++) {
+            avgVec.set(i, avgVec.get(i) / row.size());
         }
 
         return avgVec;
@@ -87,24 +85,23 @@ public class Utils {
     }
 
     /**
-     * Returns a list with the maximum value for each column in `arr`.
-     * Note that `arr` is a 2D list of doubles
+     * Returns a list with the maximum value for each column in `row`.
+     * Note that `row` is a 2D list of doubles from tables of scores
      */
-    public static List<Double> getMaxPerColumnVector(List<List<Double>> arr) {
-        Integer numColumns = arr.get(0).size();
-        List<Double> maxColumnVec = new ArrayList<Double>(Collections.nCopies(numColumns, 0.0));
+    public static List<Double> getMaxPerColumnVector(Table.Row<List<Double>> row) {
+        int numColumns = row.get(0).size();
+        List<Double> maxColumnVec = new ArrayList<>(Collections.nCopies(numColumns, 0.0));
 
-        for (Integer rowNum=0; rowNum<arr.size(); rowNum++) {
-            for (Integer colNum=0; colNum<numColumns; colNum++) {
-                if (arr.get(rowNum).get(colNum) > maxColumnVec.get(colNum)) {
-                    maxColumnVec.set(colNum, arr.get(rowNum).get(colNum));
+        for (int rowNum = 0; rowNum < row.size(); rowNum++) {
+            for (int colNum = 0; colNum < numColumns; colNum++) {
+                if (row.get(rowNum).get(colNum) > maxColumnVec.get(colNum)) {
+                    maxColumnVec.set(colNum, row.get(rowNum).get(colNum));
                 }
             }
-        } 
+        }
 
         return maxColumnVec;
     }
-
 
     /**
      * Returns the cosine similarity between two lists
