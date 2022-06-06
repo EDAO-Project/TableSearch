@@ -1,5 +1,6 @@
 package dk.aau.cs.daisy.edao.loader;
 
+import dk.aau.cs.daisy.edao.TestUtils;
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
@@ -27,18 +28,24 @@ public class IndexWriterTest
     @Before
     public void setup() throws IOException
     {
-        List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
-                Path.of("table-0782-820.json"), Path.of("table-1019-555.json"), Path.of("table-1260-258.json"));
-        paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
-        this.writer = new IndexWriter(paths, this.outDir, new Neo4jEndpoint("config.properties"), 1,
-                true, "http://www.wikipedia.org/", "http://dbpedia.org/");
-        this.writer.performIO();
+        synchronized (TestUtils.lock)
+        {
+            List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
+                    Path.of("table-0782-820.json"), Path.of("table-1019-555.json"), Path.of("table-1260-258.json"));
+            paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
+            this.writer = new IndexWriter(paths, this.outDir, new Neo4jEndpoint("config.properties"), 1,
+                    true, "http://www.wikipedia.org/", "http://dbpedia.org/");
+            this.writer.performIO();
+        }
     }
 
     @After
     public void tearDown()
     {
-        this.outDir.delete();
+        synchronized (TestUtils.lock)
+        {
+            this.outDir.delete();
+        }
     }
 
     @Test

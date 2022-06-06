@@ -96,7 +96,7 @@ public class EntityTableLinkTest
     @Test
     public void testSerialization()
     {
-        File indexFile = new File("index.idx");
+        File indexFile = new File("test_index.idx");
 
         try (ObjectOutputStream stream = new ObjectOutputStream(new FileOutputStream(indexFile)))
         {
