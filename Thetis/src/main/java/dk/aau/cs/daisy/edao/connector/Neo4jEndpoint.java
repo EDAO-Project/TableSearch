@@ -2,6 +2,7 @@ package dk.aau.cs.daisy.edao.connector;
 
 import dk.aau.cs.daisy.edao.structures.Pair;
 import org.neo4j.driver.*;
+import org.neo4j.driver.Record;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -68,7 +69,6 @@ public class Neo4jEndpoint implements AutoCloseable {
     }
 
     /**
-     * @param none
      * @return a string with the name of the link corresponding to the isPrimaryTopicOf in the knowledgebase.
      * Return a null string if it is not found
      */
@@ -148,7 +148,7 @@ public class Neo4jEndpoint implements AutoCloseable {
 
     /**
      *
-     * @param link a specific entity (i.e. a dbpedia link)
+     * @param entity link a specific entity (i.e. a dbpedia link)
      * @return the list of rdf__type uris corresonding to the 
      */
     public List<String> searchTypes(String entity) {

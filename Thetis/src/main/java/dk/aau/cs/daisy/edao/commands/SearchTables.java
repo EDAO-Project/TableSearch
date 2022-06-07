@@ -45,7 +45,7 @@ public class SearchTables extends Command {
     //********************* Command Line Arguments *********************//
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec; // injected by picocli
-    
+
     public enum SearchMode {
         EXACT("exact"), ANALOGOUS("analogous"), PPR("ppr");
 
@@ -83,7 +83,7 @@ public class SearchTables extends Command {
     }
 
     public enum EmbeddingSimFunction {
-        NORM_COS("norm_cos"), ABS_COS("abs_cos"), ANG_COS("ang_cos"); 
+        NORM_COS("norm_cos"), ABS_COS("abs_cos"), ANG_COS("ang_cos");
 
         private final String simFunction;
         EmbeddingSimFunction(String simFunction){
@@ -115,12 +115,12 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = { "--hungarianAlgorithmSameAlignmentAcrossTuples"}, description = "If specified, the Hungarian algorithm uses the same alignment of columns to query entities across all query tuples")
     private boolean hungarianAlgorithmSameAlignmentAcrossTuples;
 
-    @CommandLine.Option(names = { "-ajs", "--adjustedJaccardSimilarity"}, description = "If specified, the Jaccard similarity between two entities can only be one if the two entities compared are identical. " + 
-        "If two different entities share the same types then assign an adjusted score of 0.95. ")
+    @CommandLine.Option(names = { "-ajs", "--adjustedJaccardSimilarity"}, description = "If specified, the Jaccard similarity between two entities can only be one if the two entities compared are identical. " +
+            "If two different entities share the same types then assign an adjusted score of 0.95. ")
     private boolean adjustedJaccardSimilarity;
 
-    @CommandLine.Option(names = { "-wjs", "--weightedJaccardSimilarity"}, description = "If specified, the a weighted Jaccard similarity between two entities is performed. " + 
-        "The weights for each entity type correspond to their respective IDF scores")
+    @CommandLine.Option(names = { "-wjs", "--weightedJaccardSimilarity"}, description = "If specified, the a weighted Jaccard similarity between two entities is performed. " +
+            "The weights for each entity type correspond to their respective IDF scores")
     private boolean weightedJaccardSimilarity;
 
     @CommandLine.Option(names = { "--useMaxSimilarityPerColumn"}, description = "If specified, instead of taking the average similarity across columns as a score the maximum value is used")
@@ -444,6 +444,7 @@ public class SearchTables extends Command {
         try {
             Neo4jEndpoint neo4j = new Neo4jEndpoint(this.configFile);
             neo4j.testConnection();
+
 
             if (this.pprSingleRequestForAllQueryTuples)
                 query = Ppr.combineQueryTuplesInSingleTuple(query);
