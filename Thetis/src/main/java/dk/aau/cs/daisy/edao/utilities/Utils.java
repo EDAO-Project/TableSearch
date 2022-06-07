@@ -56,18 +56,18 @@ public class Utils {
     public static List<Double> getAverageVector(Table.Row<List<Double>> row) {
         List<Double> avgVec = new ArrayList<>();
 
-        for (int i = 0; i < row.get(0).size(); i++) {
+        for (int i = 0; i < row.size(); i++) {
             avgVec.add(0.0);
         }
 
         for (int i = 0; i < row.size(); i++) {
             for (int j = 0; j < row.get(i).size(); j++) {
-                avgVec.set(j, avgVec.get(j) + row.get(i).get(j));
+                avgVec.set(i, avgVec.get(i) + row.get(i).get(j));
             }
         }
 
         for (int i = 0; i < avgVec.size(); i++) {
-            avgVec.set(i, avgVec.get(i) / row.size());
+            avgVec.set(i, avgVec.get(i) / row.get(i).size());
         }
 
         return avgVec;

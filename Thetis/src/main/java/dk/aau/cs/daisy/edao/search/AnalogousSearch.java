@@ -215,12 +215,13 @@ public class AnalogousSearch extends AbstractSearch
 
         int numEntityMappedRows = 0;    // Number of rows in a table that have at least one cell mapping ot a known entity
         int queryRowsCount = query.rowCount();
-        Table<List<Double>> scores = new DynamicTable<>();
+        Table<List<Double>> scores = new DynamicTable<>();  // Each cell is a score of the corresponding query cell to the mapped cell in each table row
 
         for (int queryRowCounter = 0; queryRowCounter < queryRowsCount; queryRowCounter++)
         {
             int queryRowSize = query.getRow(queryRowCounter).size();
             List<List<Double>> queryRowScores = new ArrayList<>(Collections.nCopies(queryRowSize, new ArrayList<>()));
+            scores.addRow(new Table.Row<>(new ArrayList<>()));
 
             for (List<JsonTable.TableCell> tableRow : jTable.rows)
             {
@@ -269,6 +270,7 @@ public class AnalogousSearch extends AbstractSearch
                         }
 
                         queryRowScores.get(queryColumn).add(bestSimScore);
+                        scores.getRow(queryRowCounter).get()
                     }
                 }
             }
@@ -554,8 +556,8 @@ public class AnalogousSearch extends AbstractSearch
 
         for (int queryRow = 0; queryRow < query.rowCount(); queryRow++)
         {
-            List<Double> curRowIDFScores  = new ArrayList<>(query.getRow(queryRow).size());
             int rowSize = query.getRow(queryRow).size();
+            List<Double> curRowIDFScores  = new ArrayList<>(rowSize);
 
             for (int column = 0; column < rowSize; column++)
             {
