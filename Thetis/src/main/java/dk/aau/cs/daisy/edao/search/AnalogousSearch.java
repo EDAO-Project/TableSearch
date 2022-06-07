@@ -270,7 +270,6 @@ public class AnalogousSearch extends AbstractSearch
                         }
 
                         queryRowScores.get(queryColumn).add(bestSimScore);
-                        scores.getRow(queryRowCounter).get()
                     }
                 }
             }
