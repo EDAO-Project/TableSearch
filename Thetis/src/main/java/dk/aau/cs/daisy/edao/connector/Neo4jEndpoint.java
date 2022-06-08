@@ -78,7 +78,7 @@ public class Neo4jEndpoint implements AutoCloseable {
                 // Get list of all relationship types (i.e. all link names)
                 Result rel_types = tx.run("CALL db.relationshipTypes() YIELD relationshipType RETURN relationshipType");
                 String isPrimaryTopicOf_link_name = null;
-                for (Record r : rel_types.list()) {
+                for (var r : rel_types.list()) {
                     String rel_type = r.get("relationshipType").asString();
                     if (rel_type.contains("isPrimaryTopicOf")) {
                         isPrimaryTopicOf_link_name = rel_type;
@@ -109,7 +109,7 @@ public class Neo4jEndpoint implements AutoCloseable {
                         + "WHERE b.uri in $linkList" + "\n"
                         + "RETURN a.uri as mention", params);
 
-                for (Record r : result.list()) {
+                for (var r : result.list()) {
                     entityUris.add(r.get("mention").asString());
                 }
                 return entityUris;
@@ -138,7 +138,7 @@ public class Neo4jEndpoint implements AutoCloseable {
                         + "WHERE b.uri in [$link]" + "\n"
                         + "RETURN a.uri as mention", params);
 
-                for (Record r : result.list()) {
+                for (var r : result.list()) {
                     entityUris.add(r.get("mention").asString());
                 }
                 return entityUris;
@@ -164,7 +164,7 @@ public class Neo4jEndpoint implements AutoCloseable {
                         + "WHERE a.uri in [$entity]" + "\n"
                         + "RETURN b.uri as mention", params);
 
-                for (Record r : result.list()) {
+                for (var r : result.list()) {
                     entity_types.add(r.get("mention").asString());
                 }
 
@@ -186,7 +186,7 @@ public class Neo4jEndpoint implements AutoCloseable {
                 Result result = tx.run("MATCH (a:Resource) -[l:ns57__isPrimaryTopicOf]-> (b:Resource)"
                         + "WHERE b.uri in $linkList"
                         + "RETURN a.uri as uri1, b.uri as uri2", params);
-                for (Record r : result.list()) {
+                for (var r : result.list()) {
                     entityUris.add(new Pair<>(r.get("uri1").asString(), r.get("uri2").asString()));
                 }
                 return entityUris;
@@ -228,7 +228,7 @@ public class Neo4jEndpoint implements AutoCloseable {
 
                 Map<String, Double> tableToScore = new HashMap<>();
                 // Loop over all records and populate `tableToScore` HashMap
-                for (Record r : result.list()) {
+                for (var r : result.list()) {
                     String tablePathStr = r.get("file").asString();
                     String tableName = Paths.get(tablePathStr).getFileName().toString() + ".json";
                     Double score = r.get("scoreVal").asDouble();
