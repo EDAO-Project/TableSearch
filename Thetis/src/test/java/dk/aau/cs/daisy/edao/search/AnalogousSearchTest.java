@@ -6,6 +6,8 @@ import dk.aau.cs.daisy.edao.loader.IndexWriter;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.table.SimpleTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
+import dk.aau.cs.daisy.edao.system.Configuration;
+import dk.aau.cs.daisy.edao.system.Logger;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -29,6 +31,7 @@ public class AnalogousSearchTest
     {
         synchronized (TestUtils.lock)
         {
+            Configuration.setLogLevel(Logger.Level.INFO);
             List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
                     Path.of("table-0782-820.json"), Path.of("table-1019-555.json"), Path.of("table-1260-258.json"));
             paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());

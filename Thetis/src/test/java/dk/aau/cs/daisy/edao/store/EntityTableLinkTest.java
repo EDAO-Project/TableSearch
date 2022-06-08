@@ -2,6 +2,8 @@ package dk.aau.cs.daisy.edao.store;
 
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.Pair;
+import dk.aau.cs.daisy.edao.system.Configuration;
+import dk.aau.cs.daisy.edao.system.Logger;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -22,6 +24,7 @@ public class EntityTableLinkTest
     @Before
     public void init()
     {
+        Configuration.setLogLevel(Logger.Level.INFO);
         this.tableLink.insert(this.id1, this.files1);
         this.tableLink.insert(this.id2, this.files2);
         this.tableLink.insert(this.id3, this.files3);
