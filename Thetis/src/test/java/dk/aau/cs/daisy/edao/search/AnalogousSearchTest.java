@@ -1,10 +1,12 @@
 package dk.aau.cs.daisy.edao.search;
 
+import dk.aau.cs.daisy.edao.TestUtils;
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 import dk.aau.cs.daisy.edao.loader.IndexWriter;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.table.SimpleTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
+import dk.aau.cs.daisy.edao.system.Configuration;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -26,17 +28,21 @@ public class AnalogousSearchTest
     @Before
     public void setup() throws IOException
     {
-        List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
-                Path.of("table-0782-820.json"), Path.of("table-1019-555.json"), Path.of("table-1260-258.json"));
-        paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
-        IndexWriter indexWriter = new IndexWriter(paths, this.outDir, new Neo4jEndpoint("config.properties"), 1,
-                true, "http://www.wikipedia.org/", "http://dbpedia.org/");
-        indexWriter.performIO();
+        synchronized (TestUtils.lock)
+        {
+            Configuration.reloadConfiguration();
+            List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
+                    Path.of("table-0782-820.json"), Path.of("table-1019-555.json"), Path.of("table-1260-258.json"));
+            paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
+            IndexWriter indexWriter = new IndexWriter(paths, this.outDir, new Neo4jEndpoint("config.properties"), 1,
+                    true, "http://www.wikipedia.org/", "http://dbpedia.org/");
+            indexWriter.performIO();
 
-        this.search = new AnalogousSearch(indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
-                5, 1, false, null, true, false,
-                true, false, false, AnalogousSearch.SimilarityMeasure.EUCLIDEAN,
-                null);
+            this.search = new AnalogousSearch(indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
+                    5, 1, false, null, true, false,
+                    true, false, false, AnalogousSearch.SimilarityMeasure.EUCLIDEAN,
+                    null);
+        }
     }
 
     @Test

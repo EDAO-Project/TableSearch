@@ -62,6 +62,12 @@ data/tables/gittables/figures/
 data/tables/wikipages/tables/
 data/tables/wikipages/wikipages_dataset/
 data/tables/wikipages/wikipages_expanded_dataset/
+data/tables/wikipages/expanded_dataset_query_tables/
+data/tables/wikipages/wikipages_expanded_dataset_strubert_format/
+data/tables/wikipages/wikipages_test_dataset/
+
+
+
 
 evaluation/wikipages/eval_over_labeled_ground_truth/
 evaluation/wikipages/eval_over_search_output/

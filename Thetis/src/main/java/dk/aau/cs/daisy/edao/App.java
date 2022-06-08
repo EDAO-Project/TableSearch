@@ -3,13 +3,11 @@ package dk.aau.cs.daisy.edao;
 import dk.aau.cs.daisy.edao.commands.IndexTables;
 import dk.aau.cs.daisy.edao.commands.LoadEmbedding;
 import dk.aau.cs.daisy.edao.commands.SearchTables;
-import dk.aau.cs.daisy.edao.commands.Web;
 
 import picocli.CommandLine;
 
 import java.io.File;
 import java.nio.file.*;
-// import java.nio.file.Path;
 
 import static spark.Spark.*;
 import spark.ModelAndView;
@@ -28,8 +26,7 @@ import org.apache.commons.cli.*;
 @CommandLine.Command(name = "thetis", version = "1.0-SNAPSHOT", subcommands = {
         IndexTables.class,
         SearchTables.class,
-        LoadEmbedding.class,
-        Web.class,
+        LoadEmbedding.class
 })
 public class App implements Runnable {
 
@@ -38,7 +35,7 @@ public class App implements Runnable {
      */
 
     public void run() {
-        System.err.println("This command should be called only via the subcommands index or search");
+        System.err.println("This command should be called only via the subcommands index, embedding, or search");
     }
 
     public static String render(Map<String, Object> model, String templatePath) {
