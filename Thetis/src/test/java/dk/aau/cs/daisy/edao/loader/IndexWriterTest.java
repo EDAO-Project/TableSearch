@@ -9,7 +9,6 @@ import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.graph.Entity;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
 import dk.aau.cs.daisy.edao.system.Configuration;
-import dk.aau.cs.daisy.edao.system.Logger;
 import org.junit.*;
 
 import java.io.File;
@@ -32,7 +31,7 @@ public class IndexWriterTest
     {
         synchronized (TestUtils.lock)
         {
-            Configuration.setLogLevel(Logger.Level.INFO);
+            Configuration.reloadConfiguration();
             List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
                     Path.of("table-0782-820.json"), Path.of("table-1019-555.json"), Path.of("table-1260-258.json"));
             paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());

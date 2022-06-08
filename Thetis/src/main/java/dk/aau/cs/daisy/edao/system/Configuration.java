@@ -63,6 +63,11 @@ public class Configuration
         addDefaults();
     }
 
+    public static void reloadConfiguration()
+    {
+        addDefaults();
+    }
+
     private static void addDefaults()
     {
         Properties props = readProperties();

@@ -24,7 +24,7 @@ public class EntityTableLinkTest
     @Before
     public void init()
     {
-        Configuration.setLogLevel(Logger.Level.INFO);
+        Configuration.reloadConfiguration();
         this.tableLink.insert(this.id1, this.files1);
         this.tableLink.insert(this.id2, this.files2);
         this.tableLink.insert(this.id3, this.files3);
