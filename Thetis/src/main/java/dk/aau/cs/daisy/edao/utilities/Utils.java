@@ -111,16 +111,18 @@ public class Utils {
     }
 
     /**
-     * Returns the weighted Euclidian Distance between two lists
+     * Returns the weighted Euclidean Distance between two lists
      * 
      * Assumes that the sizes of `vectorA`, `vectorB` and `weightVector` are all the same
      */
     public static double euclideanDistance(List<Double> vectorA, List<Double> vectorB, List<Double> weightVector) {
-        double Sum = 0.0;
+        double sum = 0.0;
+
         for (int i = 0; i < vectorA.size(); i++) {
-            Sum = Sum + (Math.pow((vectorA.get(i) - vectorB.get(i)), 2.0)) * weightVector.get(i);
+            sum += Math.pow((vectorA.get(i) - vectorB.get(i)), 2.0) * weightVector.get(i);
         }
-        return Math.sqrt(Sum);
+
+        return Math.sqrt(sum);
     }
 
     /**
