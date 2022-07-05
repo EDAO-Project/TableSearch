@@ -119,6 +119,13 @@ public class IndexTables extends Command {
         outputDir = value;
     }
 
+    private String[] disallowedEntityTypes;
+    @CommandLine.Option(names = {"-det", "--disallowed-types"}, paramLabel = "DISALLOWED-TYPES", description = "Disallowed entity types - use comma (',') as separator", defaultValue = "http://www.w3.org/2002/07/owl#Thing,http://www.wikidata.org/entity/Q5")
+    public void setDisallowedEntityTypes(String argument)
+    {
+        this.disallowedEntityTypes = argument.split(",");
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private static final String WIKI_PREFIX = "http://www.wikipedia.org/";
@@ -186,7 +193,7 @@ public class IndexTables extends Command {
             Logger.logNewLine(Logger.Level.INFO, "There are " + filePaths.size() + " files to be processed.");
 
             long startTime = System.nanoTime();
-            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads, true, WIKI_PREFIX, URI_PREFIX);
+            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads, true, WIKI_PREFIX, URI_PREFIX, this.disallowedEntityTypes);
             indexWriter.performIO();
 
             long elapsedTime = System.nanoTime() - startTime;

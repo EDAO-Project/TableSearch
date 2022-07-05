@@ -362,7 +362,7 @@ public class SearchTables extends Command {
                 Logger.logNewLine(Logger.Level.RESULT, "There are " + tableFiles.size() + " files that contain the entity '" + entity + "'");
         }
 
-        Search search = new ExactSearch(linker, entityTable, entityTableLink);
+        TableSearch search = new ExactSearch(linker, entityTable, entityTableLink);
         Iterator<Pair<String, Double>> resIter = search.search(query).getResults();
 
         while (resIter.hasNext())

@@ -46,12 +46,10 @@ public class IndexWriter implements IndexIO
             5_000_000,
             0.01);
     private final Map<String, Stats> tableStats = new TreeMap<>();
-
-    private static final List<String> DISALLOWED_ENTITY_TYPES =
-            Arrays.asList("http://www.w3.org/2002/07/owl#Thing", "http://www.wikidata.org/entity/Q5");
+    private List<String> disallowedEntityTypes;
 
     public IndexWriter(List<Path> files, File outputDir, Neo4jEndpoint neo4j, int threads, boolean logProgress,
-                       String wikiPrefix, String uriPrefix)
+                       String wikiPrefix, String uriPrefix, String ... disallowedEntityTypes)
     {
         if (!outputDir.exists())
             outputDir.mkdirs();
@@ -68,6 +66,7 @@ public class IndexWriter implements IndexIO
         this.neo4j = neo4j;
         this.threads = threads;
         this.linker = SynchronizedLinker.wrap(new EntityLinking(wikiPrefix, uriPrefix));
+        this.disallowedEntityTypes = Arrays.asList(disallowedEntityTypes);
         this.entityTable = SynchronizedIndex.wrap(new EntityTable());
         this.entityTableLink = SynchronizedIndex.wrap(new EntityTableLink());
         ((EntityTableLink) this.entityTableLink.getIndex()).setDirectory(files.get(0).toFile().getParent() + "/");
@@ -113,7 +112,9 @@ public class IndexWriter implements IndexIO
         JsonTable table = TableParser.parse(tablePath);
 
         if (table == null ||  table._id == null || table.rows == null)
+        {
             return false;
+        }
 
         String tableName = tablePath.getFileName().toString();
         Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();  // Maps a cell specified by RowNumber, ColumnNumber to the list of entities it matches to
@@ -149,7 +150,7 @@ public class IndexWriter implements IndexIO
                                 this.linker.addMapping(link, entity);
                                 this.linkToNumEntitiesFrequency.merge(tempLinks.size(), 1, Integer::sum);
 
-                                for (String type : DISALLOWED_ENTITY_TYPES)
+                                for (String type : this.disallowedEntityTypes)
                                 {
                                     entityTypes.remove(type);
                                 }

@@ -5,7 +5,7 @@ import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 
-public abstract class AbstractSearch implements Search
+public abstract class AbstractSearch implements TableSearch
 {
     private EntityLinking linker;
     private EntityTable entityTable;
