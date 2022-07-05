@@ -7,6 +7,7 @@ import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.table.SimpleTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 import dk.aau.cs.daisy.edao.system.Configuration;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -32,7 +33,8 @@ public class AnalogousSearchTest
         {
             Configuration.reloadConfiguration();
             List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
-                    Path.of("table-0782-820.json"), Path.of("table-1019-555.json"), Path.of("table-1260-258.json"));
+                    Path.of("table-0782-820.json"), Path.of("table-1019-555.json"),
+                    Path.of("table-1260-258.json"), Path.of("table-0001-1.json"));
             paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
             IndexWriter indexWriter = new IndexWriter(paths, this.outDir, new Neo4jEndpoint("config.properties"), 1,
                     true, "http://www.wikipedia.org/", "http://dbpedia.org/");
@@ -43,6 +45,20 @@ public class AnalogousSearchTest
                     true, false, false, AnalogousSearch.SimilarityMeasure.EUCLIDEAN,
                     null);
         }
+    }
+
+    @After
+    public void tearDown()
+    {
+        this.outDir.delete();
+    }
+
+    @Test
+    public void testTableScore()
+    {
+        Table<String> query = new SimpleTable<>(List.of(List.of("",
+                "")));
+        Result result = this.search.search(query);
     }
 
     @Test
@@ -62,7 +78,7 @@ public class AnalogousSearchTest
             resultList.add(resultIter.next());
         }
 
-        assertEquals(this.search.getParsedTables(), resultList.size());
+        assertEquals(this.search.getParsedTables() - 1, resultList.size());
         assertEquals("table-0072-223.json", resultList.get(0).getFirst());
     }
 
@@ -84,7 +100,7 @@ public class AnalogousSearchTest
             resultList.add(resultIter.next());
         }
 
-        assertEquals(this.search.getParsedTables(), resultList.size());
+        assertEquals(this.search.getParsedTables() - 1, resultList.size());
         assertEquals("table-0072-223.json", resultList.get(0).getFirst());
     }
 
@@ -105,7 +121,7 @@ public class AnalogousSearchTest
             resultList.add(resultIter.next());
         }
 
-        assertEquals(this.search.getParsedTables(), resultList.size());
+        assertEquals(this.search.getParsedTables() - 1, resultList.size());
         assertEquals("table-0782-820.json", resultList.get(0).getFirst());
         assertEquals(1.0, resultList.get(0).getSecond(), 0.01);    // Score should be 0.923
     }

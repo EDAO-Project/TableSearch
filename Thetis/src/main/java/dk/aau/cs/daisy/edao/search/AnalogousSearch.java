@@ -300,7 +300,7 @@ public class AnalogousSearch extends AbstractSearch
 
             for (int rowEntity = 0; rowEntity < rowSize; rowEntity++)
             {
-                entityToColumnScore.get(row).add(new ArrayList<Double>(Collections.nCopies(table.numCols, 0.0)));
+                entityToColumnScore.get(row).add(new ArrayList<>(Collections.nCopies(table.numCols, 0.0)));
             }
         }
 
