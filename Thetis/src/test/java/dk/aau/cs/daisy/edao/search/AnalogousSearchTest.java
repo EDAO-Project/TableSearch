@@ -113,7 +113,7 @@ public class AnalogousSearchTest
             resultList.add(resultIter.next());
         }
 
-        assertEquals(this.search.getParsedTables() - 1, resultList.size());
+        assertEquals(5, resultList.size());
         assertEquals("table-0072-223.json", resultList.get(0).getFirst());
     }
 
@@ -134,7 +134,7 @@ public class AnalogousSearchTest
             resultList.add(resultIter.next());
         }
 
-        assertEquals(this.search.getParsedTables() - 1, resultList.size());
+        assertEquals(5, resultList.size());
         assertEquals("table-0782-820.json", resultList.get(0).getFirst());
         assertEquals(1.0, resultList.get(0).getSecond(), 0.01);    // Score should be 0.923
     }
