@@ -3,6 +3,7 @@ package dk.aau.cs.daisy.edao.search;
 import dk.aau.cs.daisy.edao.TestUtils;
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 import dk.aau.cs.daisy.edao.loader.IndexWriter;
+import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.table.SimpleTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class AnalogousSearchTest
 {
@@ -41,7 +43,7 @@ public class AnalogousSearchTest
             indexWriter.performIO();
 
             this.search = new AnalogousSearch(indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
-                    5, 1, false, null, true, false,
+                    5, 1, false, null, false, false,
                     true, false, false, AnalogousSearch.SimilarityMeasure.EUCLIDEAN,
                     null);
         }
@@ -56,9 +58,14 @@ public class AnalogousSearchTest
     @Test
     public void testTableScore()
     {
-        Table<String> query = new SimpleTable<>(List.of(List.of("",
-                "")));
+        Table<String> query = new SimpleTable<>(List.of(List.of("http://dbpedia.org/resource/21_Jump_Street_(film)",
+                "http://dbpedia.org/resource/1._FC_Union_Berlin")));
         Result result = this.search.search(query);
+        assertTrue(result.getResults().hasNext());
+
+        Pair<String, Double> best = result.getResults().next();
+        assertEquals("table-0001-1.json", best.getFirst());
+        assertEquals(0.549, best.getSecond(), 0.001);
     }
 
     @Test
@@ -69,6 +76,12 @@ public class AnalogousSearchTest
         Result result = this.search.search(query);
         assertEquals(5, result.getK());
         assertEquals(this.search.getParsedTables(), result.getSize());
+
+        Id jumpStreet = search.getLinker().uriLookup("http://dbpedia.org/resource/21_Jump_Street_(film)");
+        System.out.println("21 Jump street: " + search.getEntityTable().find(jumpStreet).getIDF());
+
+        Id berlin = search.getLinker().uriLookup("http://dbpedia.org/resource/1._FC_Union_Berlin");
+        System.out.println("Union Berlin: " + search.getEntityTable().find(berlin).getIDF());
 
         List<Pair<String, Double>> resultList = new ArrayList<>(result.getSize());
         Iterator<Pair<String, Double>> resultIter = result.getResults();

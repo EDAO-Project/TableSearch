@@ -235,6 +235,7 @@ public class AnalogousSearch extends AbstractSearch
                         if (uri != null)
                         {
                             columnToEntity.put(tableColumn, uri);
+                            break;
                         }
                     }
                 }
