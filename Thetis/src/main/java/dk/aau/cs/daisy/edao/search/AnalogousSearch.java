@@ -109,6 +109,11 @@ public class AnalogousSearch extends AbstractSearch
 
         try
         {
+            if (!areQueryEntitiesMappable(query))
+            {
+                throw new IllegalArgumentException("Not all query entities are mappable");
+            }
+
             Logger.logNewLine(Logger.Level.INFO, "There are " + this.corpus.size() + " files to be processed.");
             ExecutorService threadPool = Executors.newFixedThreadPool(this.threads);
             List<Future<Pair<String, Double>>> parsed = new ArrayList<>(this.corpus.size());
@@ -180,6 +185,20 @@ public class AnalogousSearch extends AbstractSearch
             e.printStackTrace();
             return null;
         }
+    }
+
+    private boolean areQueryEntitiesMappable(Table<String> query)
+    {
+        for (int i = 0; i < query.rowCount(); i++)
+        {
+            for (int j = 0; j < query.getRow(i).size(); j++)
+            {
+                if (getLinker().uriLookup(query.getRow(i).get(j)) == null)
+                    return false;
+            }
+        }
+
+        return true;
     }
 
     private Pair<String, Double> searchTable(Table<String> query, String table)
