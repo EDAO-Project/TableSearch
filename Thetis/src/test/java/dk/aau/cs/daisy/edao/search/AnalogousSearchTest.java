@@ -77,12 +77,6 @@ public class AnalogousSearchTest
         assertEquals(5, result.getK());
         assertEquals(this.search.getParsedTables(), result.getSize());
 
-        Id jumpStreet = search.getLinker().uriLookup("http://dbpedia.org/resource/21_Jump_Street_(film)");
-        System.out.println("21 Jump street: " + search.getEntityTable().find(jumpStreet).getIDF());
-
-        Id berlin = search.getLinker().uriLookup("http://dbpedia.org/resource/1._FC_Union_Berlin");
-        System.out.println("Union Berlin: " + search.getEntityTable().find(berlin).getIDF());
-
         List<Pair<String, Double>> resultList = new ArrayList<>(result.getSize());
         Iterator<Pair<String, Double>> resultIter = result.getResults();
 

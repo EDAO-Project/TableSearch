@@ -89,13 +89,14 @@ public class Utils {
      * Note that `row` is a 2D list of doubles from tables of scores
      */
     public static List<Double> getMaxPerColumnVector(Table.Row<List<Double>> row) {
-        int numColumns = row.get(0).size();
-        List<Double> maxColumnVec = new ArrayList<>(Collections.nCopies(numColumns, 0.0));
+        List<Double> maxColumnVec = new ArrayList<>(Collections.nCopies(row.size(), 0.0));
 
-        for (int rowNum = 0; rowNum < row.size(); rowNum++) {
-            for (int colNum = 0; colNum < numColumns; colNum++) {
-                if (row.get(rowNum).get(colNum) > maxColumnVec.get(colNum)) {
-                    maxColumnVec.set(colNum, row.get(rowNum).get(colNum));
+        for (int column = 0; column < row.size(); column++) {
+            int cellCount = row.get(column).size();
+
+            for (int cellDim = 0; cellDim < cellCount; cellDim++) {
+                if (row.get(column).get(cellDim) > maxColumnVec.get(column)) {
+                    maxColumnVec.set(column, row.get(column).get(cellDim));
                 }
             }
         }
