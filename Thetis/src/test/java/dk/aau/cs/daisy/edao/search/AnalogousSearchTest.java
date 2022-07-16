@@ -3,7 +3,6 @@ package dk.aau.cs.daisy.edao.search;
 import dk.aau.cs.daisy.edao.TestUtils;
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 import dk.aau.cs.daisy.edao.loader.IndexWriter;
-import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.table.SimpleTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
@@ -84,7 +83,7 @@ public class AnalogousSearchTest
             resultList.add(resultIter.next());
         }
 
-        assertEquals(this.search.getParsedTables() - 1, resultList.size());
+        assertEquals(5, resultList.size());
         assertEquals("table-0072-223.json", resultList.get(0).getFirst());
     }
 
