@@ -58,14 +58,13 @@ public class AnalogousSearchTest
     @Test
     public void testTableScore()
     {
-        Table<String> query = new SimpleTable<>(List.of(List.of("http://dbpedia.org/resource/21_Jump_Street_(film)",
-                "http://dbpedia.org/resource/1._FC_Union_Berlin")));
+        Table<String> query = new SimpleTable<>(List.of(List.of("http://dbpedia.org/resource/Windows_Mobile", "http://dbpedia.org/resource/Cosworth")));
         Result result = this.search.search(query);
         assertTrue(result.getResults().hasNext());
 
         Pair<String, Double> best = result.getResults().next();
         assertEquals("table-0001-1.json", best.getFirst());
-        assertEquals(0.549, best.getSecond(), 0.001);
+        assertEquals(0.739, best.getSecond(), 0.001);
     }
 
     @Test
