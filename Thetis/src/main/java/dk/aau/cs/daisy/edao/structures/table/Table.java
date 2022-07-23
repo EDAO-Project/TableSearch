@@ -66,7 +66,7 @@ public interface Table<T>
         {
             StringBuilder builder = new StringBuilder("[");
 
-            for (E e : row)
+            for (E e : this.row)
             {
                 builder.append(e.toString()).append(", ");
             }
