@@ -220,7 +220,12 @@ public class AnalogousSearch extends AbstractSearch
         for (int queryRowCounter = 0; queryRowCounter < queryRowsCount; queryRowCounter++)
         {
             int queryRowSize = query.getRow(queryRowCounter).size();
-            List<List<Double>> queryRowsScores = new ArrayList<>(Collections.nCopies(queryRowSize, new ArrayList<>()));
+            List<List<Double>> queryRowsScores = new ArrayList<>(queryRowSize);
+
+            for (int i = 0; i < queryRowSize; i++)
+            {
+                queryRowsScores.add(new ArrayList<>(jTable.rows.size()));
+            }
 
             for (List<JsonTable.TableCell> tableRow : jTable.rows)
             {
