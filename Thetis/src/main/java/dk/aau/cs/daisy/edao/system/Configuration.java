@@ -3,6 +3,9 @@ package dk.aau.cs.daisy.edao.system;
 import java.io.*;
 import java.util.Properties;
 
+/**
+ * Container of system configuration as well as serialization and de-serialization of system configuration
+ */
 public class Configuration
 {
     private static class ConfigurationIO
@@ -58,20 +61,64 @@ public class Configuration
 
     private static final File CONF_FILE = new File(".config.conf");
 
-    private static Properties readProperties()
+    static
+    {
+        addDefaults();
+    }
+
+    public static void reloadConfiguration()
+    {
+        addDefaults();
+    }
+
+    private static void addDefaults()
+    {
+        Properties props = readProperties();
+
+        if (!props.contains("EntityTable"))
+            props.setProperty("EntityTable", "entity_table.ser");
+
+        if (!props.contains("EntityLinker"))
+            props.setProperty("EntityLinker", "entity_linker.ser");
+
+        if (!props.contains("EntityToTables"))
+            props.setProperty("EntityToTables", "entity_to_tables.ser");
+
+        if (!props.contains("TableToEntities"))
+            props.setProperty("TableToEntities", "tableIDToEntities.ttl");
+
+        if (!props.contains("TableToTypes"))
+            props.setProperty("TableToTypes", "tableIDToTypes.ttl");
+
+        if (!props.contains("WikiLinkToEntitiesFrequency"))
+            props.setProperty("WikiLinkToEntitiesFrequency", "wikilinkToNumEntitiesFrequency.json");
+
+        if (!props.contains("CellToNumLinksFrequency"))
+            props.setProperty("CellToNumLinksFrequency", "cellToNumLinksFrequency.json");
+
+        if (!props.contains("TableStats"))
+            props.setProperty("TableStats", "perTableStats.json");
+
+        if (!props.contains("LogLevel"))
+            props.setProperty("LogLevel", Logger.Level.INFO.toString());
+
+        writeProperties(props);
+    }
+
+    private static synchronized Properties readProperties()
     {
         try
         {
             return (new ConfigurationIO(new FileInputStream(CONF_FILE))).read();
         }
 
-        catch (FileNotFoundException e)
+        catch (FileNotFoundException | RuntimeException e)
         {
             return new Properties();
         }
     }
 
-    private static void writeProperties(Properties properties)
+    private static synchronized void writeProperties(Properties properties)
     {
         try
         {
@@ -166,5 +213,65 @@ public class Configuration
     public static String getDBPassword()
     {
         return readProperties().getProperty("DBPassword");
+    }
+
+    public static void setLargestId(String id)
+    {
+        addProperty("LargestID", id);
+    }
+
+    public static String getLargestId()
+    {
+        return readProperties().getProperty("LargestID");
+    }
+
+    public static String getEntityTableFile()
+    {
+        return readProperties().getProperty("EntityTable");
+    }
+
+    public static String getEntityLinkerFile()
+    {
+        return readProperties().getProperty("EntityLinker");
+    }
+
+    public static String getEntityToTablesFile()
+    {
+        return readProperties().getProperty("EntityToTables");
+    }
+
+    public static String getTableToEntitiesFile()
+    {
+        return readProperties().getProperty("TableToEntities");
+    }
+
+    public static String getTableToTypesFile()
+    {
+        return readProperties().getProperty("TableToTypes");
+    }
+
+    public static String getWikiLinkToEntitiesFrequencyFile()
+    {
+        return readProperties().getProperty("WikiLinkToEntitiesFrequency");
+    }
+
+    public static String getCellToNumLinksFrequencyFile()
+    {
+        return readProperties().getProperty("CellToNumLinksFrequency");
+    }
+
+    public static String getTableStatsFile()
+    {
+        return readProperties().getProperty("TableStats");
+    }
+
+    public static void setLogLevel(Logger.Level level)
+    {
+        addProperty("LogLevel", level.toString());
+    }
+
+    public static String getLogLevel()
+    {
+        return readProperties().getProperty("LogLevel");
     }
 }

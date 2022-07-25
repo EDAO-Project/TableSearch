@@ -84,7 +84,7 @@ public class EmbeddingDBWrapper implements DBDriverBatch<List<Double>, String>, 
         SQLite sqlite = (SQLite) this.driver;
         ResultSet rs = sqlite.select("SELECT " + EMBEDDING_FIELD +
                 " FROM " + COLLECTION_NAME +
-                " WHERE " + IRI_FIELD + " = '" + iri + "';");
+                " WHERE " + IRI_FIELD + "='" + iri + "';");
 
         try
         {
@@ -113,7 +113,7 @@ public class EmbeddingDBWrapper implements DBDriverBatch<List<Double>, String>, 
         Postgres postgres = (Postgres) this.driver;
         ResultSet rs = postgres.select("SELECT " + EMBEDDING_FIELD +
                 " FROM " + COLLECTION_NAME +
-                " WHERE " + IRI_FIELD + " = '" + iri + "';");
+                " WHERE " + IRI_FIELD + "='" + iri + "';");
 
         try
         {

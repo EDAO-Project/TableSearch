@@ -1,48 +1,26 @@
 package dk.aau.cs.daisy.edao.commands;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.*;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.io.IOException;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.Map;
-import java.util.Collections;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javafx.util.Pair;
 
-import org.apache.commons.io.FilenameUtils;
+import dk.aau.cs.daisy.edao.loader.IndexWriter;
+import dk.aau.cs.daisy.edao.structures.Id;
+import dk.aau.cs.daisy.edao.structures.graph.Entity;
+import dk.aau.cs.daisy.edao.structures.graph.Type;
 
-import com.google.common.hash.BloomFilter;
-import com.google.common.hash.Funnels;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.TypeAdapter;
-import com.google.gson.stream.JsonReader;
-
-
-// import dk.aau.cs.daisy.edao.structures.Pair;
-import dk.aau.cs.daisy.edao.tables.JsonTable;
-import dk.aau.cs.daisy.edao.utilities.utils;
-
+import dk.aau.cs.daisy.edao.system.Logger;
 import picocli.CommandLine;
 
 import org.neo4j.driver.exceptions.AuthenticationException;
 import org.neo4j.driver.exceptions.ServiceUnavailableException;
 
-
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
-
 
 @picocli.CommandLine.Command(name = "index", description = "creates the index for the specified set of tables")
 public class IndexTables extends Command {
@@ -76,7 +54,8 @@ public class IndexTables extends Command {
     @CommandLine.Option(names = { "-tt", "--table-type" }, description = "Table types: ${COMPLETION-CANDIDATES}", required = true)
     private TableType tableType = null;
 
-
+    @CommandLine.Option(names = {"-t", "--threads"}, description = "Number of threads", required = false, defaultValue = "1")
+    private int threads;
 
     private File configFile = null;
     @CommandLine.Option(names = { "-cf", "--config"}, paramLabel = "CONF", description = "configuration file", required = true, defaultValue = "./config.properties" )
@@ -115,7 +94,6 @@ public class IndexTables extends Command {
         tableDir = value;
     }
 
-
     private File outputDir = null;
     @CommandLine.Option(names = { "-od", "--output-dir" }, paramLabel = "OUT_DIR", description = "Directory where the index and it metadata are saved", required = true)
     public void setOutputDirectory(File value) {
@@ -141,113 +119,63 @@ public class IndexTables extends Command {
         outputDir = value;
     }
 
+    private String[] disallowedEntityTypes;
+    @CommandLine.Option(names = {"-det", "--disallowed-types"}, paramLabel = "DISALLOWED-TYPES", description = "Disallowed entity types - use comma (',') as separator", defaultValue = "http://www.w3.org/2002/07/owl#Thing,http://www.wikidata.org/entity/Q5")
+    public void setDisallowedEntityTypes(String argument)
+    {
+        this.disallowedEntityTypes = argument.split(",");
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-    private Neo4jEndpoint connector;
+    private static final String WIKI_PREFIX = "http://www.wikipedia.org/";
+    private static final String URI_PREFIX = "http://dbpedia.org/";
 
     @Override
     public Integer call() {
-        System.out.println("Input Directory: " + this.tableDir.getAbsolutePath() );
-        System.out.println("Output Directory: " + this.outputDir.getAbsolutePath() );
+        long parsedTables;
+        Logger.logNewLine(Logger.Level.INFO, "Input Directory: " + this.tableDir.getAbsolutePath());
+        Logger.logNewLine(Logger.Level.INFO, "Output Directory: " + this.outputDir.getAbsolutePath());
 
         try {
-            this.connector = new Neo4jEndpoint(this.configFile);
+            Neo4jEndpoint connector = new Neo4jEndpoint(this.configFile);
             connector.testConnection();
+
+            switch (this.tableType) {
+                case TT:
+                    Logger.logNewLine(Logger.Level.ERROR, "Indexing of '"+TableType.TT.getName() + "' is not supported yet!");
+                    break;
+                case WIKI:
+                    Logger.logNewLine(Logger.Level.INFO, "Starting indexing of '" + TableType.WIKI.getName() + "'");
+                    parsedTables = this.indexWikiTables(this.tableDir.toPath(), this.outputDir, connector, this.threads);
+                    Logger.logNewLine(Logger.Level.INFO, "Indexed " + parsedTables + " tables\n");
+                    break;
+            }
         } catch(AuthenticationException ex){
-            System.err.println( "Could not Login to Neo4j Server (user or password do not match)");
-            System.err.println(ex.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "Could not Login to Neo4j Server (user or password do not match)");
+            Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         }catch (ServiceUnavailableException ex){
-            System.err.println( "Could not connect to Neo4j Server");
-            System.err.println(ex.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "Could not connect to Neo4j Server");
+            Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         } catch (FileNotFoundException ex){
-            System.err.println( "Configuration file for Neo4j connector not found");
-            System.err.println(ex.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "Configuration file for Neo4j connector not found");
+            Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         } catch ( IOException ex){
-            System.err.println("Error in reading configuration for Neo4j connector");
-            System.err.println(ex.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "Error in reading configuration for Neo4j connector");
+            Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
         }
 
-
-        long parsedTables;
-        switch (this.tableType){
-            case TT:
-                System.err.println( "Indexing of '"+TableType.TT.getName() + "' is not supported yet!" );
-                break;
-            case WIKI:
-                System.out.println("Starting index of '"+TableType.WIKI.getName()+"'");
-                parsedTables = this.indexWikiTables();
-                System.out.printf("Indexed %d tables%n", parsedTables );
-                break;
-
-        }
-
-        // Create a .ttl file to store the mappings of a tableID to the entities it is mapping to
-        System.out.println("Saving tableID->entities mappings into a .ttl file...");
-        this.createTTLFiles(outputDir);
-
-        System.out.println("Saving indexing statistics...");
-        this.saveStatistics(outputDir);
-
-        System.out.println("\n\nDONE\n\n");
-
+        Logger.logNewLine(Logger.Level.INFO, "DONE");
         return 23;
     }
 
-    private final BloomFilter<String> filter = BloomFilter.create(
-            Funnels.stringFunnel(Charset.defaultCharset()),
-            5_000_000,
-            0.01);
-
-    // Map a wikipedia uri to a dbpedia uri (e.g. https://en.wikipedia.org/wiki/Yellow_Yeiyah -> http://dbpedia.org/resource/Yellow_Yeiyah)
-    private final Map<String, String> wikipediaLinkToEntity = new HashMap<>(100000);
-
-    // Map a dbpedia uri to its list of rdf__types (e.g. http://dbpedia.org/resource/Yellow_Yeiyah -> [http://dbpedia.org/ontology/Swimmer, http://dbpedia.org/ontology/Person,  http://dbpedia.org/ontology/Athlete])
-    private final Map<String, List<String>> entityTypes = new HashMap<>();
-
-    // Inverted index that maps each entity uri (i.e. dbpedia uri) to a map of filenames which in turn map to a list of [rowId, colId] pairs where the entity is found
-    // e.g. entityInvertedIndex.get('http://dbpedia.org/resource/Yellow_Yeiyah') = {'table-316-3.json': [2,10], [3,10], ...}
-    private final Map<String, Map<String, List<Pair<Integer, Integer>>>> entityInvertedIndex = new HashMap<>();
-
-    // Map an entity (i.e. dbpedia uri) to the list of filenames it is found.  
-    // e.g. entityToFilename.get("http://dbpedia.org/resource/Yellow_Yeiyah") = [table-316-3.json, ...]
-    private final Map<String, List<String>> entityToFilename = new HashMap<>();
-
-    // Map an entity in a filename (the key is the entity_URI + "__" + filename) to the list of [rowId, colID] where the entity is found
-    // e.g. entityInFilenameToTableLocations.get("http://dbpedia.org/resource/Yellow_Yeiyah__table-316-3.json") = [[0,2], [2,2], ...]
-    private final Map<String, List<List<Integer>>> entityInFilenameToTableLocations = new HashMap<>();
-
-    // Map each tableID to a set of entities that its cell values map to. 
-    // e.g. table-316-8 -> [http://dbpedia.org/resource/Yellow_Yeiyah, http://dbpedia.org/resource/Michael_Phelps, ...]
-    private final Map<String, Set<String>> tableIDTOEntities = new HashMap<>();
-
-    // Specifies the frequency of how many entities map to a given wikilink in the dataset
-    // e.g. wikilinkToNumEntitiesFrequency.get(2) = 1000 means that there are 1000 wikilinks that map to exactly 2 entities (i.e. dbpedia links)
-    private final Map<Integer, Integer> wikilinkToNumEntitiesFrequency = new HashMap<>();
-
-    // Specifies the frequency of how many links map to a given cell value in the dataset
-    // e.g. cellToNumLinksFrequency.get(2) = 1000 means that there are 100 cells that have exactly to links 
-    private final Map<Integer, Integer> cellToNumLinksFrequency = new HashMap<>();
-
-    // Maps each entity to its IDF score. The idf score of an entity is given by log(N/n_t) + 1 where N is the number of filenames/tables in the repository
-    // and n_t is the number of tables that contain the entity in question.
-    private final Map<String, Double> entityToIDF = new HashMap<>();
-
-    private final Map<String, Object> tableIDToStats = new HashMap<>();
-
-    private int cellsWithLinks = 0;
-
-    // Maps each entity type to its IDF score. The idf score of an entity is given by log(N/n_t) + 1 where N is the number of entities in the repository
-    // and n_t is the number of entities that contain the entity type in question.
-    private final Map<String,Double> entityTypeToIDF = new HashMap<>();
-
-
-    // List of entity types to be ignored when extracting the set of types of an entity.
-    // Usually these correspond to types that are very generic and not informative to keep
-    private final List<String> entity_types_to_remove = Arrays.asList("http://www.w3.org/2002/07/owl#Thing", "http://www.wikidata.org/entity/Q5"); 
-
-    public long indexWikiTables(){
+    /**
+     * Returns number of tables successfully loaded
+     * @param tableDir Path to directory of tables to be loaded
+     * @param connector Neo4J connector instance
+     * @return Number of successfully loaded tables
+     */
+    public long indexWikiTables(Path tableDir, File outputDir, Neo4jEndpoint connector, int threads){
 
         // Open table directory
         // Iterate each table (each table is a JSON file)
@@ -255,461 +183,44 @@ public class IndexTables extends Command {
         // Query neo4j (in batch??) to get the matches
         // Save information on a file for now
 
-        long parsedTables = 0;
-        // Parse all tables in the specified directory
-        try {
-            // Get a list of all the files from the specified directory
-            Stream<Path> file_stream = Files.find(this.tableDir.toPath(),
-                Integer.MAX_VALUE,
-                (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
-            List<Path> file_paths_list = file_stream.collect(Collectors.toList());
-            Collections.sort(file_paths_list);
+        try
+        {
+            Stream<Path> fileStream = Files.find(tableDir,
+                    Integer.MAX_VALUE,
+                    (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
+            List<Path> filePaths = fileStream.collect(Collectors.toList());
+            Collections.sort(filePaths);
+            Logger.logNewLine(Logger.Level.INFO, "There are " + filePaths.size() + " files to be processed.");
 
-            System.out.println("\nThere are " + file_paths_list.size() + " files to be processed.");
+            long startTime = System.nanoTime();
+            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads, true, WIKI_PREFIX, URI_PREFIX, this.disallowedEntityTypes);
+            indexWriter.performIO();
 
-            long startTime = System.nanoTime();    
-            // Parse each file (TODO: Maybe parallelise this process? How can the global variables be shared?)
-            for (int i=0; i < file_paths_list.size(); i++) {
-                if (this.parseTable(file_paths_list.get(i).toAbsolutePath())) {
-                    parsedTables += 1;
-                }
-                if ((i % 100) == 0) {
-                    System.out.println("Processed " + i + "/" + file_paths_list.size() + " files...");
-                }
-            }
-            System.out.println("A total of " + parsedTables + " tables were parsed.");
             long elapsedTime = System.nanoTime() - startTime;
-            System.out.println("Elapsed time: " + elapsedTime/(1e9) + " seconds\n");
-            
-        } catch (IOException e) {
+            Logger.logNewLine(Logger.Level.INFO, "Elapsed time: " + elapsedTime / (1e9) + " seconds\n");
+
+            Set<Type> entityTypes = new HashSet<>();
+            Iterator<Id> idIter = indexWriter.getEntityLinker().kgUriIds();
+
+            while (idIter.hasNext())
+            {
+                Entity entity = indexWriter.getEntityTable().find(idIter.next());
+
+                if (entity != null)
+                    entityTypes.addAll(entity.getTypes());
+            }
+
+            Logger.logNewLine(Logger.Level.INFO, "Found an approximate total of " + indexWriter.getApproximateEntityMentions() + " unique entity mentions across " + indexWriter.cellsWithLinks() + " cells \n");
+            Logger.logNewLine(Logger.Level.INFO, "There are in total " + entityTypes.size() + " unique entity types across all discovered entities.");
+            Logger.logNewLine(Logger.Level.INFO, "Indexing took " + indexWriter.elapsedTime() + " ns");
+
+            return indexWriter.loadedTables();
+        }
+
+        catch (IOException e)
+        {
             e.printStackTrace();
             return -1;
         }
-
-        // Compute the IDF scores for each entity in the repository
-        System.out.println("Computing IDF scores for each entity...\n");
-        for (String s : entityToFilename.keySet()) {
-            // Double idfScore = - Math.log10(entityToFilename.get(s).size() / (double)parsedTables);
-            Double idfScore = Math.log10((double)parsedTables / entityToFilename.get(s).size()) + 1;
-            entityToIDF.put(s, idfScore);
-        }
-
-        // Compute the IDF scores for each entity type in the repository
-        this.computeEntityTypeToIDF();
-
-        // Save the produced hashmaps to disk
-        if (this.saveData(outputDir)) {
-            System.out.println("Successfully serialized all hashmaps!\n");
-        }
-
-        System.out.printf("Found an approximate total of %d  unique entity mentions across %d cells %n", this.filter.approximateElementCount(), this.cellsWithLinks);
-        System.out.println("There are in total " + entityTypeToIDF.size() + " unique entity types across all discovered entities.");
-
-        return parsedTables;
     }
-
-
-    /**
-     *
-     * @param path to a single Json file for a wikipedia table
-     * @return true if parsing was successful
-     */
-    public boolean parseTable(Path path) {
-
-        // Initialization
-        JsonTable table;
-        Gson gson = new GsonBuilder().serializeNulls().create();
-
-        // Tries to parse the JSON file, it fails if file not found or JSON is not well formatted
-        TypeAdapter<JsonTable> strictGsonObjectAdapter = new Gson().getAdapter(JsonTable.class);
-        try (JsonReader reader = new JsonReader(new FileReader(path.toFile()))) {
-            table = strictGsonObjectAdapter.read(reader);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            return false;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-
-
-        // We check if all the required json attributes are set
-        if(table == null || table._id  == null || table.rows == null) {
-            System.err.println("Failed to parse '"+path.toString()+"'");
-            try {
-                System.err.println(Files.readString(path));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return  false;
-        }
-
-        // System.out.println("Table: "+ table._id );
-
-        String filename = path.getFileName().toString();
-
-        // Maps a cell specified by RowNumber, ColumnNumber to the list of entities it matches to
-        Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();
-
-        // The set of entities corresponding to this filename/table
-        Set<String> setOfEntities = new HashSet<>();
-
-        int rowId = 0;
-        // Loop over every cell in a table
-        for(List<JsonTable.TableCell> row : table.rows){
-            int collId =0;
-            for(JsonTable.TableCell cell : row ){
-                if(!cell.links.isEmpty()) {
-                    cellsWithLinks+=1;
-                    // Update the cellToNumLinksFrequency
-                    cellToNumLinksFrequency.merge(cell.links.size(), 1, Integer::sum);
-
-                    //List<Pair<String,String>> matchedUris = connector.searchLinks(cell.links);
-                    List<String> matchedUris = new ArrayList<>();
-                    for(String link : cell.links) {
-                        if(wikipediaLinkToEntity.containsKey(link)){ //Check if we had already searched for it
-                            matchedUris.add(wikipediaLinkToEntity.get(link));
-                        } 
-                        else { 
-                            // Query the Neo4j DB to find the entity corresponding to a Wikilink from a cell value
-                            List<String> tempLinks = connector.searchLink(link.replace("http://www.", "http://en."));
-                            if(!tempLinks.isEmpty()) {
-                                // Currently only select a single dbpedia entity (i.e. the first one) for each wikilink
-                                // TODO: Maybe consider all possible entities for a given wikilink?
-                                String entity = tempLinks.get(0);
-                                matchedUris.add(entity);
-                                wikipediaLinkToEntity.put(link, entity);
-
-                                // Update the wikilinkToNumEntitiesFrequency map
-                                wikilinkToNumEntitiesFrequency.merge(tempLinks.size(), 1, Integer::sum);
-
-                                // Retrieve a list of rdf__types of the entity (filter them appropriately) and save them, in entityTypes map
-                                List<String> entity_types_uris = connector.searchTypes(entity);
-                                // TODO: Perform smarter removal of types (maybe ignore types from certain domain names)
-                                for (String ent_for_removal : entity_types_to_remove) {
-                                    entity_types_uris.remove(ent_for_removal);
-                                }
-                                entityTypes.put(entity, entity_types_uris);
-                            }
-                        }
-
-                        // Each wikilink is mapped to an entity (i.e. a dbpedia entry) in wikipediaLinkToEntity
-                        // so we can update the entityToFilename and entityInFilenameToTableLocations for each cell we visit
-                        if(wikipediaLinkToEntity.containsKey(link)) {
-                            String entity = wikipediaLinkToEntity.get(link);
-                            List<Integer> tableLocation = Arrays.asList(rowId, collId);
-
-                            if (entityToFilename.containsKey(entity)) {
-                                // Check if `entity__filename` is a key in entityInFilenameToTableLocations
-                                if (entityInFilenameToTableLocations.containsKey(entity + "__" + filename)) {
-                                    // Append the tableLocation in the entityInFilenameToTableLocations
-                                    entityInFilenameToTableLocations.get(entity + "__" + filename).add(tableLocation);
-                                }
-                                else {
-                                    // entityToFilename.get(entity) does not map to filename so add it and update entityInFilenameToTableLocations
-                                    entityToFilename.get(entity).add(filename);
-
-                                    // Update the entityInFilenameToTableLocations
-                                    List<List<Integer>> tableLocationsList = new ArrayList<>();
-                                    tableLocationsList.add(tableLocation);
-                                    entityInFilenameToTableLocations.put(entity + "__" + filename, tableLocationsList);
-                                }
-                            }
-                            else {
-                                // First time entity is a key in entityToFilename
-
-                                // Add entity to the entityToFilename and the current filename 
-                                List<String> filenameList = new ArrayList<>();
-                                filenameList.add(filename);
-                                entityToFilename.put(entity, filenameList);
-
-                                // Update the entityInFilenameToTableLocations
-                                List<List<Integer>> tableLocationsList = new ArrayList<>();
-                                tableLocationsList.add(tableLocation);
-                                entityInFilenameToTableLocations.put(entity + "__" + filename, tableLocationsList);
-
-                                // List<Pair<Integer, Integer>> list_of_cell_locs = new ArrayList<>();
-                                // list_of_cell_locs.add(cur_pair);
-                                // entityInvertedIndex.put(entity, new HashMap(){{put(filename, list_of_cell_locs);}});
-                            }
-                        }
-
-                    } // End of for links in cell loop 
-                    if (!matchedUris.isEmpty()) {
-                        for (String entity : matchedUris) {
-                            this.filter.put(entity);
-
-                            // Update the setOfEntities
-                            setOfEntities.add(entity);
-                        }
-
-                        entityMatches.put(new Pair<>(rowId, collId), matchedUris);
-
-                        /// We need also the inverse mapping, from entity to the table + cells
-                    }
-                }
-                collId+=1;
-            } // End of for column in row loop
-            rowId+=1;
-        } // End of for row in table loop
-
-        //System.out.printf("Found a total of %d entity matches%n", entityMatches.size());
-
-        tableIDTOEntities.put(FilenameUtils.removeExtension(filename), setOfEntities);
-
-        // Log Statistics for current table
-        getTableStats(table, filename, setOfEntities, entityMatches);
-
-        return true;
-    }
-
-    /**
-     * Update the tableIDToStats dictionary given a processed JsonTable
-     * 
-     * @param table     The JsonTable to be processed
-     * @param filename  The file name of the JsonTable
-     * @param tableEntities The set of entities that map to the JsonTable
-     * @param entityMatches A map indexed by (rowId, colId) pair mapping to the list of entities for that row.
-     */
-    public void getTableStats(JsonTable table, String filename, Set<String> tableEntities, Map<Pair<Integer, Integer>, List<String>> entityMatches) {
-
-        Map<String, Object> tableStats = new HashMap<>();
-
-        tableStats.put("numCols", table.numCols);
-        tableStats.put("numRows", table.numDataRows);
-        tableStats.put("numCells", table.numCols*table.numDataRows);
-        tableStats.put("numUniqueEntities", tableEntities.size());
-        tableStats.put("numMappedCells", entityMatches.size());
-
-        // Statistics of number of entities mapping to each row and column
-        // TODO: Consider cell values that map to many entities (now no separation)
-        List<Integer> numEntitiesPerRow = new ArrayList<Integer>(Collections.nCopies(table.numDataRows, 0));
-        List<Integer> numEntitiesPerCol = new ArrayList<Integer>(Collections.nCopies(table.numCols, 0));
-        Long numCellToEntityMatches = 0L; // Specifies the total number (bag semantics) of entities all cells map to  
-        for (String ent : tableEntities) {
-            List<List<Integer>> locations = entityInFilenameToTableLocations.get(ent + "__"  + filename);
-            for (List<Integer> loc : locations) {
-                // Increment the associated location of 'numEntitiesPerRow' and 'numEntitiesPerCol' by 1
-                numEntitiesPerRow.set(loc.get(0), numEntitiesPerRow.get(loc.get(0)) + 1);
-                numEntitiesPerCol.set(loc.get(1), numEntitiesPerCol.get(loc.get(1)) + 1);
-                numCellToEntityMatches += 1; 
-            }
-        }
-        tableStats.put("numEntitiesPerRow", numEntitiesPerRow);
-        tableStats.put("numEntitiesPerCol", numEntitiesPerCol);
-        tableStats.put("numCellToEntityMatches", numCellToEntityMatches);
-        tableStats.put("entities", tableEntities);
-
-        // Find number of cells mapped in each column
-        List<Integer> numCellToEntityMatchesPerCol = new ArrayList<Integer>(Collections.nCopies(table.numCols, 0));
-        for (Pair<Integer, Integer> pos : entityMatches.keySet()) {
-            Integer colId = pos.getValue();
-            numCellToEntityMatchesPerCol.set(colId, numCellToEntityMatchesPerCol.get(colId) + 1);
-        }
-        tableStats.put("numCellToEntityMatchesPerCol", numCellToEntityMatchesPerCol);
-
-
-        // For each column of the table find if it contains numeric values or not ()
-        List<Boolean> tableColumnsIsNumeric = new ArrayList<Boolean>(Collections.nCopies(table.numCols, false));
-        if (table.numNumericCols == 0) {
-            // No column is numerical. Do nothing since `tableColumnsIsNumeric` is set to all false by default
-        }
-        else if (table.numNumericCols == table.numCols) {
-            // All columns are numerical columns
-            tableColumnsIsNumeric = new ArrayList<Boolean>(Collections.nCopies(table.numCols, true));
-        }
-        else {
-            // There is at least a column that is numerical. Loop over the first row in the table to find which columns are numerical
-            Integer colId = 0;
-            for (JsonTable.TableCell cell : table.rows.get(0)) {
-                if (cell.isNumeric) {
-                    tableColumnsIsNumeric.set(colId, true);
-                }
-                colId+=1;
-            }
-        }
-        tableStats.put("tableColumnsIsNumeric", tableColumnsIsNumeric);
-
-        // Update the tableIDToStats map 
-        tableIDToStats.put(filename, tableStats);
-    }
-
-
-
-    /**
-     * Seriealize all global hashmaps
-     */
-    public boolean saveData(File path) {
-        // Serialize the hash maps
-        try {
-            FileOutputStream fileOut = new FileOutputStream(path+"/wikipediaLinkToEntity.ser");
-            ObjectOutputStream out = new ObjectOutputStream(fileOut);
-            out.writeObject(wikipediaLinkToEntity);
-            out.close();
-            fileOut.close();
-            System.out.println("Serialized wikipediaLinkToEntity hashmap");
-
-            fileOut = new FileOutputStream(path+"/entityTypes.ser");
-            out = new ObjectOutputStream(fileOut);
-            out.writeObject(entityTypes);
-            out.close();
-            fileOut.close();
-            System.out.println("Serialized entityTypes hashmap");
-
-            fileOut = new FileOutputStream(path+"/entityToFilename.ser");
-            out = new ObjectOutputStream(fileOut);
-            out.writeObject(entityToFilename);
-            out.close();
-            fileOut.close();
-            System.out.println("Serialized entityToFilename hashmap");
-
-            fileOut = new FileOutputStream(path+"/entityInFilenameToTableLocations.ser");
-            out = new ObjectOutputStream(fileOut);
-            out.writeObject(entityInFilenameToTableLocations);
-            out.close();
-            fileOut.close();
-            System.out.println("Serialized entityInFilenameToTableLocations hashmap");
-
-            fileOut = new FileOutputStream(path+"/entityToIDF.ser");
-            out = new ObjectOutputStream(fileOut);
-            out.writeObject(entityToIDF);
-            out.close();
-            fileOut.close();
-            System.out.println("Serialized entityToIDF hashmap");
-
-            fileOut = new FileOutputStream(path+"/entityTypeToIDF.ser");
-            out = new ObjectOutputStream(fileOut);
-            out.writeObject(entityTypeToIDF);
-            out.close();
-            fileOut.close();
-            System.out.println("Serialized entityTypeToIDF hashmap");
-
-            Writer writer = new FileWriter(path+"/entityToIDF.json");
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(entityToIDF, writer);
-            writer.close();
-            System.out.println("Wrote entityToIDF.json");
-
-            writer = new FileWriter(path+"/wikipediaLinkToEntity.json");
-            gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(wikipediaLinkToEntity, writer);
-            writer.close();
-            System.out.println("Wrote wikipediaLinkToEntity.json");
-
-            writer = new FileWriter(path+"/entityTypes.json");
-            gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(entityTypes, writer);
-            writer.close();
-            System.out.println("Wrote entityTypes.json");
-
-            writer = new FileWriter(path+"/entityTypeToIDF.json");
-            gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(entityTypeToIDF, writer);
-            writer.close();
-            System.out.println("Wrote entityTypeToIDF.json");
-
-            return true;
-
-        } 
-        catch (IOException i) {
-            i.printStackTrace();
-            return false;
-        }
-    }
-
-    public void createTTLFiles(File path) {
-        try {
-            // Create tableIDToEntities.ttl file
-            File fout = new File(path+"/tableIDToEntities.ttl");
-            FileOutputStream fos = new FileOutputStream(fout);
-         
-            OutputStreamWriter osw = new OutputStreamWriter(fos);
-         
-            for (String tableID : tableIDTOEntities.keySet()) {
-                for (String entity : tableIDTOEntities.get(tableID)) {
-                    osw.write(
-                        "<http://thetis.edao.eu/wikitables/"+tableID+"> " +
-                        "<https://schema.org/mentions> <" +
-                        entity + "> .\n"
-                    );
-                }
-            }
-            osw.close();
-
-            // Create tableIDToTypes.ttl file
-            fout = new File(path+"/tableIDToTypes.ttl");
-            fos = new FileOutputStream(fout);
-         
-            osw = new OutputStreamWriter(fos);
-         
-            for (String tableID : tableIDTOEntities.keySet()) {
-                osw.write(
-                    "<http://thetis.edao.eu/wikitables/"+tableID+"> " +
-                    "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
-                    "<https://schema.org/Table> .\n"
-                );
-            }
-            osw.close();
-        }
-        catch (IOException i) {
-            i.printStackTrace();
-        }
-    }
-
-    public void saveStatistics(File path) {
-        File outputDir = new File(path+"/statistics/");
-        if (!outputDir.exists()){
-            outputDir.mkdir();
-        }
-
-        try {
-            Writer writer = new FileWriter(outputDir+"/wikilinkToNumEntitiesFrequency.json");
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(wikilinkToNumEntitiesFrequency, writer);
-            writer.close();
-
-            writer = new FileWriter(outputDir+"/cellToNumLinksFrequency.json");
-            gson.toJson(cellToNumLinksFrequency, writer);
-            writer.close();
-
-            writer = new FileWriter(outputDir+"/perTableStats.json");
-            gson.toJson(tableIDToStats, writer);
-            writer.close();
-        }
-        catch (IOException i) {
-            i.printStackTrace();
-        }
-    }
-
-    /**
-     * Computes the IDF scores for each entity type (i.e., populates the entityTypeToIDF hashmap)
-     */
-    public void computeEntityTypeToIDF() {
-        System.out.println("Computing IDF scores for each entity type...\n");
-        // Construct a mapping of each entity type to its frequency
-        Map<String,Integer> entityTypeToFrequency = new HashMap<>();
-        for (String uri : entityTypes.keySet()) {
-            for (String entityType : entityTypes.get(uri)) {
-                if (entityTypeToFrequency.containsKey(entityType)) {
-                    entityTypeToFrequency.put(entityType, entityTypeToFrequency.get(entityType) + 1);
-                } 
-                else {
-                    entityTypeToFrequency.put(entityType, 1);
-                }
-            }
-        }
-        // Compute the IDF scores for each entity type discovered (i.e., in how many entities out of all entities is a type shared)
-        Double total_num_entities = Double.valueOf(entityToFilename.size());
-        for (String entityType : entityTypeToFrequency.keySet()) {
-            Double numEntitiesToEntityTypeFrequencyRatio = total_num_entities / entityTypeToFrequency.get(entityType);
-            Double idfScore = utils.log2(numEntitiesToEntityTypeFrequencyRatio);
-            // Double idfScore = Math.log10(total_num_entities / entityTypeToFrequency.get(entityType));
-            entityTypeToIDF.put(entityType, idfScore);
-        }
-    }
-
-
-
-
-
 }

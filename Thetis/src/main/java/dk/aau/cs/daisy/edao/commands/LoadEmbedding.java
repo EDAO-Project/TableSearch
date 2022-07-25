@@ -4,11 +4,11 @@ import dk.aau.cs.daisy.edao.commands.parser.EmbeddingsParser;
 import dk.aau.cs.daisy.edao.commands.parser.ParsingException;
 import dk.aau.cs.daisy.edao.connector.*;
 import dk.aau.cs.daisy.edao.system.Configuration;
+import dk.aau.cs.daisy.edao.system.Logger;
 import picocli.CommandLine;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 @picocli.CommandLine.Command(name = "embedding", description = "Loads embedding vectors into an SQLite database")
@@ -71,9 +71,9 @@ public class LoadEmbedding extends Command
 
             if (this.doParse)
             {
-                log("Parsing...");
+                Logger.logNewLine(Logger.Level.INFO, "Parsing...");
                 parseFile(new FileInputStream(this.embeddingsFile));
-                log("Parsing complete");
+                Logger.logNewLine(Logger.Level.INFO, "Parsing complete");
             }
 
             EmbeddingsParser parser = new EmbeddingsParser(new FileInputStream(this.embeddingsFile), DELIMITER);
@@ -87,10 +87,10 @@ public class LoadEmbedding extends Command
                 loaded += (double) bytes / Math.pow(1024, 2);
 
                 if (bytes == 0)
-                    log("INSERTION ERROR: " + ((ExplainableCause) db).getError());
+                    Logger.logNewLine(Logger.Level.ERROR, "INSERTION ERROR: " + ((ExplainableCause) db).getError());
 
                 else
-                    log("LOAD BATCH [" + batchSizeCount + "] - " + loaded + " mb");
+                    Logger.log(Logger.Level.INFO, "LOAD BATCH [" + batchSizeCount + "] - " + loaded + " mb");
 
                 batchSizeCount += bytes > 0 ? batchSize : 0;
             }
@@ -101,20 +101,15 @@ public class LoadEmbedding extends Command
 
         catch (IOException exception)
         {
-            log("File error: " + exception.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "File error: " + exception.getMessage());
         }
 
         catch (ParsingException exception)
         {
-            log("Parsing error: " + exception.getMessage());
+            Logger.logNewLine(Logger.Level.ERROR, "Parsing error: " + exception.getMessage());
         }
 
         return -1;
-    }
-
-    private static void log(String message)
-    {
-        System.out.println(new Date() + ": " + message);
     }
 
     private void saveParams()

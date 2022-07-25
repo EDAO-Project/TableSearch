@@ -57,7 +57,7 @@ public class MilvusTest
         return this.db.update(command);
     }
 
-    @Test
+    /*@Test
     public void readDataTest()
     {
         MilvusCommand command = Milvus.createCommand(MilvusCommand.Type.QUERY, "collection");
@@ -76,5 +76,5 @@ public class MilvusTest
         assertEquals(2, embeddings.size());
         assertEquals(5, embeddings.get(0).size());
         assertEquals(5, embeddings.get(1).size());
-    }
+    }*/
 }

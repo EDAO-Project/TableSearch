@@ -3,6 +3,9 @@ package dk.aau.cs.daisy.edao.similarity;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * Cosine similarity between two numeric vectors
+ */
 public class CosineSimilarity implements Similarity
 {
     private List<Double> l1, l2;

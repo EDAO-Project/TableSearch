@@ -1,9 +1,11 @@
 package dk.aau.cs.daisy.edao.utilities;
+import dk.aau.cs.daisy.edao.commands.parser.TableParser;
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
+import dk.aau.cs.daisy.edao.structures.table.Table;
 
 import java.util.*;
 
-public class ppr {
+public class Ppr {
     
     /**
      * Returns a List<List<Double>> with the weight scores
@@ -38,6 +40,28 @@ public class ppr {
         return weights;
     }
 
+    public static List<List<Double>> getWeights(Neo4jEndpoint connector, Table<String> query, Map<String, Double> entityToIDF)
+    {
+        return getWeights(connector, queryToMatrix(query), entityToIDF);
+    }
+
+    private static List<List<String>> queryToMatrix(Table<String> query)
+    {
+        List<List<String>> queryEntities = new ArrayList<>();
+
+        for (int i = 0; i < query.rowCount(); i++)
+        {
+            queryEntities.add(new ArrayList<>(query.getRow(i).size()));
+
+            for (int j = 0; j < query.getRow(i).size(); j++)
+            {
+                queryEntities.get(i).add(query.getRow(i).get(j));
+            }
+        }
+
+        return queryEntities;
+    }
+
     /**
      * 
      * @param queryEntities: A 2D list of the query tuples. Indexed by (tupleID, entityPosition) 
@@ -54,6 +78,11 @@ public class ppr {
             weights.add(weightPerQueryTuple);
         }
         return weights;
+    }
+
+    public static List<List<Double>> getUniformWeights(Table<String> query)
+    {
+        return getUniformWeights(queryToMatrix(query));
     }
 
     public static List<List<Double>> getEdgeRatioScores(Neo4jEndpoint connector, List<List<String>> queryEntities) {
@@ -135,5 +164,9 @@ public class ppr {
         return newQueryEntities;
     }
 
-
+    public static Table<String> combineQueryTuplesInSingleTuple(Table<String> query)
+    {
+        List<List<String>> temp = combineQueryTuplesInSingleTuple(queryToMatrix(query));
+        return TableParser.toTable(temp);
+    }
 }

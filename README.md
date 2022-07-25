@@ -179,7 +179,7 @@ We use the WikiTables corpus as provided in the STR paper (this is the same corp
    mvn package
    
    # From inside docker
-   java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikitables/files/wikitables_parsed/tables_10_MAX/ --output-dir /data/index/wikitables/
+   java -Xms25g -jar target/Thetis.0.1.jar index --table-type wikitables --table-dir  /data/tables/wikitables/files/wikitables_parsed/tables_10_MAX/ --output-dir /data/index/wikitables/ -t 4
    ```
 
 4. Materialize table to entity edges in the Graph
@@ -272,28 +272,26 @@ python generate_queries.py --wikipages_df ../../tables/wikipages/wikipages_expan
 The following commands should be run inside docker
 ```bash
 # Construct the Index for the wikipages dataset
-java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_dataset/tables/ --output-dir /data/index/wikipages/
+java -Xms25g -jar target/Thetis.0.1.jar index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_dataset/tables/ --output-dir /data/index/wikipages/ -t 4
 
 # Construct the index for the expanded wikipages dataset
-java -jar target/Thetis.0.1.jar  index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_expanded_dataset/tables/ --output-dir /data/index/wikipages_expanded/
+java -Xmx25g -jar target/Thetis.0.1.jar index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_expanded_dataset/tables/ --output-dir /data/index/wikipages_expanded/ -t 4
 ```
-
-
 
 ## OLD WRITEUP (REMOVE EVENTUALLY)
 Small Dataset Baseline (Single Column per Query Entity using pre-trained embeddings)
 ```bash
-java -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/small_test/ --query-file ../data/queries/test_queries/query_small_test.json --table-dir /data/tables/wikitables/small_test/ --output-dir /data/search/small_test/single_column_per_entity/ --singleColumnPerQueryEntity --usePretrainedEmbeddings
+java -Xms25g -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/small_test/ --query-file ../data/queries/test_queries/query_small_test.json --table-dir /data/tables/wikitables/small_test/ --output-dir /data/search/small_test/single_column_per_entity/ --singleColumnPerQueryEntity --usePretrainedEmbeddings
 ```
 
 Full Dataset Baseline (Single Column per Query Entity)
 ```bash
-java -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/www18_wikitables/ --query-file ../data/queries/www18_wikitables/queries/q_9.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/search/www18_wikitables/full_index/naive/q_9 --singleColumnPerQueryEntity
+java -Xms25g -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/www18_wikitables/ --query-file ../data/queries/www18_wikitables/queries/q_9.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/search/www18_wikitables/full_index/naive/q_9 --singleColumnPerQueryEntity
 ```
 
 Full Dataset PPR
 ```bash
-java -jar target/Thetis.0.1.jar search --search-mode ppr --query-file ../data/queries/www18_wikitables/queries/q_15.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/search/www18_wikitables/ppr/q_15/ --minThreshold 0.002 --numParticles 300 --topK 200
+java -Xmx25g -jar target/Thetis.0.1.jar search --search-mode ppr --query-file ../data/queries/www18_wikitables/queries/q_15.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/search/www18_wikitables/ppr/q_15/ --minThreshold 0.002 --numParticles 300 --topK 200
 ```
 
 Testing commands (TODO: Delete for final version)
@@ -301,22 +299,22 @@ Testing commands (TODO: Delete for final version)
 
 <!-- Table Search Test on www18_wikitables_test using pre-trained embeddings on query q_9 -->
 ```bash
-java -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/www18_wikitables_test/ --query-file ../data/queries/www18_wikitables/queries/q_9.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed_test/tables_10_MAX/ --output-dir /data/search/www18_wikitables_test/single_column_per_entity/ --singleColumnPerQueryEntity --usePretrainedEmbeddings
+java -Xms25g -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/www18_wikitables_test/ --query-file ../data/queries/www18_wikitables/queries/q_9.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed_test/tables_10_MAX/ --output-dir /data/search/www18_wikitables_test/single_column_per_entity/ --singleColumnPerQueryEntity --usePretrainedEmbeddings
 ```
 
 <!-- Table Search Test on www18_wikitables_test using PPR on query q_9 -->
 ```bash
-java -jar target/Thetis.0.1.jar search --search-mode ppr --hashmap-dir ../data/index/www18_wikitables/ --query-file ../data/queries/www18_wikitables/queries/q_9.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/search/www18_wikitables_test/ppr_weighted/ --weightedPPR --minThreshold 0.005 --numParticles 300 --topK 200 
+java -Xmx25g -jar target/Thetis.0.1.jar search --search-mode ppr --hashmap-dir ../data/index/www18_wikitables/ --query-file ../data/queries/www18_wikitables/queries/q_9.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/search/www18_wikitables_test/ppr_weighted/ --weightedPPR --minThreshold 0.005 --numParticles 300 --topK 200 
 ```
 
 <!-- Table Search Test on wikitables_small_index using PPR on query test_queries/query_small_test.json -->
 ```bash
-java -jar target/Thetis.0.1.jar search --search-mode ppr --hashmap-dir ../data/index/wikitables_small_test/ --query-file ../data/queries/test_queries/query_small_test.json --table-dir /data/tables/wikitables/small_test/ --output-dir /data/search/small_test/ppr_unweighted_single_q_tuple/ --pprSingleRequestForAllQueryTuples --weightedPPR --minThreshold 0.01 --numParticles 200 --topK 200
+java -Xmx25g -jar target/Thetis.0.1.jar search --search-mode ppr --hashmap-dir ../data/index/wikitables_small_test/ --query-file ../data/queries/test_queries/query_small_test.json --table-dir /data/tables/wikitables/small_test/ --output-dir /data/search/small_test/ppr_unweighted_single_q_tuple/ --pprSingleRequestForAllQueryTuples --weightedPPR --minThreshold 0.01 --numParticles 200 --topK 200
 ```
 
 <!-- Table Search Test on www18_wikitables using PPR on query www18_wikitables/wikipage_tables_analysis/queries/query.json -->
 ```bash
-java -jar target/Thetis.0.1.jar search --search-mode ppr --hashmap-dir ../data/index/www18_wikitables/ --query-file ../data/queries/www18_wikitables/wikipage_tables_analysis/queries/query.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/search/wikipage_tables_analysis/ --minThreshold 0.005 --numParticles 300 --topK 200
+java -Xms25g -jar target/Thetis.0.1.jar search --search-mode ppr --hashmap-dir ../data/index/www18_wikitables/ --query-file ../data/queries/www18_wikitables/wikipage_tables_analysis/queries/query.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/search/wikipage_tables_analysis/ --minThreshold 0.005 --numParticles 300 --topK 200
 ```
 
 * Perform Search using the Web Interface (TODO: Maybe remove this since we don't use it?)

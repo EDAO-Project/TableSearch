@@ -1,6 +1,5 @@
 package dk.aau.cs.daisy.edao.utilities;
 
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.FileNotFoundException;
@@ -10,15 +9,15 @@ import java.nio.file.Files;
 import java.util.*;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import dk.aau.cs.daisy.edao.commands.parser.EmbeddingsParser;
 import dk.aau.cs.daisy.edao.commands.parser.Parser;
 import dk.aau.cs.daisy.edao.similarity.CosineSimilarity;
+import dk.aau.cs.daisy.edao.structures.table.Table;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
 
-public class utils {
+public class Utils {
 
     /**
      * Returns the JsonTable from a path to the json file
@@ -51,27 +50,24 @@ public class utils {
         return table;
     }
 
-
     /**
-     * Returns the average vector given a list of vectors
+     * Returns the average vector given a row of vector scores
      */
-    public static List<Double> getAverageVector(List<List<Double>> vecList) {
-        // Initialize the avgVec to a vector of zeroes
+    public static List<Double> getAverageVector(Table.Row<List<Double>> row) {
         List<Double> avgVec = new ArrayList<>();
-        for (Integer i=0;i<vecList.get(0).size(); i++) {
+
+        for (int i = 0; i < row.size(); i++) {
             avgVec.add(0.0);
         }
 
-        // Construct sum
-        for (List<Double> vec : vecList) {
-            for (Integer i=0; i<vec.size(); i++) {
-                avgVec.set(i, avgVec.get(i) + vec.get(i));
+        for (int i = 0; i < row.size(); i++) {
+            for (int j = 0; j < row.get(i).size(); j++) {
+                avgVec.set(i, avgVec.get(i) + row.get(i).get(j));
             }
-        } 
+        }
 
-        // Get the Average
-        for (Integer i=0; i<avgVec.size(); i++) {
-            avgVec.set(i, avgVec.get(i) / vecList.size());
+        for (int i = 0; i < avgVec.size(); i++) {
+            avgVec.set(i, avgVec.get(i) / row.get(i).size());
         }
 
         return avgVec;
@@ -89,24 +85,24 @@ public class utils {
     }
 
     /**
-     * Returns a list with the maximum value for each column in `arr`.
-     * Note that `arr` is a 2D list of doubles
+     * Returns a list with the maximum value for each column in `row`.
+     * Note that `row` is a 2D list of doubles from tables of scores
      */
-    public static List<Double> getMaxPerColumnVector(List<List<Double>> arr) {
-        Integer numColumns = arr.get(0).size();
-        List<Double> maxColumnVec = new ArrayList<Double>(Collections.nCopies(numColumns, 0.0));
+    public static List<Double> getMaxPerColumnVector(Table.Row<List<Double>> row) {
+        List<Double> maxColumnVec = new ArrayList<>(Collections.nCopies(row.size(), 0.0));
 
-        for (Integer rowNum=0; rowNum<arr.size(); rowNum++) {
-            for (Integer colNum=0; colNum<numColumns; colNum++) {
-                if (arr.get(rowNum).get(colNum) > maxColumnVec.get(colNum)) {
-                    maxColumnVec.set(colNum, arr.get(rowNum).get(colNum));
+        for (int column = 0; column < row.size(); column++) {
+            int cellCount = row.get(column).size();
+
+            for (int cellDim = 0; cellDim < cellCount; cellDim++) {
+                if (row.get(column).get(cellDim) > maxColumnVec.get(column)) {
+                    maxColumnVec.set(column, row.get(column).get(cellDim));
                 }
             }
-        } 
+        }
 
         return maxColumnVec;
     }
-
 
     /**
      * Returns the cosine similarity between two lists
@@ -116,16 +112,18 @@ public class utils {
     }
 
     /**
-     * Returns the weighted Euclidian Distance between two lists
+     * Returns the weighted Euclidean Distance between two lists
      * 
      * Assumes that the sizes of `vectorA`, `vectorB` and `weightVector` are all the same
      */
     public static double euclideanDistance(List<Double> vectorA, List<Double> vectorB, List<Double> weightVector) {
-        double Sum = 0.0;
+        double sum = 0.0;
+
         for (int i = 0; i < vectorA.size(); i++) {
-            Sum = Sum + (Math.pow((vectorA.get(i) - vectorB.get(i)), 2.0)) * weightVector.get(i);
+            sum += Math.pow((vectorA.get(i) - vectorB.get(i)), 2.0) * weightVector.get(i);
         }
-        return Math.sqrt(Sum);
+
+        return Math.sqrt(sum);
     }
 
     /**
