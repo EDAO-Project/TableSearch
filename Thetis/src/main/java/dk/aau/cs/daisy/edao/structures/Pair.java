@@ -4,9 +4,9 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * Pair structure of two objects of any type
- * @param <F> Type of first object
- * @param <S> Type of second object
+ * Pair structure of two objects of any comparable type
+ * @param <F> Comparable type of first object
+ * @param <S> Comparable type of second object
  */
 public class Pair<F extends Comparable, S extends Comparable> implements Serializable, Comparable<Pair<F, S>> {
 
@@ -23,7 +23,6 @@ public class Pair<F extends Comparable, S extends Comparable> implements Seriali
         this.first = first;
         this.second = second;
     }
-
 
     public F getFirst() {
         return this.first;
@@ -59,8 +58,6 @@ public class Pair<F extends Comparable, S extends Comparable> implements Seriali
         }
 
     }
-
-
 
     public int hashCode(){
         return this.first.hashCode() + 113*this.second.hashCode();

@@ -282,4 +282,10 @@ public class Neo4jEndpoint implements AutoCloseable {
         } 
     }
 
+    /**
+     * Returns all distinct types
+     */
+    public Set<String> allTypes() {
+        return null;
+    }
 }
