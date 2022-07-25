@@ -25,6 +25,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+/**
+ * Main class for building indexes and serializing them on disk
+ */
 public class IndexWriter implements IndexIO
 {
     private List<Path> files;
@@ -52,13 +55,19 @@ public class IndexWriter implements IndexIO
                        String wikiPrefix, String uriPrefix, String ... disallowedEntityTypes)
     {
         if (!outputDir.exists())
+        {
             outputDir.mkdirs();
+        }
 
         else if (!outputDir.isDirectory())
+        {
             throw new IllegalArgumentException("Output directory '" + outputDir + "' is not a directory");
+        }
 
         else if (files.isEmpty())
+        {
             throw new IllegalArgumentException("Missing files to load");
+        }
 
         this.files = files;
         this.logProgress = logProgress;
@@ -79,7 +88,9 @@ public class IndexWriter implements IndexIO
     public void performIO() throws IOException
     {
         if (this.loadedTables.get() > 0)
+        {
             throw new RuntimeException("Loading has already complete");
+        }
 
         int size = this.files.size();
         long startTime = System.nanoTime();
@@ -87,10 +98,14 @@ public class IndexWriter implements IndexIO
         for (int i = 0; i < size; i++)
         {
             if (load(this.files.get(i)))
+            {
                 this.loadedTables.incrementAndGet();
+            }
 
             if (this.loadedTables.get() % 100 == 0)
+            {
                 Logger.log(Logger.Level.INFO, "Processed " + (i + 1) + "/" + size + " files...");
+            }
         }
 
         Logger.log(Logger.Level.INFO, "Collecting IDF weights...");
@@ -136,7 +151,9 @@ public class IndexWriter implements IndexIO
                     for (String link : cell.links)
                     {
                         if (this.linker.mapTo(link) != null)   // Check if we had already searched for it
+                        {
                             matchesUris.add(this.linker.mapTo(link));
+                        }
 
                         else
                         {
@@ -155,7 +172,7 @@ public class IndexWriter implements IndexIO
                                     entityTypes.remove(type);
                                 }
 
-                                Id entityId = ((EntityLinking) this.linker.getLinker()).uriLookup(entity);
+                                Id entityId = ((EntityLinking) this.linker.getLinker()).kgUriLookup(entity);
                                 this.entityTable.insert(entityId,
                                         new Entity(entity, entityTypes.stream().map(Type::new).collect(Collectors.toList())));
                             }
@@ -164,7 +181,7 @@ public class IndexWriter implements IndexIO
                         if (this.linker.mapTo(link) != null)
                         {
                             String entity = this.linker.mapTo(link);
-                            Id entityId = ((EntityLinking) this.linker.getLinker()).uriLookup(entity);
+                            Id entityId = ((EntityLinking) this.linker.getLinker()).kgUriLookup(entity);
                             Pair<Integer, Integer> location = new Pair<>(row, column);
                             ((EntityTableLink) this.entityTableLink.getIndex()).
                                     addLocation(entityId, tableName, List.of(location));
@@ -215,10 +232,12 @@ public class IndexWriter implements IndexIO
         while (entities.hasNext())
         {
             entityCount++;
-            Id entityId = ((EntityLinking) this.linker.getLinker()).uriLookup(entities.next());
+            Id entityId = ((EntityLinking) this.linker.getLinker()).kgUriLookup(entities.next());
 
             if (entityId == null)
+            {
                 continue;
+            }
 
             List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> locations =
                     ((EntityTableLink) this.entityTableLink.getIndex()).getLocations(entityId, tableFileName);
@@ -241,7 +260,9 @@ public class IndexWriter implements IndexIO
         }
 
         if (jTable.numNumericCols == jTable.numCols)
+        {
             tableColumnsIsNumeric = new ArrayList<>(Collections.nCopies(jTable.numCols, true));
+        }
 
         else
         {
@@ -250,7 +271,9 @@ public class IndexWriter implements IndexIO
             for (JsonTable.TableCell cell : jTable.rows.get(0))
             {
                 if (cell.isNumeric)
+                {
                     tableColumnsIsNumeric.set(colId, true);
+                }
 
                 colId++;
             }
@@ -276,7 +299,9 @@ public class IndexWriter implements IndexIO
         File statDir = new File(this.outputPath + "/statistics/");
 
         if (!statDir.exists())
+        {
             statDir.mkdir();
+        }
 
         try
         {
@@ -311,7 +336,7 @@ public class IndexWriter implements IndexIO
 
     private void loadEntityIDFs()
     {
-        Iterator<Id> idIter = ((EntityLinking) this.linker.getLinker()).uriIds();
+        Iterator<Id> idIter = ((EntityLinking) this.linker.getLinker()).kgUriIds();
 
         while (idIter.hasNext())
         {
@@ -324,7 +349,7 @@ public class IndexWriter implements IndexIO
     private void loadTypeIDFs()
     {
         Map<Type, Integer> entityTypeFrequency = new HashMap<>();
-        Iterator<Id> idIterator = ((EntityLinking) this.linker.getLinker()).uriIds();
+        Iterator<Id> idIterator = ((EntityLinking) this.linker.getLinker()).kgUriIds();
 
         while (idIterator.hasNext())
         {
@@ -334,15 +359,19 @@ public class IndexWriter implements IndexIO
             for (Type t : entityTypes)
             {
                 if (entityTypeFrequency.containsKey(t))
+                {
                     entityTypeFrequency.put(t, entityTypeFrequency.get(t) + 1);
+                }
 
                 else
+                {
                     entityTypeFrequency.put(t, 1);
+                }
             }
         }
 
         int totalEntityCount = this.entityTable.size();
-        idIterator = ((EntityLinking) this.linker.getLinker()).uriIds();
+        idIterator = ((EntityLinking) this.linker.getLinker()).kgUriIds();
 
         while (idIterator.hasNext())
         {
@@ -385,7 +414,7 @@ public class IndexWriter implements IndexIO
     {
         FileOutputStream outputStream = new FileOutputStream(this.outputPath + "/" + Configuration.getTableToEntitiesFile());
         OutputStreamWriter writer = new OutputStreamWriter(outputStream);
-        Iterator<Id> entityIter = ((EntityLinking) this.linker.getLinker()).uriIds();
+        Iterator<Id> entityIter = ((EntityLinking) this.linker.getLinker()).kgUriIds();
 
         while (entityIter.hasNext())
         {
@@ -404,7 +433,7 @@ public class IndexWriter implements IndexIO
         outputStream = new FileOutputStream(this.outputPath + "/" + Configuration.getTableToTypesFile());
         writer = new OutputStreamWriter(outputStream);
         Set<String> tables = new HashSet<>();
-        Iterator<Id> entityIdIter = ((EntityLinking) this.linker.getLinker()).uriIds();
+        Iterator<Id> entityIdIter = ((EntityLinking) this.linker.getLinker()).kgUriIds();
 
         while (entityIdIter.hasNext())
         {
@@ -413,7 +442,9 @@ public class IndexWriter implements IndexIO
             for (String t : entityTables)
             {
                 if (tables.contains(t))
+                {
                     continue;
+                }
 
                 tables.add(t);
                 writer.write("<http://thetis.edao.eu/wikitables/" + t +

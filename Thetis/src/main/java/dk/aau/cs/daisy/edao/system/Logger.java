@@ -2,6 +2,9 @@ package dk.aau.cs.daisy.edao.system;
 
 import java.util.Date;
 
+/**
+ * Class for logging at different logging levels
+ */
 public class Logger
 {
     public enum Level

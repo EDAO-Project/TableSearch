@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Vector;
 
 /**
- * Synchronized table with varying row lengths
- * @param <T>
+ * A table structure similar to <code>SimpleTable</code>, but allows row to be of different sizes in length
+ * @param <T> Type of table cell objects
  */
 public class DynamicTable<T> implements Table<T>
 {

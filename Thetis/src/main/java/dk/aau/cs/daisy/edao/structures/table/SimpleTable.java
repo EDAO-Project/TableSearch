@@ -3,6 +3,11 @@ package dk.aau.cs.daisy.edao.structures.table;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Simple table structure with attributes (labels)
+ * All row sized are requried to be equal
+ * @param <T> Type of table cell objects
+ */
 public class SimpleTable<T> implements Table<T>
 {
     private List<Row<T>> table;

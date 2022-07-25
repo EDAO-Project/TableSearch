@@ -60,7 +60,7 @@ public class IndexWriterTest
         assertEquals(entityTable.size(), entityTableLink.size());
 
         int count = 0;
-        Iterator<Id> iter = linker.uriIds();
+        Iterator<Id> iter = linker.kgUriIds();
 
         for (; iter.hasNext(); count++)
         {
@@ -86,10 +86,10 @@ public class IndexWriterTest
         assertEquals("http://dbpedia.org/resource/Windows_Phone_7", linker.mapTo("http://www.wikipedia.org/wiki/Windows_Phone_7"));
         assertEquals("http://www.wikipedia.org/wiki/Windows_Phone_7", linker.mapFrom("http://dbpedia.org/resource/Windows_Phone_7"));
 
-        assertNotNull(linker.uriLookup("http://dbpedia.org/resource/1963_Formula_One_season"));
-        assertNotNull(linker.wikiLookup("http://www.wikipedia.org/wiki/1963_Formula_One_season"));
-        assertNotNull(linker.uriLookup("http://dbpedia.org/resource/Windows_Phone_7"));
-        assertNotNull(linker.wikiLookup("http://www.wikipedia.org/wiki/Windows_Phone_7"));
+        assertNotNull(linker.kgUriLookup("http://dbpedia.org/resource/1963_Formula_One_season"));
+        assertNotNull(linker.inputUriLookup("http://www.wikipedia.org/wiki/1963_Formula_One_season"));
+        assertNotNull(linker.kgUriLookup("http://dbpedia.org/resource/Windows_Phone_7"));
+        assertNotNull(linker.inputUriLookup("http://www.wikipedia.org/wiki/Windows_Phone_7"));
     }
 
     @Test
@@ -97,8 +97,8 @@ public class IndexWriterTest
     {
         EntityTable entityTable = this.writer.getEntityTable();
         EntityLinking linker = this.writer.getEntityLinker();
-        Entity ent1 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/Boston_Bruins")),
-                ent2 = entityTable.find(linker.uriLookup("http://dbpedia.org/resource/NEC_Cup"));
+        Entity ent1 = entityTable.find(linker.kgUriLookup("http://dbpedia.org/resource/Boston_Bruins")),
+                ent2 = entityTable.find(linker.kgUriLookup("http://dbpedia.org/resource/NEC_Cup"));
         Set<String> ent1Types = Set.of("http://dbpedia.org/ontology/HockeyTeam", "http://dbpedia.org/ontology/Agent",
                 "http://dbpedia.org/ontology/Organisation", "http://dbpedia.org/ontology/SportsTeam",
                 "http://schema.org/Organization", "http://schema.org/SportsTeam", "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#Agent",
@@ -138,12 +138,12 @@ public class IndexWriterTest
         EntityTableLink entityTableLink = this.writer.getEntityTableLinker();
         EntityLinking linking = this.writer.getEntityLinker();
 
-        assertEquals(1, entityTableLink.find(linking.uriLookup("http://dbpedia.org/resource/1963_Formula_One_season")).size());
-        assertEquals("table-0072-223.json", entityTableLink.find(linking.uriLookup("http://dbpedia.org/resource/1963_Formula_One_season")).get(0));
-        assertEquals(1, entityTableLink.getLocations(linking.uriLookup("http://dbpedia.org/resource/1963_Formula_One_season"), "table-0072-223.json").size());
+        assertEquals(1, entityTableLink.find(linking.kgUriLookup("http://dbpedia.org/resource/1963_Formula_One_season")).size());
+        assertEquals("table-0072-223.json", entityTableLink.find(linking.kgUriLookup("http://dbpedia.org/resource/1963_Formula_One_season")).get(0));
+        assertEquals(1, entityTableLink.getLocations(linking.kgUriLookup("http://dbpedia.org/resource/1963_Formula_One_season"), "table-0072-223.json").size());
 
-        assertEquals(1, entityTableLink.find(linking.uriLookup("http://dbpedia.org/resource/Windows_Phone_7")).size());
-        assertEquals("table-0782-820.json", entityTableLink.find(linking.uriLookup("http://dbpedia.org/resource/Windows_Phone_7")).get(0));
-        assertEquals(2, entityTableLink.getLocations(linking.uriLookup("http://dbpedia.org/resource/Windows_Phone_7"), "table-0782-820.json").size());
+        assertEquals(1, entityTableLink.find(linking.kgUriLookup("http://dbpedia.org/resource/Windows_Phone_7")).size());
+        assertEquals("table-0782-820.json", entityTableLink.find(linking.kgUriLookup("http://dbpedia.org/resource/Windows_Phone_7")).get(0));
+        assertEquals(2, entityTableLink.getLocations(linking.kgUriLookup("http://dbpedia.org/resource/Windows_Phone_7"), "table-0782-820.json").size());
     }
 }

@@ -2,6 +2,10 @@ package dk.aau.cs.daisy.edao.structures.table;
 
 import java.util.List;
 
+/**
+ * A wrapper structure of tables that provides synchronization to the inner table
+ * @param <T> Type of table cell objects
+ */
 public class SynchronizedTable<T> extends SimpleTable<T> implements Table<T>
 {
     public SynchronizedTable(String ... columnLabels)

@@ -12,6 +12,9 @@ import dk.aau.cs.daisy.edao.utilities.Ppr;
 
 import java.util.*;
 
+/**
+ * Debugging search class for searching using Personalized PageRank
+ */
 public class PPRSearch extends AbstractSearch
 {
     private Neo4jEndpoint neo4j;
@@ -38,10 +41,14 @@ public class PPRSearch extends AbstractSearch
     protected Result abstractSearch(Table<String> query)
     {
         if (this.weighted)
+        {
             this.weights = Ppr.getWeights(this.neo4j, query, getIDFMapping());
+        }
 
         else
+        {
             this.weights = Ppr.getUniformWeights(query);
+        }
 
         Map<String, Double> tableScores = new HashMap<>();
         int rowCount = query.rowCount();
@@ -57,10 +64,14 @@ public class PPRSearch extends AbstractSearch
             for (String s : nodeTableScores.keySet())
             {
                 if (!tableScores.containsKey(s))
+                {
                     tableScores.put(s, nodeTableScores.get(s));
+                }
 
                 else
+                {
                     tableScores.put(s, tableScores.get(s) + nodeTableScores.get(s));
+                }
             }
 
             Logger.logNewLine(Logger.Level.INFO, "Finished computing PPR for tuple: " + row);
@@ -77,13 +88,13 @@ public class PPRSearch extends AbstractSearch
     private Map<String, Double> getIDFMapping()
     {
         Map<String, Double> entityToIDF = new HashMap<>();
-        Iterator<Id> entityIter = getLinker().uriIds();
+        Iterator<Id> entityIter = getLinker().kgUriIds();
 
         while (entityIter.hasNext())
         {
             Id entity = entityIter.next();
             double idf = getEntityTable().find(entity).getIDF();
-            entityToIDF.put(getLinker().uriLookup(entity), idf);
+            entityToIDF.put(getLinker().kgUriLookup(entity), idf);
         }
 
         return entityToIDF;

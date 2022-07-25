@@ -335,10 +335,12 @@ public class SearchTables extends Command {
 
             for (int j = 0; j < rowSize; j++)
             {
-                Id entityId = linker.uriLookup(row.get(j));
+                Id entityId = linker.kgUriLookup(row.get(j));
 
                 if (!tableLink.contains(entityId))
+                {
                     return false;
+                }
             }
         }
 
@@ -347,19 +349,23 @@ public class SearchTables extends Command {
 
     public void exactSearch(Table<String> query, EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink)
     {
-        Iterator<Id> entityIter = linker.uriIds();
+        Iterator<Id> entityIter = linker.kgUriIds();
 
         while (entityIter.hasNext())
         {
             Id entityId = entityIter.next();
-            String entity = linker.uriLookup(entityId);
+            String entity = linker.kgUriLookup(entityId);
             List<String> tableFiles = entityTableLink.find(entityId);
 
             if (tableFiles == null || tableFiles.isEmpty())
+            {
                 Logger.logNewLine(Logger.Level.RESULT, "'" + entity + "' does not map to any known entity in the constructed index");
+            }
 
             else
+            {
                 Logger.logNewLine(Logger.Level.RESULT, "There are " + tableFiles.size() + " files that contain the entity '" + entity + "'");
+            }
         }
 
         TableSearch search = new ExactSearch(linker, entityTable, entityTableLink);
@@ -447,7 +453,9 @@ public class SearchTables extends Command {
 
 
             if (this.pprSingleRequestForAllQueryTuples)
+            {
                 query = Ppr.combineQueryTuplesInSingleTuple(query);
+            }
 
             PPRSearch search = new PPRSearch(linker, table, tableLink, neo4j, this.weightedPPR, this.minThreshold,
                     this.numParticles, this.topK);
@@ -492,7 +500,9 @@ public class SearchTables extends Command {
         File saveDir = new File(outputDir, "/search_output/" + queryName);
 
         if (!saveDir.exists())
+        {
             saveDir.mkdirs();
+        }
 
         Logger.logNewLine(Logger.Level.INFO, "\nConstructing the filenameToScore.json file...");
 

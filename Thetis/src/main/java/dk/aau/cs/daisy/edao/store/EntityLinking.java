@@ -7,134 +7,135 @@ import java.io.Serializable;
 import java.util.*;
 
 /**
- * Mapping from Wikipedia link to KG entity URI
+ * Mapping from an entity of one type to another entity of some type
+ * Entity types are specified by T1 and T2
  * A trie is maybe better, where leafs contain IDs and no duplicate bidirectional mapping.
  */
 public class EntityLinking implements Linker<String, String>, Serializable
 {
-    private IdDictionary<String> uriDict, wikiDict;
-    private Map<Id, Id> wikiLinkToUri;    // Wikipedia link to entity URI
-    private Map<Id, Id> uriToWikiLink;    // entity URI to Wikipedia link
-    String wikiPrefix, uriPrefix;
+    private IdDictionary<String> t1Ids, t2Ids;
+    private Map<Id, Id> inputToKGEntity;    // Input entity to KG entity mapping
+    private Map<Id, Id> kgEntityToInput;    // KG entity to input entity
+    String inputPrefix, kgEntityPrefix;
 
-    public EntityLinking(String wikiPrefix, String uriPrefix)
+    public EntityLinking(String inputPrefix, String kgEntityPrefix)
     {
-        this.uriDict = new IdDictionary<>(false);
-        this.wikiDict = new IdDictionary<>(false);
-        this.wikiLinkToUri = new HashMap<>();
-        this.uriToWikiLink = new HashMap<>();
-        this.wikiPrefix = wikiPrefix;
-        this.uriPrefix = uriPrefix;
+        this.t1Ids = new IdDictionary<>(false);
+        this.t2Ids = new IdDictionary<>(false);
+        this.inputToKGEntity = new HashMap<>();
+        this.kgEntityToInput = new HashMap<>();
+        this.inputPrefix = inputPrefix;
+        this.kgEntityPrefix = kgEntityPrefix;
     }
 
-    public EntityLinking(IdDictionary<String> uriDict, IdDictionary wikiDict, String wikiPrefix, String uriPrefix)
+    public EntityLinking(IdDictionary<String> kgEntityDict, IdDictionary inputDict, String inputPrefix, String kgEntityPrefix)
     {
-        this(wikiPrefix, uriPrefix);
-        this.uriDict = uriDict;
-        this.wikiDict = wikiDict;
+        this(inputPrefix, kgEntityPrefix);
+        this.t1Ids = kgEntityDict;
+        this.t2Ids = inputDict;
     }
 
-    public Id uriLookup(String uri)
+    public Id kgUriLookup(String kgEntity)
     {
-        return this.uriDict.get(uri.substring(this.uriPrefix.length()));
+        return this.t1Ids.get(kgEntity.substring(this.kgEntityPrefix.length()));
     }
 
-    public String uriLookup(Id id)
+    public String kgUriLookup(Id id)
     {
-        return this.uriPrefix + this.uriDict.get(id);
+        return this.kgEntityPrefix + this.t1Ids.get(id);
     }
 
-    public Id wikiLookup(String wikiLink)
+    public Id inputUriLookup(String inputEntity)
     {
-        return this.wikiDict.get(wikiLink.substring(this.wikiPrefix.length()));
+        return this.t2Ids.get(inputEntity.substring(this.inputPrefix.length()));
     }
 
-    public String wikiLookup(Id id)
+    public String inputUriLookup(Id id)
     {
-        return this.wikiPrefix + this.wikiDict.get(id);
+        return this.inputPrefix + this.t2Ids.get(id);
     }
 
-    public Iterator<Id> uriIds()
+    public Iterator<Id> kgUriIds()
     {
-        return this.uriDict.elements().asIterator();
+        return this.t1Ids.elements().asIterator();
     }
 
-    public Iterator<Id> wikiIds()
+    public Iterator<Id> inputUriIds()
     {
-        return this.wikiDict.elements().asIterator();
+        return this.t2Ids.elements().asIterator();
     }
 
     /**
-     * Mapping from Wikipedia link to KG entity URI
-     * @param wikipedia link
+     * Mapping from input entity URI to KG entity URI
+     * @param inputEntity URI
      * @return Entity URI or null if absent
      */
     @Override
-    public String mapTo(String wikipedia)
+    public String mapTo(String inputEntity)
     {
-        if (!wikipedia.startsWith(this.wikiPrefix))
-            throw new IllegalArgumentException("Wikipedia link does not start with specified prefix");
+        if (!inputEntity.startsWith(this.inputPrefix))
+            throw new IllegalArgumentException("Input entity URI does not start with specified prefix");
 
-        Id wikiId = this.wikiDict.get(wikipedia.substring(this.wikiPrefix.length()));
+        Id inputId = this.t2Ids.get(inputEntity.substring(this.inputPrefix.length()));
 
-        if (wikiId == null)
+        if (inputId == null)
             return null;
 
-        Id uriId = this.wikiLinkToUri.get(wikiId);
+        Id kgId = this.inputToKGEntity.get(inputId);
 
-        if (uriId == null)
+        if (kgId == null)
             return null;
 
-        return this.uriPrefix + this.uriDict.get(uriId);
+        return this.kgEntityPrefix + this.t1Ids.get(kgId);
     }
 
     /**
-     * Mapping from KG entity URI to Wikipedia link
-     * @param uri of KG entity
-     * @return Wikipedia link or null if absent
+     * Mapping from KG entity URI to input entity URI
+     * @param kgUri of KG entity
+     * @return input entity URI or null if absent
      */
     @Override
-    public String mapFrom(String uri)
+    public String mapFrom(String kgUri)
     {
-        if (!uri.startsWith(this.uriPrefix))
-            throw new IllegalArgumentException("Entity URI does not start with specified prefix");
+        if (!kgUri.startsWith(this.kgEntityPrefix))
+            throw new IllegalArgumentException("KG entity URI does not start with specified prefix");
 
-        Id uriId = this.uriDict.get(uri.substring(this.uriPrefix.length()));
+        Id uriId = this.t1Ids.get(kgUri.substring(this.kgEntityPrefix.length()));
 
         if (uriId == null)
             return null;
 
-        Id wikiId = this.uriToWikiLink.get(uriId);
+        Id inputId = this.kgEntityToInput.get(uriId);
 
-        if (wikiId == null)
+        if (inputId == null)
             return null;
 
-        return this.wikiPrefix + this.wikiDict.get(wikiId);
+        return this.inputPrefix + this.t2Ids.get(inputId);
     }
 
     /**
      * Adds mapping
-     * @param wikipedia link
-     * @param uri of KG entity
+     * @param inputEntity URI
+     * @param kgEntity of KG entity
      */
     @Override
-    public void addMapping(String wikipedia, String uri)
+    public void addMapping(String inputEntity, String kgEntity)
     {
-        if (!wikipedia.startsWith(this.wikiPrefix) || !uri.startsWith(this.uriPrefix))
-            throw new IllegalArgumentException("Wikipedia link and/or entity URI do not start with given prefix");
+        if (!inputEntity.startsWith(this.inputPrefix) || !kgEntity.startsWith(this.kgEntityPrefix))
+            throw new IllegalArgumentException("Input entity URI and/or KG entity URI do not start with given prefix");
 
-        String wikiNoPrefix = wikipedia.substring(this.wikiPrefix.length()),
-                uriNoPrefix = uri.substring(this.uriPrefix.length());
-        Id wikiId = this.wikiDict.get(wikiNoPrefix), uriId = this.uriDict.get(uriNoPrefix);
+        String inputNoPrefix = inputEntity.substring(this.inputPrefix.length()),
+                kgUriNoPrefix = kgEntity.substring(this.kgEntityPrefix.length());
+        Id inputId = this.t2Ids.get(inputNoPrefix), uriId = this.t1Ids.get(kgUriNoPrefix);
 
-        if (wikiId == null)
-            this.wikiDict.put(wikiNoPrefix, (wikiId = Id.alloc()));
+        if (inputId == null)
+            this.t2Ids.put(inputNoPrefix, (inputId = Id.alloc()));
 
         if (uriId == null)
-            this.uriDict.put(uriNoPrefix, (uriId = Id.alloc()));
+            this.t1Ids.put(kgUriNoPrefix, (uriId = Id.alloc()));
 
-        this.wikiLinkToUri.putIfAbsent(wikiId, uriId);
-        this.uriToWikiLink.putIfAbsent(uriId, wikiId);
+        this.inputToKGEntity.putIfAbsent(inputId, uriId);
+        this.kgEntityToInput.putIfAbsent(uriId, inputId);
     }
 
     /**
@@ -143,9 +144,9 @@ public class EntityLinking implements Linker<String, String>, Serializable
     @Override
     public void clear()
     {
-        this.wikiLinkToUri.clear();
-        this.uriToWikiLink.clear();
-        this.uriDict.clear();
-        this.wikiDict.clear();
+        this.inputToKGEntity.clear();
+        this.kgEntityToInput.clear();
+        this.t1Ids.clear();
+        this.t2Ids.clear();
     }
 }

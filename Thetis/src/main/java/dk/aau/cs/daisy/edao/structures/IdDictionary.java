@@ -3,6 +3,10 @@ package dk.aau.cs.daisy.edao.structures;
 import java.io.Serializable;
 import java.util.*;
 
+/**
+ * Bi-directional mapping dictionary between ID and objects of a specified type
+ * @param <K> Object type to be contained
+ */
 public class IdDictionary<K> extends Dictionary<K, Id> implements Serializable
 {
     private Map<K, Id> map;

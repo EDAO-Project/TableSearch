@@ -12,6 +12,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+/**
+ * Main class responsible for reading indexes serialized on disk
+ */
 public class IndexReader implements IndexIO
 {
     private boolean multithreaded, logProgress;
@@ -26,10 +29,14 @@ public class IndexReader implements IndexIO
     public IndexReader(File indexDir, boolean isMultithreaded, boolean logProgress)
     {
         if (!indexDir.isDirectory())
+        {
             throw new IllegalArgumentException("'" + indexDir + "' is not a directory");
+        }
 
         else if (!indexDir.exists())
+        {
             throw new IllegalArgumentException("'" + indexDir + "' does not exist");
+        }
 
         this.indexDir = indexDir;
         this.multithreaded = isMultithreaded;
@@ -102,10 +109,14 @@ public class IndexReader implements IndexIO
         catch (OptionalDataException e)
         {
             if (e.eof)
+            {
                 Logger.logNewLine(Logger.Level.ERROR, "EOF reached earlier than expected when reading index file: " + file);
+            }
 
             else
+            {
                 Logger.logNewLine(Logger.Level.ERROR, "Index file stream contains primitive data: " + file);
+            }
 
             throw new RuntimeException(e.getMessage());
         }

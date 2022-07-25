@@ -4,6 +4,10 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Represents entity in a knowledge graph
+ * Each entity has an IDF weight and a set of types
+ */
 public class Entity implements Comparable<Entity>, Serializable
 {
     private String uri;

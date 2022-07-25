@@ -2,6 +2,12 @@ package dk.aau.cs.daisy.edao.store;
 
 import java.io.Serializable;
 
+/**
+ * Wrapper class for any Index class
+ * This class provides synchronization to index classes
+ * @param <K> Index key
+ * @param <V> Index value
+ */
 public class SynchronizedIndex<K, V> implements Index<K, V>, Serializable
 {
     private Index<K, V> index;

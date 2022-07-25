@@ -23,6 +23,9 @@ import java.util.concurrent.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+/**
+ * Entry class for searching tables using our algorithm
+ */
 public class AnalogousSearch extends AbstractSearch
 {
     public enum SimilarityMeasure
@@ -262,7 +265,9 @@ public class AnalogousSearch extends AbstractSearch
                             int assignedColumn = queryRowToColumnMappings.get(queryRowCounter).get(queryColumn);
 
                             if (columnToEntity.containsKey(assignedColumn))
+                            {
                                 bestSimScore = entitySimilarityScore(queryEntity, columnToEntity.get(assignedColumn));
+                            }
                         }
 
                         else
@@ -398,7 +403,7 @@ public class AnalogousSearch extends AbstractSearch
     {
         Set<Type> entTypes1 = new HashSet<>();
         Set<Type> entTypes2 = new HashSet<>();
-        Id ent1Id = getLinker().uriLookup(ent1), ent2Id = getLinker().uriLookup(ent2);
+        Id ent1Id = getLinker().kgUriLookup(ent1), ent2Id = getLinker().kgUriLookup(ent2);
 
         if (getEntityTable().contains(ent1Id))
             entTypes1 = new HashSet<>(getEntityTable().find(ent1Id).getTypes());
@@ -565,7 +570,7 @@ public class AnalogousSearch extends AbstractSearch
 
             for (int column = 0; column < rowSize; column++)
             {
-                Id entityId = getLinker().uriLookup(query.getRow(queryRow).get(column));
+                Id entityId = getLinker().kgUriLookup(query.getRow(queryRow).get(column));
                 curRowIDFScores.add(getEntityTable().find(entityId).getIDF());
             }
 
@@ -641,7 +646,7 @@ public class AnalogousSearch extends AbstractSearch
     private Set<String> distinctTables()
     {
         Set<String> tables = new HashSet<>();
-        Iterator<Id> entityIter = getLinker().uriIds();
+        Iterator<Id> entityIter = getLinker().kgUriIds();
 
         while (entityIter.hasNext())
         {

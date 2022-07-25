@@ -2,6 +2,12 @@ package dk.aau.cs.daisy.edao.store;
 
 import java.io.Serializable;
 
+/**
+ * Wrapper class for entity linker class
+ * This class provides synchronization to linker classes
+ * @param <F> Type of entity to map from
+ * @param <T> Type of entity to map to
+ */
 public class SynchronizedLinker<F, T> implements Linker<F, T>, Serializable
 {
     private Linker<F, T> linker;

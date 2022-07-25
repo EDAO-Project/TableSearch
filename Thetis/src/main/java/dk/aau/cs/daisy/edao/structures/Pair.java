@@ -3,6 +3,11 @@ package dk.aau.cs.daisy.edao.structures;
 import java.io.Serializable;
 import java.util.Objects;
 
+/**
+ * Pair structure of two objects of any type
+ * @param <F> Type of first object
+ * @param <S> Type of second object
+ */
 public class Pair<F extends Comparable, S extends Comparable> implements Serializable, Comparable<Pair<F, S>> {
 
     private final F first;

@@ -12,6 +12,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Class for debugging searching tables that are exact matches to query
+ */
 public class ExactSearch extends AbstractSearch
 {
     private long elapsed = -1;
@@ -42,7 +45,7 @@ public class ExactSearch extends AbstractSearch
             for (int i = 0; i < entityCount; i++)
             {
                 String uri = getLinker().mapTo(flattenedQuery.get(i));
-                Id entityID = getLinker().uriLookup(uri);
+                Id entityID = getLinker().kgUriLookup(uri);
                 List<Pair<Integer, Integer>> locations = getEntityTableLink().getLocations(entityID, fileName);
                 Set<Integer> rows = new HashSet<>(locations.size());
                 locations.forEach(l -> rows.add(l.getFirst()));
@@ -88,13 +91,13 @@ public class ExactSearch extends AbstractSearch
     {
         int queryEntityCount = row.size();
         String uri = getLinker().mapTo(row.get(0));
-        Id firstEntity = getLinker().uriLookup(uri);
+        Id firstEntity = getLinker().kgUriLookup(uri);
         List<String> sharedTableFiles = getEntityTableLink().find(firstEntity);
 
         for (int i = 1; i < queryEntityCount; i++)
         {
             uri = getLinker().mapTo(row.get(i));
-            Id entityID = getLinker().uriLookup(uri);
+            Id entityID = getLinker().kgUriLookup(uri);
             sharedTableFiles.retainAll(getEntityTableLink().find(entityID));
         }
 

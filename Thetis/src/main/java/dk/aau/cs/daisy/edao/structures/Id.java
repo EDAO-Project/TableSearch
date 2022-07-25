@@ -4,6 +4,11 @@ import dk.aau.cs.daisy.edao.system.Configuration;
 
 import java.io.Serializable;
 
+/**
+ * ID of entities
+ * IDs are allocated in incrementing order
+ * The largest ID is stored in a configuration file so no entities are given the same ID
+ */
 public class Id implements Serializable, Comparable<Id>
 {
     private static class IdAllocator

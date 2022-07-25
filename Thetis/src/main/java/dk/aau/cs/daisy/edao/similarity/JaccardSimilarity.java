@@ -1,9 +1,11 @@
 package dk.aau.cs.daisy.edao.similarity;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
+/**
+ * Jaccard similarity between two sets containing objects of the same type
+ */
 import dk.aau.cs.daisy.edao.structures.Pair;
 
 public class JaccardSimilarity<E extends Comparable<E>> implements Similarity

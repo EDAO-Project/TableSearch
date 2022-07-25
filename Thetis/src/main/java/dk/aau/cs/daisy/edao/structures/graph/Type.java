@@ -2,6 +2,10 @@ package dk.aau.cs.daisy.edao.structures.graph;
 
 import java.io.Serializable;
 
+/**
+ * Represents a knowledge graph entity type
+ * It also contains its IDF weight
+ */
 public class Type implements Comparable<Type>, Serializable
 {
     private String type;

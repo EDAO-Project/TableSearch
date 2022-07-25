@@ -3,6 +3,9 @@ package dk.aau.cs.daisy.edao.system;
 import java.io.*;
 import java.util.Properties;
 
+/**
+ * Container of system configuration as well as serialization and de-serialization of system configuration
+ */
 public class Configuration
 {
     private static class ConfigurationIO

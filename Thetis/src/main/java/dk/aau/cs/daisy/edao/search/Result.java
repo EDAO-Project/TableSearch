@@ -5,6 +5,9 @@ import dk.aau.cs.daisy.edao.structures.Pair;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * Container of top-K search result in sorted descending order
+ */
 public class Result
 {
     private int k, size;
