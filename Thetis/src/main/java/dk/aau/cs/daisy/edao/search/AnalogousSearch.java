@@ -115,6 +115,17 @@ public class AnalogousSearch extends AbstractSearch
         }).collect(Collectors.toSet());
     }
 
+    private void prefilterSearchSpace(Table<String> query)
+    {
+        Iterator<Pair<String, Double>> res = this.prefilter.search(query).getResults();
+        this.corpus.clear();
+
+        while (res.hasNext())
+        {
+            this.corpus.add(res.next().getFirst());
+        }
+    }
+
     /**
      * Entrpy point for analogous search
      * @param query Input table query
@@ -124,6 +135,11 @@ public class AnalogousSearch extends AbstractSearch
     protected Result abstractSearch(Table<String> query)
     {
         long start = System.nanoTime();
+
+        if (this.prefilter != null)
+        {
+            prefilterSearchSpace(query);
+        }
 
         try
         {

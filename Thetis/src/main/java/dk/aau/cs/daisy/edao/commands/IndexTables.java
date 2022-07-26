@@ -204,7 +204,7 @@ public class IndexTables extends Command {
             Logger.logNewLine(Logger.Level.ERROR, "Configuration file for Neo4j connector not found");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
             return 1;
-        } catch ( IOException ex){
+        } catch (IOException ex){
             Logger.logNewLine(Logger.Level.ERROR, "Error in reading configuration for Neo4j connector");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
             return 1;

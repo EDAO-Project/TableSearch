@@ -220,15 +220,23 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
     @Override
     public boolean insert(String entity, String table)
     {
-        int entitySignature = createOrGetSignature(entity);
-        List<Integer> bucketKeys = createKeys(entitySignature);
-
-        for (int bucketKey : bucketKeys)
+        try
         {
-            add(bucketKey, entity, table);
+            int entitySignature = createOrGetSignature(entity);
+            List<Integer> bucketKeys = createKeys(entitySignature);
+
+            for (int bucketKey : bucketKeys)
+            {
+                add(bucketKey, entity, table);
+            }
+
+            return true;
         }
 
-        return true;
+        catch (Exception exc)
+        {
+            return false;
+        }
     }
 
     private static List<Boolean> or(List<List<Boolean>> vectors)

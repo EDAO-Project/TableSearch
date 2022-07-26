@@ -11,11 +11,12 @@ import java.util.*;
  * LSH index of entity embeddings
  * Mapping from string entity to set of tables candidate entities by cosine similarity originate from
  */
-public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIndex<PairNonComparable<String, List<Double>>, String>, Serializable
+public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIndex<String, String>, Serializable
 {
     private HashFunction hash;
     private Set<List<Double>> projections;
     private List<List<Boolean>> bucketSignatures;
+    private DBDriver<List<Double>, String> embeddingsDB;
 
     /**
      * @param bucketCount Number of LSH index buckets
@@ -35,7 +36,7 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
     private void load(Set<PairNonComparable<String, Set<String>>> tableVectors, int projections)
     {
         Set<PairNonComparable<String, Set<PairNonComparable<String, List<Double>>>>> materialized = new HashSet<>();
-        DBDriver<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
+        this.embeddingsDB = Factory.fromConfig(false);
 
         for (PairNonComparable<String, Set<String>> table : tableVectors)
         {
@@ -151,19 +152,33 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
     }
 
     @Override
-    public boolean insert(PairNonComparable<String, List<Double>> entity, String table)
+    public boolean insert(String entity, String table)
     {
-        List<Boolean> bitVector = bitVector(entity.getSecond());
+        List<Double> embedding = this.embeddingsDB.select(entity);
+
+        if (embedding == null)
+        {
+            return false;
+        }
+
+        List<Boolean> bitVector = bitVector(embedding);
         int key = this.hash.hash(bitVector, buckets());
-        add(key, entity.getFirst(), table);
+        add(key, entity, table);
 
         return true;
     }
 
     @Override
-    public Set<String> search(PairNonComparable<String, List<Double>> entity)
+    public Set<String> search(String entity)
     {
-        List<Boolean> searchBitVector = bitVector(entity.getSecond());
+        List<Double> embedding = this.embeddingsDB.select(entity);
+
+        if (embedding == null)
+        {
+            return new HashSet<>();
+        }
+
+        List<Boolean> searchBitVector = bitVector(embedding);
         int buckets = buckets(), closestIdx = 0, closestDist = Integer.MAX_VALUE;
 
         for (int i = 1; i < buckets; i++)
