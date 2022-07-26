@@ -1,5 +1,7 @@
 package dk.aau.cs.daisy.edao.store.lsh;
 
+import dk.aau.cs.daisy.edao.connector.DBDriver;
+import dk.aau.cs.daisy.edao.connector.Factory;
 import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 
 import java.io.Serializable;
@@ -22,18 +24,45 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
      * @param tableVectors Tables containing entities and their vector (embedding) representations
      */
     public VectorLSHIndex(int bucketCount, int projections, HashFunction hash,
-                          Set<PairNonComparable<String, Set<PairNonComparable<String, List<Double>>>>> tableVectors, int vectorDimension)
+                          Set<PairNonComparable<String, Set<String>>> tableVectors)
     {
         super(bucketCount);
-        this.projections = createProjections(projections, vectorDimension);
         this.hash = hash;
         this.bucketSignatures = new ArrayList<>(Collections.nCopies(bucketCount, null));
-        load(tableVectors);
+        load(tableVectors, projections);
     }
 
-    private void load(Set<PairNonComparable<String, Set<PairNonComparable<String, List<Double>>>>> tableVectors)
+    private void load(Set<PairNonComparable<String, Set<String>>> tableVectors, int projections)
     {
-        for (PairNonComparable<String, Set<PairNonComparable<String, List<Double>>>> table : tableVectors)
+        Set<PairNonComparable<String, Set<PairNonComparable<String, List<Double>>>>> materialized = new HashSet<>();
+        DBDriver<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
+
+        for (PairNonComparable<String, Set<String>> table : tableVectors)
+        {
+            String tableName = table.getFirst();
+            Set<PairNonComparable<String, List<Double>>> entities = new HashSet<>(table.getSecond().size());
+
+            for (String entity : table.getSecond())
+            {
+                List<Double> embedding = embeddingsDB.select(entity);
+
+                if (embedding != null)
+                {
+                    entities.add(new PairNonComparable<>(entity, embedding));
+                }
+            }
+
+            materialized.add(new PairNonComparable<>(tableName, entities));
+        }
+
+        if (materialized.isEmpty())
+        {
+            throw new RuntimeException("No embeddings were loaded into vector LSH index");
+        }
+
+        this.projections = createProjections(projections, getVectorDimension(materialized));
+
+        for (PairNonComparable<String, Set<PairNonComparable<String, List<Double>>>> table : materialized)
         {
             String tableName = table.getFirst();
 
@@ -46,6 +75,28 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
                 this.bucketSignatures.set(key, bitVector);  // Do we need to set this multiple times for each key when two have the same key?
             }
         }
+    }
+
+    // This assumes all vectors are of the same dimension
+    private static int getVectorDimension(Set<PairNonComparable<String, Set<PairNonComparable<String, List<Double>>>>> tables)
+    {
+        int dimension = -1;
+
+        for (PairNonComparable<String, Set<PairNonComparable<String, List<Double>>>> table : tables)
+        {
+            for (PairNonComparable<String, List<Double>> entity : table.getSecond())
+            {
+                dimension = entity.getSecond().size();
+                break;
+            }
+
+            if (dimension != -1)
+            {
+                break;
+            }
+        }
+
+        return dimension;
     }
 
     private static Set<List<Double>> createProjections(int num, int dimension)

@@ -5,10 +5,16 @@ import com.google.common.hash.Funnels;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dk.aau.cs.daisy.edao.commands.parser.TableParser;
+import dk.aau.cs.daisy.edao.connector.DBDriver;
+import dk.aau.cs.daisy.edao.connector.Factory;
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 import dk.aau.cs.daisy.edao.store.*;
+import dk.aau.cs.daisy.edao.store.lsh.HashFunction;
+import dk.aau.cs.daisy.edao.store.lsh.TypesLSHIndex;
+import dk.aau.cs.daisy.edao.store.lsh.VectorLSHIndex;
 import dk.aau.cs.daisy.edao.structures.IdDictionary;
 import dk.aau.cs.daisy.edao.structures.Pair;
+import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 import dk.aau.cs.daisy.edao.structures.graph.Entity;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
@@ -44,12 +50,25 @@ public class IndexWriter implements IndexIO
     private SynchronizedLinker<String, String> linker;
     private SynchronizedIndex<Id, Entity> entityTable;
     private SynchronizedIndex<Id, List<String>> entityTableLink;
+    private TypesLSHIndex typesLSH;
+    private VectorLSHIndex embeddingsLSH;
     private BloomFilter<String> filter = BloomFilter.create(
             Funnels.stringFunnel(Charset.defaultCharset()),
             5_000_000,
             0.01);
     private final Map<String, Stats> tableStats = new TreeMap<>();
     private List<String> disallowedEntityTypes;
+    private static final HashFunction HASH_FUNCTION = (obj, num) -> {
+        List<?> sig = (List<?>) obj;
+        int sum = 0;
+
+        for (int i = 0; i < sig.size(); i++)
+        {
+            sum += Math.pow(sig.get(i).hashCode(), i);
+        }
+
+        return sum % num;
+    };
 
     public IndexWriter(List<Path> files, File outputDir, Neo4jEndpoint neo4j, int threads, boolean logProgress,
                        String wikiPrefix, String uriPrefix, String ... disallowedEntityTypes)
@@ -111,6 +130,9 @@ public class IndexWriter implements IndexIO
         Logger.log(Logger.Level.INFO, "Collecting IDF weights...");
         loadIDFs();
 
+        Logger.logNewLine(Logger.Level.INFO, "Building LSH indexes");
+        loadLSHIndexes();
+
         Logger.logNewLine(Logger.Level.INFO, "Writing indexes and stats on disk...");
         flushToDisk();
         writeStats();
@@ -120,6 +142,50 @@ public class IndexWriter implements IndexIO
         Logger.logNewLine(Logger.Level.INFO, "A total of " + this.loadedTables.get() + " tables were loaded");
         Logger.logNewLine(Logger.Level.INFO, "Elapsed time: " + this.elapsed / (1e9) + " seconds");
         Logger.logNewLine(Logger.Level.INFO, "Computing IDF weights...");
+    }
+
+    private void loadLSHIndexes()
+    {
+        int permutations = Configuration.getPermutationVectors(), buckets = Configuration.getBucketCount();
+        double bandFraction = Configuration.getBandFraction();
+        Set<PairNonComparable<String, Set<String>>> tables = tablesEntities();
+        this.typesLSH = new TypesLSHIndex(this.neo4j, permutations, bandFraction, tables, HASH_FUNCTION, buckets);
+        this.embeddingsLSH = new VectorLSHIndex(buckets, permutations, HASH_FUNCTION, tables);
+    }
+
+    private Set<PairNonComparable<String, Set<String>>> tablesEntities()
+    {
+        Set<PairNonComparable<String, Set<String>>> tables = new HashSet<>();
+
+        for (Path tablePath : this.files)
+        {
+            JsonTable table = TableParser.parse(tablePath);
+
+            if (table == null ||  table._id == null || table.rows == null)
+            {
+                continue;
+            }
+
+            String tableName = tablePath.getFileName().toString();
+            Set<String> entities = new HashSet<>();
+
+            for (List<JsonTable.TableCell> tableRow : table.rows)
+            {
+                for (JsonTable.TableCell cell : tableRow)
+                {
+                    String entity;
+
+                    if (!cell.links.isEmpty() && (entity = this.linker.mapTo(cell.links.get(0))) != null)
+                    {
+                        entities.add(entity);
+                    }
+                }
+            }
+
+            tables.add(new PairNonComparable<>(tableName, entities));
+        }
+
+        return tables;
     }
 
     private boolean load(Path tablePath)
@@ -496,6 +562,24 @@ public class IndexWriter implements IndexIO
     public EntityTable getEntityTable()
     {
         return (EntityTable) this.entityTable.getIndex();
+    }
+
+    /**
+     * Getter to LSH index of entity types
+     * @return Entity types-based LSH index
+     */
+    public TypesLSHIndex getTypesLSH()
+    {
+        return this.typesLSH;
+    }
+
+    /**
+     * Getter to LSH index of entity embeddings
+     * @return Entity embeddings-based LSH index
+     */
+    public VectorLSHIndex getEmbeddingsLSH()
+    {
+        return this.embeddingsLSH;
     }
 
     /**

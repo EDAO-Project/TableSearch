@@ -9,11 +9,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import dk.aau.cs.daisy.edao.connector.DBDriverBatch;
+import dk.aau.cs.daisy.edao.connector.Factory;
 import dk.aau.cs.daisy.edao.loader.IndexWriter;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.graph.Entity;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
 
+import dk.aau.cs.daisy.edao.system.Configuration;
 import dk.aau.cs.daisy.edao.system.Logger;
 import picocli.CommandLine;
 
@@ -75,7 +78,6 @@ public class IndexTables extends Command {
         configFile = value;
     }
 
-
     private File tableDir = null;
     @CommandLine.Option(names = { "-td", "--table-dir"}, paramLabel = "TABLE_DIR", description = "Directory containing the input tables", required = true)
     public void setTableDirectory(File value) {
@@ -126,6 +128,39 @@ public class IndexTables extends Command {
         this.disallowedEntityTypes = argument.split(",");
     }
 
+    @CommandLine.Option(names = {"-v", "--permutation-vectors"}, paramLabel = "PERMUTATION-VECTORS", description = "Number of permutation vectors to build entity signatures in LSH index", defaultValue = "15")
+    public void setPermutationVectors(int value)
+    {
+        if (value <= 0)
+        {
+            throw new CommandLine.ParameterException(spec.commandLine(), "Number of permutation vectors must be positive");
+        }
+
+        Configuration.setPermutationVectors(value);
+    }
+
+    @CommandLine.Option(names = {"-bf", "--band-fraction"}, paramLabel = "BAND-FRACTION", description = "Size of bands in LSH index of entity types defined as the fraction of the entity vector representation dimension", defaultValue = "0.2")
+    public void setBandFraction(double val)
+    {
+        if (val <= 0.0 || val > 1.0)
+        {
+            throw new CommandLine.ParameterException(spec.commandLine(), "Band fraction must be greater than 0.0 and at most 1.0");
+        }
+
+        Configuration.setBandFraction(val);
+    }
+
+    @CommandLine.Option(names = {"-bc", "--bucket-count"}, paramLabel = "BUCKET-COUNT", description = "NUmber of buckets in LSH indexes", defaultValue = "20")
+    public void setBucketCount(int count)
+    {
+        if (count < 1)
+        {
+            throw new CommandLine.ParameterException(spec.commandLine(), "Number of LSH index buckets must be greater than 1");
+        }
+
+        Configuration.setBucketCount(count);
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private static final String WIKI_PREFIX = "http://www.wikipedia.org/";
@@ -133,6 +168,12 @@ public class IndexTables extends Command {
 
     @Override
     public Integer call() {
+        if (!embeddingsAreLoaded())
+        {
+            Logger.logNewLine(Logger.Level.ERROR, "Load embeddings before using this command");
+            return 1;
+        }
+
         long parsedTables;
         Logger.logNewLine(Logger.Level.INFO, "Input Directory: " + this.tableDir.getAbsolutePath());
         Logger.logNewLine(Logger.Level.INFO, "Output Directory: " + this.outputDir.getAbsolutePath());
@@ -154,19 +195,40 @@ public class IndexTables extends Command {
         } catch(AuthenticationException ex){
             Logger.logNewLine(Logger.Level.ERROR, "Could not Login to Neo4j Server (user or password do not match)");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
+            return 1;
         }catch (ServiceUnavailableException ex){
             Logger.logNewLine(Logger.Level.ERROR, "Could not connect to Neo4j Server");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
+            return 1;
         } catch (FileNotFoundException ex){
             Logger.logNewLine(Logger.Level.ERROR, "Configuration file for Neo4j connector not found");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
+            return 1;
         } catch ( IOException ex){
             Logger.logNewLine(Logger.Level.ERROR, "Error in reading configuration for Neo4j connector");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
+            return 1;
         }
 
         Logger.logNewLine(Logger.Level.INFO, "DONE");
         return 23;
+    }
+
+    private boolean embeddingsAreLoaded()
+    {
+        try
+        {
+            DBDriverBatch<List<Double>, String> db = Factory.fromConfig(false);
+            List<Double> embeddings;
+
+            return (embeddings = db.select("http://dbpedia.org/ontology/team")) != null &&
+                    !embeddings.isEmpty();
+        }
+
+        catch (RuntimeException e)
+        {
+            return false;
+        }
     }
 
     /**

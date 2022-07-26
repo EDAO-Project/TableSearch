@@ -65,6 +65,7 @@ public class AnalogousSearch extends AbstractSearch
     private Map<String, Stats> tableStats = new TreeMap<>();
     private final Object lock = new Object();
     private Set<String> corpus;
+    private Prefilter prefilter;
 
     public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK,
                            int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
@@ -85,6 +86,20 @@ public class AnalogousSearch extends AbstractSearch
         this.measure = similarityMeasure;
         this.embeddings = embeddingStore;
         this.corpus = distinctTables();
+        this.prefilter = null;
+    }
+
+    public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK,
+                           int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
+                           boolean singleColumnPerQueryEntity, boolean weightedJaccard, boolean adjustedJaccard,
+                           boolean useMaxSimilarityPerColumn, boolean hungarianAlgorithmSameAlignmentAcrossTuples,
+                           SimilarityMeasure similarityMeasure, DBDriverBatch<List<Double>, String> embeddingStore,
+                           Prefilter prefilter)
+    {
+        this(linker, entityTable, entityTableLink, topK, threads, useEmbeddings, cosineFunction, singleColumnPerQueryEntity,
+                weightedJaccard, adjustedJaccard, useMaxSimilarityPerColumn, hungarianAlgorithmSameAlignmentAcrossTuples,
+                similarityMeasure, embeddingStore);
+        this.prefilter = prefilter;
     }
 
     public void setCorpus(Set<String> tableFiles)

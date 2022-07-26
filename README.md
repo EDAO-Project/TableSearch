@@ -178,9 +178,11 @@ We use the WikiTables corpus as provided in the STR paper (this is the same corp
    cd /src
    mvn package
    
-   # From inside docker
-   java -Xms25g -jar target/Thetis.0.1.jar index --table-type wikitables --table-dir  /data/tables/wikitables/files/wikitables_parsed/tables_10_MAX/ --output-dir /data/index/wikitables/ -t 4
+   # From inside Docker
+   java -Xms25g -jar target/Thetis.0.1.jar index --table-type wikitables --table-dir  /data/tables/wikitables/files/wikitables_parsed/tables_10_MAX/ --output-dir /data/index/wikitables/ -t 4 -pv 15 -bf 0.2 -bc 20
    ```
+
+   `-pv` is number of permutation vectors for Locality-Sensitive Index (LSH) index of entity types and this number also defines the number of projections in the vector/embedding LSH index. `-bf` is the size of LSH bands defined as the fraction of the signature size of each entity. `-bc` is the number of bucket in the LSH indexes.
 
 4. Materialize table to entity edges in the Graph
 

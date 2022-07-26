@@ -84,6 +84,12 @@ public class Configuration
         if (!props.contains("EntityToTables"))
             props.setProperty("EntityToTables", "entity_to_tables.ser");
 
+        if (!props.contains("TypesLSH"))
+            props.setProperty("TypesLSH", "types_lsh.ser");
+
+        if (!props.contains("EmbeddingsLSH"))
+            props.setProperty("EmbeddingsLSH", "embeddings_lsh.ser");
+
         if (!props.contains("TableToEntities"))
             props.setProperty("TableToEntities", "tableIDToEntities.ttl");
 
@@ -240,6 +246,16 @@ public class Configuration
         return readProperties().getProperty("EntityToTables");
     }
 
+    public static String getTypesLSHIndexFile()
+    {
+        return readProperties().getProperty("TypesLSH");
+    }
+
+    public static String getEmbeddingsLSHFile()
+    {
+        return readProperties().getProperty("EmbeddingsLSH");
+    }
+
     public static String getTableToEntitiesFile()
     {
         return readProperties().getProperty("TableToEntities");
@@ -273,5 +289,35 @@ public class Configuration
     public static String getLogLevel()
     {
         return readProperties().getProperty("LogLevel");
+    }
+
+    public static void setPermutationVectors(int num)
+    {
+        addProperty("PermutationVectors", String.valueOf(num));
+    }
+
+    public static int getPermutationVectors()
+    {
+        return Integer.parseInt(readProperties().getProperty("PermutationVectors"));
+    }
+
+    public static void setBandFraction(double value)
+    {
+        addProperty("BandFraction", String.valueOf(value));
+    }
+
+    public static double getBandFraction()
+    {
+        return Double.parseDouble(readProperties().getProperty("BandFraction"));
+    }
+
+    public static void setBucketCount(int count)
+    {
+        addProperty("BucketCount", String.valueOf(count));
+    }
+
+    public static int getBucketCount()
+    {
+        return Integer.parseInt(readProperties().getProperty("BucketCount"));
     }
 }

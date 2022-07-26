@@ -24,6 +24,8 @@ import dk.aau.cs.daisy.edao.search.*;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
+import dk.aau.cs.daisy.edao.store.lsh.TypesLSHIndex;
+import dk.aau.cs.daisy.edao.store.lsh.VectorLSHIndex;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
@@ -46,7 +48,7 @@ public class SearchTables extends Command {
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec; // injected by picocli
 
-    public enum SearchMode {
+    private enum SearchMode {
         EXACT("exact"), ANALOGOUS("analogous"), PPR("ppr");
 
         private final String mode;
@@ -64,25 +66,7 @@ public class SearchTables extends Command {
         }
     }
 
-    public enum QueryMode {
-        TUPLE("tuple"), ENTITY("entity");
-
-        private final String mode;
-        QueryMode(String mode){
-            this.mode = mode;
-        }
-
-        public final String getMode(){
-            return this.mode;
-        }
-
-        @Override
-        public String toString() {
-            return this.mode;
-        }
-    }
-
-    public enum EmbeddingSimFunction {
+    private enum EmbeddingSimFunction {
         NORM_COS("norm_cos"), ABS_COS("abs_cos"), ANG_COS("ang_cos");
 
         private final String simFunction;
@@ -100,11 +84,10 @@ public class SearchTables extends Command {
         }
     }
 
+    private enum PrefilterTechnique {LSH_TYPES, LSH_EMBEDDINGS, PPR}
+
     @CommandLine.Option(names = { "-sm", "--search-mode" }, description = "Must be one of {exact, analogous}", required = true)
     private SearchMode searchMode = null;
-
-    @CommandLine.Option(names = { "-qm", "--query-mode" }, description = "Must be one of {tuple, entity}", required = true, defaultValue = "tuple")
-    private QueryMode queryMode = null;
 
     @CommandLine.Option(names = { "-scpqe", "--singleColumnPerQueryEntity"}, description = "If specified, each query tuple will be evaluated against only one entity")
     private boolean singleColumnPerQueryEntity;
@@ -234,6 +217,9 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = {"-t", "--threads"}, description = "Number of threads", required = true, defaultValue = "1")
     private int threads;
 
+    @CommandLine.Option(names = {"-pf", "--pre-filter"}, description = "Pre-filtering technique to reduce search space")
+    private PrefilterTechnique prefilterTechnique = null;
+
     // Initialize a connection with the embeddings Database
     private DBDriverBatch<List<Double>, String> store;
 
@@ -265,6 +251,13 @@ public class SearchTables extends Command {
             EntityLinking linker = indexReader.getLinker();
             EntityTable entityTable = indexReader.getEntityTable();
             EntityTableLink entityTableLink = indexReader.getEntityTableLink();
+            TypesLSHIndex typesLSH = indexReader.getTypesLSHIndex();
+            VectorLSHIndex embeddingsLSH = indexReader.getEmbeddingsLSHIndex();
+            Prefilter prefilter = switch (this.prefilterTechnique) {    // TODO: PPR pre-filtering must be implemented
+                case LSH_TYPES -> new Prefilter(linker, entityTable, entityTableLink, typesLSH);
+                case LSH_EMBEDDINGS -> new Prefilter(linker, entityTable, entityTableLink, embeddingsLSH);
+                default -> null;
+            };
 
             for (Path queryPath : this.queryFiles)
             {
@@ -298,7 +291,7 @@ public class SearchTables extends Command {
                         break;
 
                     case ANALOGOUS:
-                        analogousSearch(queryTable, queryName, linker, entityTable, entityTableLink, this.tableDir.toPath());
+                        analogousSearch(queryTable, queryName, linker, entityTable, entityTableLink, prefilter, this.tableDir.toPath());
                         break;
 
                     case PPR:
@@ -414,8 +407,9 @@ public class SearchTables extends Command {
      * Given a list of entities, return a ranked list of table candidates
      */
     public void analogousSearch(Table<String> query, String queryName, EntityLinking linker, EntityTable table,
-                                EntityTableLink tableLink, Path tableDir) throws IOException
+                                EntityTableLink tableLink, Prefilter prefilter, Path tableDir) throws IOException
     {
+        AnalogousSearch search;
         Stream<Path> fileStream = Files.find(tableDir, Integer.MAX_VALUE,
                 (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
         Set<Path> filePaths = fileStream.collect(Collectors.toSet());
@@ -423,9 +417,22 @@ public class SearchTables extends Command {
         AnalogousSearch.CosineSimilarityFunction cosineFunction = this.embeddingSimFunction == EmbeddingSimFunction.ABS_COS
                 ? AnalogousSearch.CosineSimilarityFunction.ABS_COS : this.embeddingSimFunction == EmbeddingSimFunction.NORM_COS
                 ? AnalogousSearch.CosineSimilarityFunction.NORM_COS : AnalogousSearch.CosineSimilarityFunction.ANG_COS;
-        AnalogousSearch search = new AnalogousSearch(linker, table, tableLink, this.topK, this.threads, this.usePretrainedEmbeddings,
-                cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedJaccardSimilarity,
-                this.useMaxSimilarityPerColumn, this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, this.store);
+
+        if (prefilter == null)
+        {
+            search = new AnalogousSearch(linker, table, tableLink, this.topK, this.threads, this.usePretrainedEmbeddings,
+                    cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedJaccardSimilarity,
+                    this.useMaxSimilarityPerColumn, this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, this.store);
+        }
+
+        else
+        {
+            search = new AnalogousSearch(linker, table, tableLink, this.topK, this.threads, this.usePretrainedEmbeddings,
+                    cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedJaccardSimilarity,
+                    this.useMaxSimilarityPerColumn, this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN,
+                    this.store, prefilter);
+        }
+
         search.setCorpus(filePaths.stream().map(Path::toString).collect(Collectors.toSet()));
 
         Result result = search.search(query);

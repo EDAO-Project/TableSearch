@@ -286,6 +286,19 @@ public class Neo4jEndpoint implements AutoCloseable {
      * Returns all distinct types
      */
     public Set<String> allTypes() {
-        return null;
+        try (Session session = driver.session()) {
+            return session.readTransaction(tx -> {
+                Set<String> types = new HashSet<>();
+
+                // Get all entity uri given a wikipedia link
+                Result result = tx.run("MATCH (a:Resource)-[l:rdf__type]->(b:Resource) RETURN b.uri as type");
+
+                for (var r : result.list()) {
+                    types.add(r.get("type").asString());
+                }
+
+                return types;
+            });
+        }
     }
 }

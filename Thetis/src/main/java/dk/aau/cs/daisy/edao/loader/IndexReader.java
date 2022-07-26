@@ -3,6 +3,8 @@ package dk.aau.cs.daisy.edao.loader;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
+import dk.aau.cs.daisy.edao.store.lsh.TypesLSHIndex;
+import dk.aau.cs.daisy.edao.store.lsh.VectorLSHIndex;
 import dk.aau.cs.daisy.edao.system.Configuration;
 import dk.aau.cs.daisy.edao.system.Logger;
 
@@ -24,6 +26,8 @@ public class IndexReader implements IndexIO
     private EntityLinking linker;
     private EntityTable entityTable;
     private EntityTableLink entityTableLink;
+    private TypesLSHIndex typesLSHIndex;
+    private VectorLSHIndex embeddingsLSHIndex;
     private static final int INDEX_COUNT = 3;
 
     public IndexReader(File indexDir, boolean isMultithreaded, boolean logProgress)
@@ -54,11 +58,12 @@ public class IndexReader implements IndexIO
         Future<?> f1 = threadPoolService.submit(this::loadEntityLinker);
         Future<?> f2 = threadPoolService.submit(this::loadEntityTable);
         Future<?> f3 = threadPoolService.submit(this::loadEntityTableLink);
+        Future<?> f4 = threadPoolService.submit(this::loadLSHIndexes);
         int completed = -1;
 
-        while (!f1.isDone() || !f2.isDone() || !f3.isDone())
+        while (!f1.isDone() || !f2.isDone() || !f3.isDone() || f4.isDone())
         {
-            int tmpCompleted = (f1.isDone() ? 1 : 0) + (f2.isDone() ? 1 : 0) + (f3.isDone() ? 1 : 0);
+            int tmpCompleted = (f1.isDone() ? 1 : 0) + (f2.isDone() ? 1 : 0) + (f3.isDone() ? 1 : 0) + (f4.isDone() ? 1 : 0);
 
             if (tmpCompleted != completed)
             {
@@ -74,6 +79,7 @@ public class IndexReader implements IndexIO
             f1.get();
             f2.get();
             f3.get();
+            f4.get();
         }
 
         catch (InterruptedException | ExecutionException e)
@@ -97,6 +103,12 @@ public class IndexReader implements IndexIO
     private void loadEntityTableLink()
     {
         this.entityTableLink = (EntityTableLink) readIndex(this.indexDir + "/" + Configuration.getEntityToTablesFile());
+    }
+
+    private void loadLSHIndexes()
+    {
+        this.typesLSHIndex = (TypesLSHIndex) readIndex(this.indexDir + "/" + Configuration.getTypesLSHIndexFile());
+        this.embeddingsLSHIndex = (VectorLSHIndex) readIndex(this.indexDir + "/" + Configuration.getEmbeddingsLSHFile());
     }
 
     private Object readIndex(String file)
@@ -141,5 +153,15 @@ public class IndexReader implements IndexIO
     public EntityTableLink getEntityTableLink()
     {
         return this.entityTableLink;
+    }
+
+    public TypesLSHIndex getTypesLSHIndex()
+    {
+        return this.typesLSHIndex;
+    }
+
+    public VectorLSHIndex getEmbeddingsLSHIndex()
+    {
+        return this.embeddingsLSHIndex;
     }
 }
