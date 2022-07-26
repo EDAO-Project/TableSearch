@@ -82,6 +82,8 @@ public class SearchTables extends Command {
         }
     }
 
+    private enum SimilarityMeasure {EUCLIDEAN, COSINE}
+
     public enum EmbeddingSimFunction {
         NORM_COS("norm_cos"), ABS_COS("abs_cos"), ANG_COS("ang_cos");
 
@@ -102,6 +104,9 @@ public class SearchTables extends Command {
 
     @CommandLine.Option(names = { "-sm", "--search-mode" }, description = "Must be one of {exact, analogous}", required = true)
     private SearchMode searchMode = null;
+
+    @CommandLine.Option(names = {"-m", "--measure"}, description = "Type of vector similarity {euclidean, cosine}", required = true)
+    private SimilarityMeasure measure;
 
     @CommandLine.Option(names = { "-qm", "--query-mode" }, description = "Must be one of {tuple, entity}", required = true, defaultValue = "tuple")
     private QueryMode queryMode = null;
@@ -423,9 +428,11 @@ public class SearchTables extends Command {
         AnalogousSearch.CosineSimilarityFunction cosineFunction = this.embeddingSimFunction == EmbeddingSimFunction.ABS_COS
                 ? AnalogousSearch.CosineSimilarityFunction.ABS_COS : this.embeddingSimFunction == EmbeddingSimFunction.NORM_COS
                 ? AnalogousSearch.CosineSimilarityFunction.NORM_COS : AnalogousSearch.CosineSimilarityFunction.ANG_COS;
+        AnalogousSearch.SimilarityMeasure measure = this.measure == SimilarityMeasure.EUCLIDEAN ? AnalogousSearch.SimilarityMeasure.EUCLIDEAN :
+                AnalogousSearch.SimilarityMeasure.COSINE;
         AnalogousSearch search = new AnalogousSearch(linker, table, tableLink, this.topK, this.threads, this.usePretrainedEmbeddings,
                 cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedJaccardSimilarity,
-                this.useMaxSimilarityPerColumn, this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, this.store);
+                this.useMaxSimilarityPerColumn, this.hungarianAlgorithmSameAlignmentAcrossTuples, measure, this.store);
         search.setCorpus(filePaths.stream().map(Path::toString).collect(Collectors.toSet()));
 
         Result result = search.search(query);
