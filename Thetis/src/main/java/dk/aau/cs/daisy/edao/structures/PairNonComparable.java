@@ -29,6 +29,12 @@ public class PairNonComparable<F, S>
     @Override
     public boolean equals(Object o)
     {
-        throw new UnsupportedOperationException("Not supported");
+        if (!(o instanceof PairNonComparable))
+        {
+            return false;
+        }
+
+        PairNonComparable<?, ?> other = (PairNonComparable<?, ?>) o;
+        return this.first.equals(other.getFirst()) && this.first.equals(other.getSecond());
     }
 }
