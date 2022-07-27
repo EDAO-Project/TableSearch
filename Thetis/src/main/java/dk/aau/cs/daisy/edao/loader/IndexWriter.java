@@ -490,7 +490,7 @@ public class IndexWriter implements IndexIO
             for (String table : tables)
             {
                 writer.write("<http://thetis.edao.eu/wikitables/" + table +
-                        "> <https://schema.org/mentions> <" + this.entityTable.find(entityId) + "> .\n");
+                        "> <https://schema.org/mentions> <" + this.entityTable.find(entityId).getUri() + "> .\n");
             }
         }
 

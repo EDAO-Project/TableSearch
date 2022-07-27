@@ -128,7 +128,7 @@ public class IndexTables extends Command {
         this.disallowedEntityTypes = argument.split(",");
     }
 
-    @CommandLine.Option(names = {"-v", "--permutation-vectors"}, paramLabel = "PERMUTATION-VECTORS", description = "Number of permutation vectors to build entity signatures in LSH index", defaultValue = "15")
+    @CommandLine.Option(names = {"-pv", "--permutation-vectors"}, paramLabel = "PERMUTATION-VECTORS", description = "Number of permutation vectors to build entity signatures in LSH index", defaultValue = "15")
     public void setPermutationVectors(int value)
     {
         if (value <= 0)
