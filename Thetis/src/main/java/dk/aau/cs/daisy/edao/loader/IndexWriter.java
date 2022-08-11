@@ -57,6 +57,7 @@ public class IndexWriter implements IndexIO
             5_000_000,
             0.01);
     private final Map<String, Stats> tableStats = new TreeMap<>();
+    private final Set<PairNonComparable<String, Set<String>>> tableEntities = Collections.synchronizedSet(new HashSet<>());
     private List<String> disallowedEntityTypes;
     private static final HashFunction HASH_FUNCTION = (obj, num) -> {
         List<?> sig = (List<?>) obj;
@@ -148,44 +149,8 @@ public class IndexWriter implements IndexIO
     {
         int permutations = Configuration.getPermutationVectors(), buckets = Configuration.getBucketCount();
         double bandFraction = Configuration.getBandFraction();
-        Set<PairNonComparable<String, Set<String>>> tables = tablesEntities();
-        this.typesLSH = new TypesLSHIndex(this.neo4j, permutations, bandFraction, tables, HASH_FUNCTION, buckets);
-        this.embeddingsLSH = new VectorLSHIndex(buckets, permutations, HASH_FUNCTION, tables);
-    }
-
-    private Set<PairNonComparable<String, Set<String>>> tablesEntities()
-    {
-        Set<PairNonComparable<String, Set<String>>> tables = new HashSet<>();
-
-        for (Path tablePath : this.files)
-        {
-            JsonTable table = TableParser.parse(tablePath);
-
-            if (table == null ||  table._id == null || table.rows == null)
-            {
-                continue;
-            }
-
-            String tableName = tablePath.getFileName().toString();
-            Set<String> entities = new HashSet<>();
-
-            for (List<JsonTable.TableCell> tableRow : table.rows)
-            {
-                for (JsonTable.TableCell cell : tableRow)
-                {
-                    String entity;
-
-                    if (!cell.links.isEmpty() && (entity = this.linker.mapTo(cell.links.get(0))) != null)
-                    {
-                        entities.add(entity);
-                    }
-                }
-            }
-
-            tables.add(new PairNonComparable<>(tableName, entities));
-        }
-
-        return tables;
+        this.typesLSH = new TypesLSHIndex(this.neo4j, permutations, bandFraction, this.tableEntities, HASH_FUNCTION, buckets);
+        this.embeddingsLSH = new VectorLSHIndex(buckets, permutations, HASH_FUNCTION, this.tableEntities);
     }
 
     private boolean load(Path tablePath)
@@ -272,6 +237,7 @@ public class IndexWriter implements IndexIO
             row++;
         }
 
+        this.tableEntities.add(new PairNonComparable<>(tableName, entities));
         saveStats(table, FilenameUtils.removeExtension(tableName), entities.iterator(), entityMatches);
         return true;
     }
