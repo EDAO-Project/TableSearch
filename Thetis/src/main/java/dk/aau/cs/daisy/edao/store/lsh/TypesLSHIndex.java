@@ -17,7 +17,7 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
     private double bandFraction;
     private List<List<Integer>> permutations;
     private List<PairNonComparable<String, List<Integer>>> signature;
-    private Set<String> universeTypes;
+    private Map<String, Integer> universeTypes;
     private HashFunction hash;
 
     /**
@@ -48,13 +48,21 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
 
     private void build(Set<PairNonComparable<String, Set<String>>> tableEntities)
     {
-        this.universeTypes = this.neo4j.allTypes();
+        int counter = 0;
+        Set<String> types = this.neo4j.allTypes();
+        this.universeTypes = new HashMap<>();
+
+        for (String type : types)
+        {
+            this.universeTypes.put(type, counter++);
+        }
+
         this.permutations = createPermutations(this.permutationVectors, this.universeTypes.size());
 
         for (PairNonComparable<String, Set<String>> table : tableEntities)
         {
             String tableName = table.getFirst();
-            List<PairNonComparable<String, List<Boolean>>> matrix = new ArrayList<>();
+            List<PairNonComparable<String, List<Boolean>>> matrix = new ArrayList<>();  // TODO: Instead of bit matrix, use set of indices of which bits are 1
 
             for (String entity : table.getSecond())
             {
@@ -80,6 +88,7 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
     private List<Boolean> bitVector(String entity)
     {
         Set<String> types = types(entity);
+        Set<Integer> typesIndices = new TreeSet<>();    // TreeSet so we don't need to sort the indices when constructing signature
         List<List<Boolean>> bitVectors = new ArrayList<>(types.size());
 
         for (String type : types)
@@ -160,22 +169,13 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         return -1;
     }
 
-    // This is computed every time to avoid storing in memory
     private List<Boolean> typeBitVector(String typeNode)
     {
-        List<Boolean> vector = new ArrayList<>();
+        List<Boolean> vector = new ArrayList<>(Collections.nCopies(this.universeTypes.size(), false));
 
-        for (String universeType : this.universeTypes)
+        if (this.universeTypes.containsKey(typeNode))
         {
-            if (universeType.equals(typeNode))
-            {
-                vector.add(true);
-            }
-
-            else
-            {
-                vector.add(false);
-            }
+            vector.set(this.universeTypes.get(typeNode), true);
         }
 
         return vector;

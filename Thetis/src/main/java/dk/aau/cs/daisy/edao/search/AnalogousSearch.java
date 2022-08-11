@@ -139,6 +139,7 @@ public class AnalogousSearch extends AbstractSearch
         if (this.prefilter != null)
         {
             prefilterSearchSpace(query);
+            Logger.logNewLine(Logger.Level.INFO, "Pre-filtered corpus in " + this.prefilter.elapsedNanoSeconds() + "ns");
         }
 
         try
