@@ -2,6 +2,7 @@ package dk.aau.cs.daisy.edao.store.lsh;
 
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 import dk.aau.cs.daisy.edao.structures.PairNonComparable;
+import dk.aau.cs.daisy.edao.structures.graph.Type;
 
 import java.io.Serializable;
 import java.util.*;
@@ -28,7 +29,7 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
      * @param hash A hash function to be applied on min-hash signature to compute bucket index
      * @param bucketCount Number of LSH buckets (this determines runtime and accuracy!)
      */
-    public TypesLSHIndex(Neo4jEndpoint neo4j, int permutationVectors, double bandFraction,
+    public TypesLSHIndex(Neo4jEndpoint neo4j, Iterator<Type> entityTypes, int permutationVectors, double bandFraction,
                          Set<PairNonComparable<String, Set<String>>> tableEntities, HashFunction hash, int bucketCount)
     {
         super(bucketCount);
@@ -43,20 +44,24 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         this.signature = new ArrayList<>();
         this.bandFraction = bandFraction;
         this.hash = hash;
+
+        loadTypes(entityTypes);
         build(tableEntities);
+    }
+
+    private void loadTypes(Iterator<Type> entityTypes)
+    {
+        int counter = 0;
+        this.universeTypes = new HashMap<>();
+
+        while (entityTypes.hasNext())
+        {
+            this.universeTypes.put(entityTypes.next().getType(), counter++);
+        }
     }
 
     private void build(Set<PairNonComparable<String, Set<String>>> tableEntities)
     {
-        int counter = 0;
-        Set<String> types = this.neo4j.allTypes();
-        this.universeTypes = new HashMap<>();
-
-        for (String type : types)
-        {
-            this.universeTypes.put(type, counter++);
-        }
-
         this.permutations = createPermutations(this.permutationVectors, this.universeTypes.size());
 
         for (PairNonComparable<String, Set<String>> table : tableEntities)
@@ -102,7 +107,7 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
 
     private Set<String> types(String entity)
     {
-        return new HashSet<>(this.neo4j.searchTypes(entity));
+        return new HashSet<>(this.neo4j.searchTypes(entity));   // We could also use the EntityTable index here
     }
 
     private static List<List<Integer>> createPermutations(int vectors, int dimension)

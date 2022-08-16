@@ -149,7 +149,8 @@ public class IndexWriter implements IndexIO
     {
         int permutations = Configuration.getPermutationVectors(), buckets = Configuration.getBucketCount();
         double bandFraction = Configuration.getBandFraction();
-        this.typesLSH = new TypesLSHIndex(this.neo4j, permutations, bandFraction, this.tableEntities, HASH_FUNCTION, buckets);
+        Iterator<Type> types = ((EntityTable) this.entityTable.getIndex()).allTypes();
+        this.typesLSH = new TypesLSHIndex(this.neo4j, types, permutations, bandFraction, this.tableEntities, HASH_FUNCTION, buckets);
         this.embeddingsLSH = new VectorLSHIndex(buckets, permutations, HASH_FUNCTION, this.tableEntities);
     }
 
