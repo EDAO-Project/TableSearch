@@ -56,7 +56,12 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
 
         while (entityTypes.hasNext())
         {
-            this.universeTypes.put(entityTypes.next().getType(), counter++);
+            String type = entityTypes.next().getType();
+
+            if (!this.universeTypes.containsKey(type))
+            {
+                this.universeTypes.put(type, counter++);
+            }
         }
     }
 
