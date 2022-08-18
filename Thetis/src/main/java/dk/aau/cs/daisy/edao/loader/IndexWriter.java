@@ -440,6 +440,18 @@ public class IndexWriter implements IndexIO
         outputStream.flush();
         outputStream.close();
 
+        // LSH of entity types
+        outputStream = new ObjectOutputStream(new FileOutputStream(this.outputPath + "/" + Configuration.getTypesLSHIndexFile()));
+        outputStream.writeObject(this.typesLSH);
+        outputStream.flush();
+        outputStream.close();
+
+        // LSH of entity embeddings
+        outputStream = new ObjectOutputStream(new FileOutputStream(this.outputPath + "/" + Configuration.getEmbeddingsLSHFile()));
+        outputStream.writeObject(this.embeddingsLSH);
+        outputStream.flush();
+        outputStream.close();
+
         genNeo4jTableMappings();
     }
 
