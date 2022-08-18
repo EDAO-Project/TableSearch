@@ -103,6 +103,7 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
     {
         Set<String> types = types(entity);
         int smallestIdx = Integer.MAX_VALUE;
+        boolean anyFound = false;
 
         if (types.isEmpty())
         {
@@ -116,10 +117,11 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
             if (this.universeTypes.containsKey(type) && (idx = this.universeTypes.get(type)) < smallestIdx)
             {
                 smallestIdx = idx;
+                anyFound = true;
             }
         }
 
-        return smallestIdx;
+        return anyFound ? smallestIdx : -1;
     }
 
     private Set<String> types(String entity)
