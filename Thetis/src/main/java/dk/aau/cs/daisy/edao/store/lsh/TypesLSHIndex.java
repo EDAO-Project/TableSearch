@@ -65,6 +65,10 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         }
     }
 
+    /**
+     * Instead of storing actual matrix, we only store the smallest index per entity
+     * as this is all we need when computing the signature
+     */
     private void build(Set<PairNonComparable<String, Set<String>>> tableEntities)
     {
         this.permutations = createPermutations(this.permutationVectors, this.universeTypes.size());
@@ -72,15 +76,15 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         for (PairNonComparable<String, Set<String>> table : tableEntities)
         {
             String tableName = table.getFirst();
-            List<PairNonComparable<String, List<Boolean>>> matrix = new ArrayList<>();  // TODO: Instead of bit matrix, use set of indices of which bits are 1
+            List<PairNonComparable<String, Integer>> matrix = new ArrayList<>();  // TODO: Instead of bit matrix, use set of indices of which bits are 1
 
             for (String entity : table.getSecond())
             {
-                List<Boolean> entityBitVector = bitVector(entity);
+                int entityBitVector = bitVector(entity);
                 matrix.add(new PairNonComparable<>(entity, entityBitVector));
             }
 
-            List<List<Boolean>> pureMatrix = matrix.stream().map(PairNonComparable::getSecond).toList();
+            List<Integer> pureMatrix = matrix.stream().map(PairNonComparable::getSecond).toList();
             extendSignature(this.signature, matrix, this.permutations);
 
             for (int entity = 0; entity < pureMatrix.size(); entity++)
@@ -95,19 +99,27 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         }
     }
 
-    private List<Boolean> bitVector(String entity)
+    private int bitVector(String entity)
     {
         Set<String> types = types(entity);
-        Set<Integer> typesIndices = new TreeSet<>();    // TreeSet so we don't need to sort the indices when constructing signature
-        List<List<Boolean>> bitVectors = new ArrayList<>(types.size());
+        int smallestIdx = Integer.MAX_VALUE;
+
+        if (types.isEmpty())
+        {
+            return -1;
+        }
 
         for (String type : types)
         {
-            List<Boolean> typeBitVector = typeBitVector(type);
-            bitVectors.add(typeBitVector);
+            int idx;
+
+            if (this.universeTypes.containsKey(type) && (idx = this.universeTypes.get(type)) < smallestIdx)
+            {
+                smallestIdx = idx;
+            }
         }
 
-        return or(bitVectors);
+        return smallestIdx;
     }
 
     private Set<String> types(String entity)
@@ -130,17 +142,17 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
     }
 
     private static List<PairNonComparable<String, List<Integer>>> extendSignature(List<PairNonComparable<String, List<Integer>>> signature,
-                                                                     List<PairNonComparable<String, List<Boolean>>> entityMatrix,
+                                                                     List<PairNonComparable<String, Integer>> entityMatrix,
                                                                      List<List<Integer>> permutations)
     {
-        for (PairNonComparable<String, List<Boolean>> entity : entityMatrix)
+        for (PairNonComparable<String, Integer> entity : entityMatrix)
         {
             int signatureIdx = entitySignatureIndex(signature, entity.getFirst());
             List<Integer> entitySignature;
 
             if (signatureIdx == -1)
             {
-                int entry = entity.getSecond().indexOf(true);
+                int entry = entity.getSecond();
 
                 if (entry == -1)
                 {
@@ -179,18 +191,6 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         return -1;
     }
 
-    private List<Boolean> typeBitVector(String typeNode)
-    {
-        List<Boolean> vector = new ArrayList<>(Collections.nCopies(this.universeTypes.size(), false));
-
-        if (this.universeTypes.containsKey(typeNode))
-        {
-            vector.set(this.universeTypes.get(typeNode), true);
-        }
-
-        return vector;
-    }
-
     private List<Integer> createKeys(int signatureIndex)
     {
         int bandSize = (int) Math.floor(this.permutations.size() * this.bandFraction);
@@ -210,7 +210,7 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
 
     private int createOrGetSignature(String entity)
     {
-        List<Boolean> entityBitVector = bitVector(entity);
+        int entityBitVector = bitVector(entity);
         int entitySignatureIdx = entitySignatureIndex(this.signature, entity);
 
         if (entitySignatureIdx == -1)
@@ -247,29 +247,6 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         {
             return false;
         }
-    }
-
-    private static List<Boolean> or(List<List<Boolean>> vectors)
-    {
-        if (vectors.size() == 0)
-            return new Vector<>();
-
-        List<Boolean> result = new ArrayList<>();
-
-        for (int i = 0; i < vectors.get(0).size(); i++)
-        {
-            result.add(false);
-
-            for (List<Boolean> vec : vectors)
-            {
-                if (vec.get(i))
-                {
-                    result.set(i, true);
-                }
-            }
-        }
-
-        return result;
     }
 
     /**
