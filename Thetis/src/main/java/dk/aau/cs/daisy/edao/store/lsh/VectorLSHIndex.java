@@ -30,69 +30,46 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
         super(bucketCount);
         this.hash = hash;
         this.bucketSignatures = new ArrayList<>(Collections.nCopies(bucketCount, null));
+        this.embeddingsDB = Factory.fromConfig(false);
         load(tableVectors, projections);
     }
 
     private void load(Set<PairNonComparable<String, Set<String>>> tableVectors, int projections)
     {
-        Set<PairNonComparable<String, Set<PairNonComparable<String, List<Double>>>>> materialized = new HashSet<>();
-        this.embeddingsDB = Factory.fromConfig(false);
+        if (tableVectors.isEmpty())
+        {
+            throw new RuntimeException("No tables to load LSH index of embeddings");
+        }
+
+        int dimension = embeddingsDimension(tableVectors.iterator().next().getSecond());
+        this.projections = createProjections(projections, dimension);
 
         for (PairNonComparable<String, Set<String>> table : tableVectors)
         {
             String tableName = table.getFirst();
-            Set<PairNonComparable<String, List<Double>>> entities = new HashSet<>(table.getSecond().size());
 
             for (String entity : table.getSecond())
             {
-                List<Double> embedding = embeddingsDB.select(entity);
-
-                if (embedding != null)
-                {
-                    entities.add(new PairNonComparable<>(entity, embedding));
-                }
-            }
-
-            materialized.add(new PairNonComparable<>(tableName, entities));
-        }
-
-        if (materialized.isEmpty())
-        {
-            throw new RuntimeException("No embeddings were loaded into vector LSH index");
-        }
-
-        this.projections = createProjections(projections, getVectorDimension(materialized));
-
-        for (PairNonComparable<String, Set<PairNonComparable<String, List<Double>>>> table : materialized)
-        {
-            String tableName = table.getFirst();
-
-            for (PairNonComparable<String, List<Double>> entity : table.getSecond())
-            {
-                String uri = entity.getFirst();
-                List<Boolean> bitVector = bitVector(entity.getSecond());
+                List<Double> embedding = this.embeddingsDB.select(entity);
+                List<Boolean> bitVector = bitVector(embedding);
                 int key = this.hash.hash(bitVector, buckets());
-                add(key, uri, tableName);
-                this.bucketSignatures.set(key, bitVector);  // Do we need to set this multiple times for each key when two have the same key?
+                add(key, entity, tableName);
+                this.bucketSignatures.set(key, bitVector);
             }
         }
     }
 
-    // This assumes all vectors are of the same dimension
-    private static int getVectorDimension(Set<PairNonComparable<String, Set<PairNonComparable<String, List<Double>>>>> tables)
+    private int embeddingsDimension(Set<String> entities)
     {
         int dimension = -1;
 
-        for (PairNonComparable<String, Set<PairNonComparable<String, List<Double>>>> table : tables)
+        for (String entity : entities)
         {
-            for (PairNonComparable<String, List<Double>> entity : table.getSecond())
-            {
-                dimension = entity.getSecond().size();
-                break;
-            }
+            List<Double> embedding = this.embeddingsDB.select(entity);
 
-            if (dimension != -1)
+            if (embedding != null && !embedding.isEmpty())
             {
+                dimension = embedding.size();
                 break;
             }
         }
