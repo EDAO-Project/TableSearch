@@ -51,6 +51,12 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
             for (String entity : table.getSecond())
             {
                 List<Double> embedding = this.embeddingsDB.select(entity);
+
+                if (embedding == null)
+                {
+                    continue;
+                }
+
                 List<Boolean> bitVector = bitVector(embedding);
                 int key = this.hash.hash(bitVector, buckets());
                 add(key, entity, tableName);
