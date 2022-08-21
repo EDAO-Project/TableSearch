@@ -16,7 +16,7 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
     private HashFunction hash;
     private Set<List<Double>> projections;
     private List<List<Boolean>> bucketSignatures;
-    private DBDriver<List<Double>, String> embeddingsDB;
+    private transient DBDriver<List<Double>, String> embeddingsDB;
 
     /**
      * @param bucketCount Number of LSH index buckets

@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
  */
 public class TypesLSHIndex extends BucketIndex<String, String> implements LSHIndex<String, String>, Serializable
 {
-    private Neo4jEndpoint neo4j;
+    private transient Neo4jEndpoint neo4j;
     private int permutationVectors;
     private double bandFraction;
     private List<List<Integer>> permutations;

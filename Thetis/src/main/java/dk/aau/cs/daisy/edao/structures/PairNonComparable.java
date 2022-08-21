@@ -1,11 +1,13 @@
 package dk.aau.cs.daisy.edao.structures;
 
+import java.io.Serializable;
+
 /**
  * Most basic pair class of two element of any type
  * @param <F>
  * @param <S>
  */
-public class PairNonComparable<F, S>
+public class PairNonComparable<F, S> implements Serializable
 {
     private F first;
     private S second;

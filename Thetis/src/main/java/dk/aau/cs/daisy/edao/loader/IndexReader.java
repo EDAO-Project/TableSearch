@@ -28,7 +28,7 @@ public class IndexReader implements IndexIO
     private EntityTableLink entityTableLink;
     private TypesLSHIndex typesLSHIndex;
     private VectorLSHIndex embeddingsLSHIndex;
-    private static final int INDEX_COUNT = 3;
+    private static final int INDEX_COUNT = 4;
 
     public IndexReader(File indexDir, boolean isMultithreaded, boolean logProgress)
     {

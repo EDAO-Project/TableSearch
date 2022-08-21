@@ -1,6 +1,8 @@
 package dk.aau.cs.daisy.edao.store.lsh;
 
-public interface HashFunction
+import java.io.Serializable;
+
+public interface HashFunction extends Serializable
 {
     /**
      * Computes hash code key

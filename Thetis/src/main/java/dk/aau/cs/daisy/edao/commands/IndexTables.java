@@ -188,7 +188,7 @@ public class IndexTables extends Command {
                     break;
                 case WIKI:
                     Logger.logNewLine(Logger.Level.INFO, "Starting indexing of '" + TableType.WIKI.getName() + "'");
-                    parsedTables = this.indexWikiTables(this.tableDir.toPath(), this.outputDir, connector, this.threads);
+                    parsedTables = indexWikiTables(this.tableDir.toPath(), this.outputDir, connector, this.threads);
                     Logger.logNewLine(Logger.Level.INFO, "Indexed " + parsedTables + " tables\n");
                     break;
             }

@@ -217,7 +217,7 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = {"-t", "--threads"}, description = "Number of threads", required = true, defaultValue = "1")
     private int threads;
 
-    @CommandLine.Option(names = {"-pf", "--pre-filter"}, description = "Pre-filtering technique to reduce search space")
+    @CommandLine.Option(names = {"-pf", "--pre-filter"}, description = "Pre-filtering technique to reduce search space (LSH_TYPES, LSH_EMBEDDINGS, PPR)")
     private PrefilterTechnique prefilterTechnique = null;
 
     // Initialize a connection with the embeddings Database
@@ -253,11 +253,16 @@ public class SearchTables extends Command {
             EntityTableLink entityTableLink = indexReader.getEntityTableLink();
             TypesLSHIndex typesLSH = indexReader.getTypesLSHIndex();
             VectorLSHIndex embeddingsLSH = indexReader.getEmbeddingsLSHIndex();
-            Prefilter prefilter = switch (this.prefilterTechnique) {    // TODO: PPR pre-filtering must be implemented
-                case LSH_TYPES -> new Prefilter(linker, entityTable, entityTableLink, this.topK, typesLSH);
-                case LSH_EMBEDDINGS -> new Prefilter(linker, entityTable, entityTableLink, this.topK, embeddingsLSH);
-                default -> null;
-            };
+            Prefilter prefilter = null;
+
+            if (this.prefilterTechnique != null)
+            {
+                prefilter = switch (this.prefilterTechnique) {    // TODO: PPR pre-filtering must be implemented
+                    case LSH_TYPES -> new Prefilter(linker, entityTable, entityTableLink, this.topK, typesLSH);
+                    case LSH_EMBEDDINGS -> new Prefilter(linker, entityTable, entityTableLink, this.topK, embeddingsLSH);
+                    default -> null;
+                };
+            }
 
             for (Path queryPath : this.queryFiles)
             {
