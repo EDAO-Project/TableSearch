@@ -84,10 +84,9 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
                 matrix.add(new PairNonComparable<>(entity, entityBitVector));
             }
 
-            List<Integer> pureMatrix = matrix.stream().map(PairNonComparable::getSecond).toList();
             extendSignature(this.signature, matrix, this.permutations);
 
-            for (int entity = 0; entity < pureMatrix.size(); entity++)
+            for (int entity = 0; entity < matrix.size(); entity++)
             {
                 List<Integer> keys = createKeys(entity);
 
