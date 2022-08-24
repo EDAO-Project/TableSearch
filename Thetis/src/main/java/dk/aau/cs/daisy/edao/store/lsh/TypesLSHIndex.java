@@ -4,16 +4,17 @@ import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * BucketIndex key is RDF type and value is table ID
  */
 public class TypesLSHIndex extends BucketIndex<String, String> implements LSHIndex<String, String>, Serializable
 {
-    private transient Neo4jEndpoint neo4j;
+    private File neo4jConfFile;
     private int permutationVectors;
     private double bandFraction;
     private List<List<Integer>> permutations;
@@ -22,14 +23,14 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
     private HashFunction hash;
 
     /**
-     * @param neo4j Neo4J driver instance
+     * @param neo4jConfigFile Neo4J connector configuration file
      * @param permutationVectors Number of permutation vectors used to create min-hash signature (this determines the signature dimension for each entity)
      * @param bandFraction Factor of the dimension each band must make up in size
      * @param tableEntities Set of tables containing its set of entities
      * @param hash A hash function to be applied on min-hash signature to compute bucket index
      * @param bucketCount Number of LSH buckets (this determines runtime and accuracy!)
      */
-    public TypesLSHIndex(Neo4jEndpoint neo4j, Iterator<Type> entityTypes, int permutationVectors, double bandFraction,
+    public TypesLSHIndex(File neo4jConfigFile, Iterator<Type> entityTypes, int permutationVectors, double bandFraction,
                          Set<PairNonComparable<String, Set<String>>> tableEntities, HashFunction hash, int bucketCount)
     {
         super(bucketCount);
@@ -39,14 +40,23 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
             throw new IllegalArgumentException("Band fraction must be greater than zero and no larger than 1");
         }
 
-        this.neo4j = neo4j;
+        this.neo4jConfFile = neo4jConfigFile;
         this.permutationVectors = permutationVectors;
         this.signature = new ArrayList<>();
         this.bandFraction = bandFraction;
         this.hash = hash;
 
         loadTypes(entityTypes);
-        build(tableEntities);
+
+        try
+        {
+            build(tableEntities);
+        }
+
+        catch (IOException e)
+        {
+            throw new RuntimeException("Could not initialize Neo4J connector");
+        }
     }
 
     private void loadTypes(Iterator<Type> entityTypes)
@@ -69,18 +79,20 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
      * Instead of storing actual matrix, we only store the smallest index per entity
      * as this is all we need when computing the signature
      */
-    private void build(Set<PairNonComparable<String, Set<String>>> tableEntities)
+    // TODO: We can create a thread for each table we iterate
+    private void build(Set<PairNonComparable<String, Set<String>>> tableEntities) throws IOException
     {
+        Neo4jEndpoint neo4j = new Neo4jEndpoint(this.neo4jConfFile);
         this.permutations = createPermutations(this.permutationVectors, this.universeTypes.size());
 
         for (PairNonComparable<String, Set<String>> table : tableEntities)
         {
             String tableName = table.getFirst();
-            List<PairNonComparable<String, Integer>> matrix = new ArrayList<>();  // TODO: Instead of bit matrix, use set of indices of which bits are 1
+            List<PairNonComparable<String, Set<Integer>>> matrix = new ArrayList<>();  // TODO: Instead of bit matrix, use set of indices of which bits are 1
 
             for (String entity : table.getSecond())
             {
-                int entityBitVector = bitVector(entity);
+                Set<Integer> entityBitVector = bitVector(entity, neo4j);
                 matrix.add(new PairNonComparable<>(entity, entityBitVector));
             }
 
@@ -96,66 +108,71 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
                 }
             }
         }
+
+        neo4j.close();
     }
 
-    private int bitVector(String entity)
+    private Set<Integer> bitVector(String entity, Neo4jEndpoint neo4j)
     {
-        Set<String> types = types(entity);
-        int smallestIdx = Integer.MAX_VALUE;
-        boolean anyFound = false;
-
-        if (types.isEmpty())
-        {
-            return -1;
-        }
+        Set<String> types = types(entity, neo4j);
+        Set<Integer> indices = new HashSet<>(types.size());
 
         for (String type : types)
         {
-            int idx;
-
-            if (this.universeTypes.containsKey(type) && (idx = this.universeTypes.get(type)) < smallestIdx)
+            if (this.universeTypes.containsKey(type))
             {
-                smallestIdx = idx;
-                anyFound = true;
+                indices.add(this.universeTypes.get(type));
             }
         }
 
-        return anyFound ? smallestIdx : -1;
+        return indices;
     }
 
-    private Set<String> types(String entity)
+    private Set<String> types(String entity, Neo4jEndpoint neo4j)
     {
-        return new HashSet<>(this.neo4j.searchTypes(entity));   // We could also use the EntityTable index here
+        return new HashSet<>(neo4j.searchTypes(entity));   // We could also use the EntityTable index here
     }
 
     private static List<List<Integer>> createPermutations(int vectors, int dimension)
     {
         List<List<Integer>> permutations = new ArrayList<>();
+        Set<Integer> indices = new HashSet<>(dimension);
+
+        for (int i = 0; i < dimension; i++)
+        {
+            indices.add(i);
+        }
 
         for (int i = 0; i < vectors; i++)
         {
             List<Integer> permutation = new ArrayList<>(dimension);
-            permutation.addAll(Collections.nCopies(dimension, 0));
-            permutations.add(permutation.stream().map(n -> new Random().nextInt(dimension)).collect(Collectors.toList()));
+            List<Integer> indicesCopy = new ArrayList<>(indices);
+
+            while (!indicesCopy.isEmpty())
+            {
+                permutation.add(indicesCopy.remove(new Random(indicesCopy.size()).nextInt()));
+            }
+
+            permutations.add(permutation);
         }
 
         return permutations;
     }
 
     private static List<PairNonComparable<String, List<Integer>>> extendSignature(List<PairNonComparable<String, List<Integer>>> signature,
-                                                                     List<PairNonComparable<String, Integer>> entityMatrix,
+                                                                     List<PairNonComparable<String, Set<Integer>>> entityMatrix,
                                                                      List<List<Integer>> permutations)
     {
-        for (PairNonComparable<String, Integer> entity : entityMatrix)
+        for (PairNonComparable<String, Set<Integer>> entity : entityMatrix)
         {
             int signatureIdx = entitySignatureIndex(signature, entity.getFirst());
             List<Integer> entitySignature;
 
             if (signatureIdx == -1)
             {
-                int entry = entity.getSecond();
+                Set<Integer> bitVector = entity.getSecond();
 
-                if (entry == -1)
+                if (bitVector.isEmpty())
                 {
                     entitySignature = new ArrayList<>(Collections.nCopies(permutations.size(), 0));
                 }
@@ -166,7 +183,8 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
 
                     for (List<Integer> permutation : permutations)
                     {
-                        entitySignature.add(permutation.get(entry));
+                        int reArrangedMin = reArrangeMin(bitVector, permutation);
+                        entitySignature.add(permutation.get(reArrangedMin));
                     }
                 }
 
@@ -175,6 +193,25 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         }
 
         return signature;
+    }
+
+    private static int reArrangeMin(Set<Integer> bitVector, List<Integer> permutation)
+    {
+        Iterator<Integer> iter = bitVector.iterator();
+        int smallest = Integer.MAX_VALUE;
+
+        while (iter.hasNext())
+        {
+            int idx = iter.next();
+            int permuted = permutation.get(idx);
+
+            if (permuted < smallest)
+            {
+                smallest = permuted;
+            }
+        }
+
+        return smallest;
     }
 
     private static int entitySignatureIndex(List<PairNonComparable<String, List<Integer>>> signature, String entity)
@@ -211,15 +248,24 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
 
     private int createOrGetSignature(String entity)
     {
-        int entityBitVector = bitVector(entity);
-        int entitySignatureIdx = entitySignatureIndex(this.signature, entity);
-
-        if (entitySignatureIdx == -1)
+        try (Neo4jEndpoint neo4j = new Neo4jEndpoint(this.neo4jConfFile))
         {
-            extendSignature(this.signature, List.of(new PairNonComparable<>(entity, entityBitVector)), this.permutations);
+            Set<Integer> entityBitVector = bitVector(entity, neo4j);
+            int entitySignatureIdx = entitySignatureIndex(this.signature, entity);
+
+
+            if (entitySignatureIdx == -1)
+            {
+                extendSignature(this.signature, List.of(new PairNonComparable<>(entity, entityBitVector)), this.permutations);
+            }
+
+            return entitySignatureIndex(this.signature, entity);
         }
 
-        return entitySignatureIndex(this.signature, entity);
+        catch (IOException e)
+        {
+            throw new RuntimeException("Failed initializing Neo4J connector");
+        }
     }
 
     /**

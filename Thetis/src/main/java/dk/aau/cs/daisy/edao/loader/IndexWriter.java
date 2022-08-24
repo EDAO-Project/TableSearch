@@ -152,7 +152,7 @@ public class IndexWriter implements IndexIO
         Iterator<Type> types = ((EntityTable) this.entityTable.getIndex()).allTypes();
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 0/2");
-        this.typesLSH = new TypesLSHIndex(this.neo4j, types, permutations, bandFraction, this.tableEntities, HASH_FUNCTION, buckets);
+        this.typesLSH = new TypesLSHIndex(this.neo4j.getConfigFile(), types, permutations, bandFraction, this.tableEntities, HASH_FUNCTION, buckets);
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 1/2");
 

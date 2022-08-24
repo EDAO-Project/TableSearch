@@ -16,7 +16,6 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
     private HashFunction hash;
     private Set<List<Double>> projections;
     private List<List<Boolean>> bucketSignatures;
-    private transient DBDriver<List<Double>, String> embeddingsDB;
 
     /**
      * @param bucketCount Number of LSH index buckets
@@ -30,18 +29,19 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
         super(bucketCount);
         this.hash = hash;
         this.bucketSignatures = new ArrayList<>(Collections.nCopies(bucketCount, null));
-        this.embeddingsDB = Factory.fromConfig(false);
         load(tableVectors, projections);
     }
 
     private void load(Set<PairNonComparable<String, Set<String>>> tableVectors, int projections)
     {
+        DBDriver<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
+
         if (tableVectors.isEmpty())
         {
             throw new RuntimeException("No tables to load LSH index of embeddings");
         }
 
-        int dimension = embeddingsDimension(tableVectors.iterator().next().getSecond());
+        int dimension = embeddingsDimension(tableVectors.iterator().next().getSecond(), embeddingsDB);
         this.projections = createProjections(projections, dimension);
 
         for (PairNonComparable<String, Set<String>> table : tableVectors)
@@ -50,7 +50,7 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
 
             for (String entity : table.getSecond())
             {
-                List<Double> embedding = this.embeddingsDB.select(entity);
+                List<Double> embedding = embeddingsDB.select(entity);
 
                 if (embedding == null)
                 {
@@ -63,15 +63,17 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
                 this.bucketSignatures.set(key, bitVector);
             }
         }
+
+        embeddingsDB.close();
     }
 
-    private int embeddingsDimension(Set<String> entities)
+    private int embeddingsDimension(Set<String> entities, DBDriver<List<Double>, String> embeddingsDB)
     {
         int dimension = -1;
 
         for (String entity : entities)
         {
-            List<Double> embedding = this.embeddingsDB.select(entity);
+            List<Double> embedding = embeddingsDB.select(entity);
 
             if (embedding != null && !embedding.isEmpty())
             {
@@ -137,7 +139,9 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
     @Override
     public boolean insert(String entity, String table)
     {
-        List<Double> embedding = this.embeddingsDB.select(entity);
+        DBDriver<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
+        List<Double> embedding = embeddingsDB.select(entity);
+        embeddingsDB.close();
 
         if (embedding == null)
         {
@@ -154,7 +158,9 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
     @Override
     public Set<String> search(String entity)
     {
-        List<Double> embedding = this.embeddingsDB.select(entity);
+        DBDriver<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
+        List<Double> embedding = embeddingsDB.select(entity);
+        embeddingsDB.close();
 
         if (embedding == null)
         {
