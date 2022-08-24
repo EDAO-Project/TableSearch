@@ -8,6 +8,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * BucketIndex key is RDF type and value is table ID
@@ -21,6 +25,8 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
     private List<PairNonComparable<String, List<Integer>>> signature;
     private Map<String, Integer> universeTypes;
     private HashFunction hash;
+    private transient int threads;
+    private transient final Object lock = new Object();
 
     /**
      * @param neo4jConfigFile Neo4J connector configuration file
@@ -31,7 +37,7 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
      * @param bucketCount Number of LSH buckets (this determines runtime and accuracy!)
      */
     public TypesLSHIndex(File neo4jConfigFile, Iterator<Type> entityTypes, int permutationVectors, double bandFraction,
-                         Set<PairNonComparable<String, Set<String>>> tableEntities, HashFunction hash, int bucketCount)
+                         Set<PairNonComparable<String, Set<String>>> tableEntities, HashFunction hash, int bucketCount, int threads)
     {
         super(bucketCount);
 
@@ -45,6 +51,7 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         this.signature = new ArrayList<>();
         this.bandFraction = bandFraction;
         this.hash = hash;
+        this.threads = threads;
 
         loadTypes(entityTypes);
 
@@ -55,7 +62,7 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
 
         catch (IOException e)
         {
-            throw new RuntimeException("Could not initialize Neo4J connector");
+            throw new RuntimeException("Could not initialize Neo4J connector: " + e.getMessage());
         }
     }
 
@@ -79,37 +86,62 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
      * Instead of storing actual matrix, we only store the smallest index per entity
      * as this is all we need when computing the signature
      */
-    // TODO: We can create a thread for each table we iterate
     private void build(Set<PairNonComparable<String, Set<String>>> tableEntities) throws IOException
     {
+        ExecutorService executor = Executors.newFixedThreadPool(this.threads);
+        List<Future<?>> futures = new ArrayList<>(tableEntities.size());
         Neo4jEndpoint neo4j = new Neo4jEndpoint(this.neo4jConfFile);
         this.permutations = createPermutations(this.permutationVectors, this.universeTypes.size());
 
         for (PairNonComparable<String, Set<String>> table : tableEntities)
         {
-            String tableName = table.getFirst();
-            List<PairNonComparable<String, Set<Integer>>> matrix = new ArrayList<>();  // TODO: Instead of bit matrix, use set of indices of which bits are 1
+            futures.add(executor.submit(() -> loadTable(table, neo4j)));
+        }
 
-            for (String entity : table.getSecond())
+        try
+        {
+            for (Future<?> f : futures)
             {
-                Set<Integer> entityBitVector = bitVector(entity, neo4j);
-                matrix.add(new PairNonComparable<>(entity, entityBitVector));
+                f.get();
             }
+        }
 
+        catch (InterruptedException | ExecutionException e)
+        {
+            throw new RuntimeException("Error in multi-threaded loading of LSH index: " + e.getMessage());
+        }
+
+        neo4j.close();
+    }
+
+    private void loadTable(PairNonComparable<String, Set<String>> table, Neo4jEndpoint neo4j)
+    {
+        String tableName = table.getFirst();
+        List<PairNonComparable<String, Set<Integer>>> matrix = new ArrayList<>();
+
+        for (String entity : table.getSecond())
+        {
+            Set<Integer> entityBitVector = bitVector(entity, neo4j);
+            matrix.add(new PairNonComparable<>(entity, entityBitVector));
+        }
+
+        synchronized (this.lock)
+        {
             extendSignature(this.signature, matrix, this.permutations);
+        }
 
-            for (int entity = 0; entity < matrix.size(); entity++)
+        for (int entity = 0; entity < matrix.size(); entity++)
+        {
+            List<Integer> keys = createKeys(entity);
+
+            for (int key : keys)
             {
-                List<Integer> keys = createKeys(entity);
-
-                for (int key : keys)
+                synchronized (this.lock)
                 {
                     add(key, matrix.get(entity).getFirst(), tableName);
                 }
             }
         }
-
-        neo4j.close();
     }
 
     private Set<Integer> bitVector(String entity, Neo4jEndpoint neo4j)
@@ -128,7 +160,7 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         return indices;
     }
 
-    private Set<String> types(String entity, Neo4jEndpoint neo4j)
+    private synchronized Set<String> types(String entity, Neo4jEndpoint neo4j)
     {
         return new HashSet<>(neo4j.searchTypes(entity));   // We could also use the EntityTable index here
     }
@@ -253,7 +285,6 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         {
             Set<Integer> entityBitVector = bitVector(entity, neo4j);
             int entitySignatureIdx = entitySignatureIndex(this.signature, entity);
-
 
             if (entitySignatureIdx == -1)
             {

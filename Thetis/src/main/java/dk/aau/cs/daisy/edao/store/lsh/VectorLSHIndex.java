@@ -6,6 +6,10 @@ import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * LSH index of entity embeddings
@@ -16,6 +20,8 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
     private HashFunction hash;
     private Set<List<Double>> projections;
     private List<List<Boolean>> bucketSignatures;
+    private transient int threads;
+    private transient final Object lock = new Object();
 
     /**
      * @param bucketCount Number of LSH index buckets
@@ -24,17 +30,20 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
      * @param tableVectors Tables containing entities and their vector (embedding) representations
      */
     public VectorLSHIndex(int bucketCount, int projections, HashFunction hash,
-                          Set<PairNonComparable<String, Set<String>>> tableVectors)
+                          Set<PairNonComparable<String, Set<String>>> tableVectors, int threads)
     {
         super(bucketCount);
         this.hash = hash;
         this.bucketSignatures = new ArrayList<>(Collections.nCopies(bucketCount, null));
+        this.threads = threads;
         load(tableVectors, projections);
     }
 
     private void load(Set<PairNonComparable<String, Set<String>>> tableVectors, int projections)
     {
         DBDriver<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
+        ExecutorService executor = Executors.newFixedThreadPool(this.threads);
+        List<Future<?>> futures = new ArrayList<>(tableVectors.size());
 
         if (tableVectors.isEmpty())
         {
@@ -46,25 +55,52 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
 
         for (PairNonComparable<String, Set<String>> table : tableVectors)
         {
-            String tableName = table.getFirst();
+            futures.add(executor.submit(() -> loadTable(table, embeddingsDB)));
+        }
 
-            for (String entity : table.getSecond())
+        try
+        {
+            for (Future<?> f : futures)
             {
-                List<Double> embedding = embeddingsDB.select(entity);
+                f.get();
+            }
+        }
+
+        catch (InterruptedException | ExecutionException e)
+        {
+            throw new RuntimeException("Error in multi-threaded loading of LSH index: " + e.getMessage());
+        }
+
+        embeddingsDB.close();
+    }
+
+    private void loadTable(PairNonComparable<String, Set<String>> table, DBDriver<List<Double>, String> embeddingsDB)
+    {
+        String tableName = table.getFirst();
+
+        for (String entity : table.getSecond())
+        {
+            List<Double> embedding;
+
+            synchronized (this.lock)
+            {
+                embedding = embeddingsDB.select(entity);
 
                 if (embedding == null)
                 {
                     continue;
                 }
+            }
 
-                List<Boolean> bitVector = bitVector(embedding);
-                int key = this.hash.hash(bitVector, buckets());
+            List<Boolean> bitVector = bitVector(embedding);
+            int key = this.hash.hash(bitVector, buckets());
+
+            synchronized (this.lock)
+            {
                 add(key, entity, tableName);
                 this.bucketSignatures.set(key, bitVector);
             }
         }
-
-        embeddingsDB.close();
     }
 
     private int embeddingsDimension(Set<String> entities, DBDriver<List<Double>, String> embeddingsDB)
