@@ -150,7 +150,8 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
 
             while (!indicesCopy.isEmpty())
             {
-                permutation.add(indicesCopy.remove(new Random(indicesCopy.size()).nextInt()));
+                int idx = new Random().nextInt(indicesCopy.size());
+                permutation.add(indicesCopy.remove(idx));
             }
 
             permutations.add(permutation);
