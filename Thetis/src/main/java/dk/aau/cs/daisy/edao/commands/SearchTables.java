@@ -253,6 +253,8 @@ public class SearchTables extends Command {
             EntityTableLink entityTableLink = indexReader.getEntityTableLink();
             TypesLSHIndex typesLSH = indexReader.getTypesLSHIndex();
             VectorLSHIndex embeddingsLSH = indexReader.getEmbeddingsLSHIndex();
+            typesLSH.useEntityLinker(linker);
+            embeddingsLSH.useEntityLinker(linker);
             Prefilter prefilter = null;
 
             if (this.prefilterTechnique != null)

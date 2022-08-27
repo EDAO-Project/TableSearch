@@ -1,6 +1,8 @@
 package dk.aau.cs.daisy.edao.store.lsh;
 
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
+import dk.aau.cs.daisy.edao.store.EntityLinking;
+import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
 
@@ -16,17 +18,18 @@ import java.util.concurrent.Future;
 /**
  * BucketIndex key is RDF type and value is table ID
  */
-public class TypesLSHIndex extends BucketIndex<String, String> implements LSHIndex<String, String>, Serializable
+public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<String, String>, Serializable
 {
     private File neo4jConfFile;
     private int permutationVectors;
     private double bandFraction;
     private List<List<Integer>> permutations;
-    private List<PairNonComparable<String, List<Integer>>> signature;
+    private List<PairNonComparable<Id, List<Integer>>> signature;
     private Map<String, Integer> universeTypes;
     private HashFunction hash;
     private transient int threads;
     private transient final Object lock = new Object();
+    private transient EntityLinking linker = null;
 
     /**
      * @param neo4jConfigFile Neo4J connector configuration file
@@ -37,7 +40,8 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
      * @param bucketCount Number of LSH buckets (this determines runtime and accuracy!)
      */
     public TypesLSHIndex(File neo4jConfigFile, Iterator<Type> entityTypes, int permutationVectors, double bandFraction,
-                         Set<PairNonComparable<String, Set<String>>> tableEntities, HashFunction hash, int bucketCount, int threads)
+                         Set<PairNonComparable<String, Set<String>>> tableEntities, HashFunction hash, int bucketCount,
+                         int threads, EntityLinking linker)
     {
         super(bucketCount);
 
@@ -52,6 +56,7 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         this.bandFraction = bandFraction;
         this.hash = hash;
         this.threads = threads;
+        this.linker = linker;
 
         loadTypes(entityTypes);
 
@@ -64,6 +69,11 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         {
             throw new RuntimeException("Could not initialize Neo4J connector: " + e.getMessage());
         }
+    }
+
+    public void useEntityLinker(EntityLinking linker)
+    {
+        this.linker = linker;
     }
 
     private void loadTypes(Iterator<Type> entityTypes)
@@ -88,6 +98,11 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
      */
     private void build(Set<PairNonComparable<String, Set<String>>> tableEntities) throws IOException
     {
+        if (this.linker == null)
+        {
+            throw new RuntimeException("No EntityLinker object has been specified");
+        }
+
         ExecutorService executor = Executors.newFixedThreadPool(this.threads);
         List<Future<?>> futures = new ArrayList<>(tableEntities.size());
         Neo4jEndpoint neo4j = new Neo4jEndpoint(this.neo4jConfFile);
@@ -117,12 +132,13 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
     private void loadTable(PairNonComparable<String, Set<String>> table, Neo4jEndpoint neo4j)
     {
         String tableName = table.getFirst();
-        List<PairNonComparable<String, Set<Integer>>> matrix = new ArrayList<>();
+        List<PairNonComparable<Id, Set<Integer>>> matrix = new ArrayList<>();
 
         for (String entity : table.getSecond())
         {
+            Id entityId = this.linker.kgUriLookup(entity);
             Set<Integer> entityBitVector = bitVector(entity, neo4j);
-            matrix.add(new PairNonComparable<>(entity, entityBitVector));
+            matrix.add(new PairNonComparable<>(entityId, entityBitVector));
         }
 
         synchronized (this.lock)
@@ -133,12 +149,13 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         for (int entity = 0; entity < matrix.size(); entity++)
         {
             List<Integer> keys = createKeys(entity);
+            Id entityId = matrix.get(entity).getFirst();
 
             for (int key : keys)
             {
                 synchronized (this.lock)
                 {
-                    add(key, matrix.get(entity).getFirst(), tableName);
+                    add(key, entityId, tableName);
                 }
             }
         }
@@ -192,11 +209,11 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         return permutations;
     }
 
-    private static List<PairNonComparable<String, List<Integer>>> extendSignature(List<PairNonComparable<String, List<Integer>>> signature,
-                                                                     List<PairNonComparable<String, Set<Integer>>> entityMatrix,
+    private static List<PairNonComparable<Id, List<Integer>>> extendSignature(List<PairNonComparable<Id, List<Integer>>> signature,
+                                                                     List<PairNonComparable<Id, Set<Integer>>> entityMatrix,
                                                                      List<List<Integer>> permutations)
     {
-        for (PairNonComparable<String, Set<Integer>> entity : entityMatrix)
+        for (PairNonComparable<Id, Set<Integer>> entity : entityMatrix)
         {
             int signatureIdx = entitySignatureIndex(signature, entity.getFirst());
             List<Integer> entitySignature;
@@ -247,13 +264,13 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
         return smallest;
     }
 
-    private static int entitySignatureIndex(List<PairNonComparable<String, List<Integer>>> signature, String entity)
+    private static int entitySignatureIndex(List<PairNonComparable<Id, List<Integer>>> signature, Id entityId)
     {
         int signatures = signature.size();
 
         for (int i = 0; i < signatures; i++)
         {
-            if (signature.get(i).getFirst().equals(entity))
+            if (signature.get(i).getFirst().equals(entityId))
             {
                 return i;
             }
@@ -281,17 +298,24 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
 
     private int createOrGetSignature(String entity)
     {
+        Id entityId = this.linker.kgUriLookup(entity);
+
+        if (entityId == null)
+        {
+            throw new RuntimeException("Entity does not exist in EntityLinker object");
+        }
+
         try (Neo4jEndpoint neo4j = new Neo4jEndpoint(this.neo4jConfFile))
         {
             Set<Integer> entityBitVector = bitVector(entity, neo4j);
-            int entitySignatureIdx = entitySignatureIndex(this.signature, entity);
+            int entitySignatureIdx = entitySignatureIndex(this.signature, entityId);
 
             if (entitySignatureIdx == -1)
             {
-                extendSignature(this.signature, List.of(new PairNonComparable<>(entity, entityBitVector)), this.permutations);
+                extendSignature(this.signature, List.of(new PairNonComparable<>(entityId, entityBitVector)), this.permutations);
             }
 
-            return entitySignatureIndex(this.signature, entity);
+            return entitySignatureIndex(this.signature, entityId);
         }
 
         catch (IOException e)
@@ -309,14 +333,27 @@ public class TypesLSHIndex extends BucketIndex<String, String> implements LSHInd
     @Override
     public boolean insert(String entity, String table)
     {
+        if (this.linker == null)
+        {
+            throw new RuntimeException("No EntityLinker object has been specified");
+        }
+
+        Id entityId = this.linker.kgUriLookup(entity);
+
+        if (entityId == null)
+        {
+            throw new RuntimeException("Entity does not exist in EntityLinker object");
+        }
+
         try
         {
             int entitySignature = createOrGetSignature(entity);
             List<Integer> bucketKeys = createKeys(entitySignature);
 
+
             for (int bucketKey : bucketKeys)
             {
-                add(bucketKey, entity, table);
+                add(bucketKey, entityId, table);
             }
 
             return true;

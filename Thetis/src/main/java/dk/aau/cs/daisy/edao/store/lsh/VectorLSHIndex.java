@@ -2,6 +2,9 @@ package dk.aau.cs.daisy.edao.store.lsh;
 
 import dk.aau.cs.daisy.edao.connector.DBDriver;
 import dk.aau.cs.daisy.edao.connector.Factory;
+import dk.aau.cs.daisy.edao.store.EntityLinking;
+import dk.aau.cs.daisy.edao.store.EntityTable;
+import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 
 import java.io.Serializable;
@@ -15,13 +18,14 @@ import java.util.concurrent.Future;
  * LSH index of entity embeddings
  * Mapping from string entity to set of tables candidate entities by cosine similarity originate from
  */
-public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIndex<String, String>, Serializable
+public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<String, String>, Serializable
 {
     private HashFunction hash;
     private Set<List<Double>> projections;
     private List<List<Boolean>> bucketSignatures;
     private transient int threads;
     private transient final Object lock = new Object();
+    private transient EntityLinking linker = null;
 
     /**
      * @param bucketCount Number of LSH index buckets
@@ -30,13 +34,19 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
      * @param tableVectors Tables containing entities and their vector (embedding) representations
      */
     public VectorLSHIndex(int bucketCount, int projections, HashFunction hash,
-                          Set<PairNonComparable<String, Set<String>>> tableVectors, int threads)
+                          Set<PairNonComparable<String, Set<String>>> tableVectors, int threads, EntityLinking linker)
     {
         super(bucketCount);
         this.hash = hash;
         this.bucketSignatures = new ArrayList<>(Collections.nCopies(bucketCount, null));
         this.threads = threads;
+        this.linker = linker;
         load(tableVectors, projections);
+    }
+
+    public void useEntityLinker(EntityLinking linker)
+    {
+        this.linker = linker;
     }
 
     private void load(Set<PairNonComparable<String, Set<String>>> tableVectors, int projections)
@@ -81,6 +91,7 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
         for (String entity : table.getSecond())
         {
             List<Double> embedding;
+            Id entityId = this.linker.kgUriLookup(entity);
 
             synchronized (this.lock)
             {
@@ -97,7 +108,7 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
 
             synchronized (this.lock)
             {
-                add(key, entity, tableName);
+                add(key, entityId, tableName);
                 this.bucketSignatures.set(key, bitVector);
             }
         }
@@ -175,6 +186,18 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
     @Override
     public boolean insert(String entity, String table)
     {
+        if (this.linker == null)
+        {
+            throw new RuntimeException("Missing EntityLinker object");
+        }
+
+        Id entityId = this.linker.kgUriLookup(entity);
+
+        if (entityId == null)
+        {
+            throw new RuntimeException("Entity does not exist in specified EntityLinker object");
+        }
+
         DBDriver<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
         List<Double> embedding = embeddingsDB.select(entity);
         embeddingsDB.close();
@@ -186,7 +209,7 @@ public class VectorLSHIndex extends BucketIndex<String, String> implements LSHIn
 
         List<Boolean> bitVector = bitVector(embedding);
         int key = this.hash.hash(bitVector, buckets());
-        add(key, entity, table);
+        add(key, entityId, table);
 
         return true;
     }
