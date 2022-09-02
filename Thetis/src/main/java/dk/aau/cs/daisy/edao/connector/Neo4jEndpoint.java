@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 
 import java.io.*;
 import java.util.*;
+import java.util.logging.Level;
 
 /**
  * Connects and query the KG in Neo4j
@@ -39,7 +40,8 @@ public class Neo4jEndpoint implements AutoCloseable {
         this.dbUri = prop.getProperty("neo4j.uri", "bolt://localhost:7687");
         this.dbUser = prop.getProperty("neo4j.user", "neo4j");
         this.dbPassword = prop.getProperty("neo4j.password", "admin");
-        this.driver = GraphDatabase.driver(dbUri, AuthTokens.basic(dbUser, dbPassword));
+        this.driver = GraphDatabase.driver(dbUri, AuthTokens.basic(dbUser, dbPassword),
+                Config.builder().withLogging(Logging.javaUtilLogging(Level.WARNING)).build());
         this.isPrimaryTopicOf_rel_type_name = this.get_isPrimaryTopicOf_rel_type_name();
         this.configFile = confFile;
     }
