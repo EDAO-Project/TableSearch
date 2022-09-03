@@ -285,8 +285,8 @@ public class SearchTables extends Command {
 
                 else
                 {
-                    Logger.logNewLine(Logger.Level.ERROR, "NOT all query entities are mappable!");
-                    return -1;
+                    Logger.logNewLine(Logger.Level.ERROR, "NOT all query entities are mappable! Skipping query...");
+                    continue;
                 }
 
                 Logger.logNewLine(Logger.Level.INFO, "Search mode: " + this.searchMode.getMode());
