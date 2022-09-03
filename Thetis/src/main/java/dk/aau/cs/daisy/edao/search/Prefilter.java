@@ -19,26 +19,24 @@ import java.util.Set;
 public class Prefilter extends AbstractSearch
 {
     private long elapsed = -1;
-    private int k;
     private TypesLSHIndex typesLSH;
     private VectorLSHIndex vectorsLSH;
 
-    private Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK)
+    private Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink)
     {
         super(linker, entityTable, entityTableLink);
-        this.k = topK;
     }
 
-    public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK, TypesLSHIndex typesLSHIndex)
+    public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, TypesLSHIndex typesLSHIndex)
     {
-        this(linker, entityTable, entityTableLink, topK);
+        this(linker, entityTable, entityTableLink);
         this.typesLSH = typesLSHIndex;
         this.vectorsLSH = null;
     }
 
-    public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK, VectorLSHIndex vectorLSHIndex)
+    public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, VectorLSHIndex vectorLSHIndex)
     {
-        this(linker, entityTable, entityTableLink, topK);
+        this(linker, entityTable, entityTableLink);
         this.vectorsLSH = vectorLSHIndex;
         this.typesLSH = null;
     }
@@ -62,7 +60,7 @@ public class Prefilter extends AbstractSearch
         }
 
         this.elapsed = System.nanoTime() - start;
-        return new Result(this.k, candidates);
+        return new Result(candidates.size(), candidates);
     }
 
     private Set<String> searchLSH(String entity)

@@ -45,8 +45,8 @@ public class PrefilterTest
         EntityLinking linker = indexWriter.getEntityLinker();
         EntityTable entityTable = indexWriter.getEntityTable();
         EntityTableLink tableLink = indexWriter.getEntityTableLinker();
-        this.typesPrefilter = new Prefilter(linker, entityTable, tableLink, TOP_K, indexWriter.getTypesLSH());
-        this.embeddingsPrefilter = new Prefilter(linker, entityTable, tableLink, TOP_K, indexWriter.getEmbeddingsLSH());
+        this.typesPrefilter = new Prefilter(linker, entityTable, tableLink, indexWriter.getTypesLSH());
+        this.embeddingsPrefilter = new Prefilter(linker, entityTable, tableLink, indexWriter.getEmbeddingsLSH());
     }
 
     @Test

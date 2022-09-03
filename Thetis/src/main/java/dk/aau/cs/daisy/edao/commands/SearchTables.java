@@ -260,8 +260,8 @@ public class SearchTables extends Command {
             if (this.prefilterTechnique != null)
             {
                 prefilter = switch (this.prefilterTechnique) {    // TODO: PPR pre-filtering must be implemented
-                    case LSH_TYPES -> new Prefilter(linker, entityTable, entityTableLink, this.topK, typesLSH);
-                    case LSH_EMBEDDINGS -> new Prefilter(linker, entityTable, entityTableLink, this.topK, embeddingsLSH);
+                    case LSH_TYPES -> new Prefilter(linker, entityTable, entityTableLink, typesLSH);
+                    case LSH_EMBEDDINGS -> new Prefilter(linker, entityTable, entityTableLink, embeddingsLSH);
                     default -> null;
                 };
             }
