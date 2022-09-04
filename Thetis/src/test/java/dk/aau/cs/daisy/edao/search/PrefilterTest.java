@@ -7,6 +7,7 @@ import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
 import dk.aau.cs.daisy.edao.structures.Pair;
+import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 import dk.aau.cs.daisy.edao.system.Configuration;
@@ -28,7 +29,7 @@ public class PrefilterTest
     private final File outDir = new File("testing/output");
     private Prefilter typesPrefilter;
     private Prefilter embeddingsPrefilter;
-    private static final int TOP_K = 5;
+    private PairNonComparable<Table<String>, String> singleQuery, nQuery;
 
     @Before
     public void setup() throws IOException
@@ -47,22 +48,29 @@ public class PrefilterTest
         EntityTableLink tableLink = indexWriter.getEntityTableLinker();
         this.typesPrefilter = new Prefilter(linker, entityTable, tableLink, indexWriter.getTypesLSH());
         this.embeddingsPrefilter = new Prefilter(linker, entityTable, tableLink, indexWriter.getEmbeddingsLSH());
+
+        String singleUri = linker.mapTo("http://www.wikipedia.org/wiki/WebOS");
+        this.singleQuery = new PairNonComparable<>(new DynamicTable<>(List.of(List.of(singleUri))), "table-0001-2.json");
+
+        String uri1 = linker.mapTo("http://www.wikipedia.org/wiki/WebOS"),
+                uri2 = linker.mapTo("http://www.wikipedia.org/wiki/Boston_Bruins"),
+                uri3 = linker.mapTo("http://www.wikipedia.org/wiki/Maemo"),
+                uri4 = linker.mapTo("http://www.wikipedia.org/wiki/Chicago_Blackhawks");
+        this.nQuery = new PairNonComparable<>(new DynamicTable<>(List.of(List.of(uri1, uri2), List.of(uri3, uri4))),
+                "table-0001-1.json");
     }
 
     @Test
     public void testOneEntityTableTypesLSH()
     {
-        Table<String> query = TableParser.toTable(new File("testing/data/table-0001-2.json"));
-        assertNotNull("Could not parse query table", query);
-
-        Iterator<Pair<String, Double>> results = this.typesPrefilter.search(query).getResults();
+        Iterator<Pair<String, Double>> results = this.typesPrefilter.search(this.singleQuery.getFirst()).getResults();
         boolean foundQueryTable = false;
 
         while (results.hasNext())
         {
             Pair<String, Double> result = results.next();
 
-            if (result.getFirst().equals("table-0001-2.json"))
+            if (result.getFirst().equals(this.singleQuery.getSecond()))
             {
                 foundQueryTable = true;
             }
@@ -74,17 +82,14 @@ public class PrefilterTest
     @Test
     public void testOneEntityTableEmbeddingsLSH()
     {
-        Table<String> query = TableParser.toTable(new File("testing/data/table-0001-2.json"));
-        assertNotNull("Could not parse query table", query);
-
-        Iterator<Pair<String, Double>> results = this.embeddingsPrefilter.search(query).getResults();
+        Iterator<Pair<String, Double>> results = this.embeddingsPrefilter.search(this.singleQuery.getFirst()).getResults();
         boolean foundQueryTable = false;
 
         while (results.hasNext())
         {
             Pair<String, Double> result = results.next();
 
-            if (result.getFirst().equals("table-0001-2.json"))
+            if (result.getFirst().equals(this.singleQuery.getSecond()))
             {
                 foundQueryTable = true;
             }
@@ -96,24 +101,25 @@ public class PrefilterTest
     @Test
     public void testNEntityTableWithRemovalTypesLSH()
     {
-        Table<String> table = TableParser.toTable(new File("testing/data/table-0001-1.json"));
-        assertNotNull(table);
+        List<List<String>> queryMatrix = new ArrayList<>();
 
-        Iterator<String> rowElements = table.getRow(0).iterator();
-        List<String> row = new ArrayList<>();
-
-        while (rowElements.hasNext())
+        for (int i = 0; i < this.nQuery.getFirst().rowCount(); i++)
         {
-            row.add(rowElements.next());
+            queryMatrix.add(new ArrayList<>(this.nQuery.getFirst().getRow(i).size()));
+
+            for (int j = 0; j < this.nQuery.getFirst().getRow(i).size(); j++)
+            {
+                queryMatrix.get(i).add(this.nQuery.getFirst().getRow(i).get(j));
+            }
         }
 
-        Table<String> query = new DynamicTable<>(List.of(row));
+        Table<String> query = new DynamicTable<>(queryMatrix);
         Iterator<Pair<String, Double>> results = this.typesPrefilter.search(query).getResults();
         boolean foundQueryTable = false;
 
         while (results.hasNext())
         {
-            if (results.next().getFirst().equals("table-0001-1.json"))
+            if (results.next().getFirst().equals(this.nQuery.getSecond()))
             {
                 foundQueryTable = true;
             }
@@ -125,24 +131,25 @@ public class PrefilterTest
     @Test
     public void testNEntityTableWithRemovalEmbeddingsLSH()
     {
-        Table<String> table = TableParser.toTable(new File("testing/data/table-0001-1.json"));
-        assertNotNull(table);
+        List<List<String>> queryMatrix = new ArrayList<>();
 
-        Iterator<String> rowElements = table.getRow(0).iterator();
-        List<String> row = new ArrayList<>();
-
-        while (rowElements.hasNext())
+        for (int i = 0; i < this.nQuery.getFirst().rowCount(); i++)
         {
-            row.add(rowElements.next());
+            queryMatrix.add(new ArrayList<>(this.nQuery.getFirst().getRow(i).size()));
+
+            for (int j = 0; j < this.nQuery.getFirst().getRow(i).size(); j++)
+            {
+                queryMatrix.get(i).add(this.nQuery.getFirst().getRow(i).get(j));
+            }
         }
 
-        Table<String> query = new DynamicTable<>(List.of(row));
+        Table<String> query = new DynamicTable<>(queryMatrix);
         Iterator<Pair<String, Double>> results = this.embeddingsPrefilter.search(query).getResults();
         boolean foundQueryTable = false;
 
         while (results.hasNext())
         {
-            if (results.next().getFirst().equals("table-0001-1.json"))
+            if (results.next().getFirst().equals(this.nQuery.getSecond()))
             {
                 foundQueryTable = true;
             }
