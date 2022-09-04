@@ -20,7 +20,6 @@ import java.util.concurrent.Future;
  */
 public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<String, String>, Serializable
 {
-    private HashFunction hash;
     private Set<List<Double>> projections;
     private List<List<Boolean>> bucketSignatures;
     private transient int threads;
@@ -30,14 +29,12 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
     /**
      * @param bucketCount Number of LSH index buckets
      * @param projections Number of projections, which determines hash size
-     * @param hash Hash function to be applied on min-hash signatures
      * @param tableVectors Tables containing entities and their vector (embedding) representations
      */
-    public VectorLSHIndex(int bucketCount, int projections, HashFunction hash,
-                          Set<PairNonComparable<String, Set<String>>> tableVectors, int threads, EntityLinking linker)
+    public VectorLSHIndex(int bucketCount, int projections, Set<PairNonComparable<String, Set<String>>> tableVectors,
+                          int threads, EntityLinking linker)
     {
         super(bucketCount);
-        this.hash = hash;
         this.bucketSignatures = new ArrayList<>(Collections.nCopies(bucketCount, null));
         this.threads = threads;
         this.linker = linker;
@@ -104,7 +101,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
             }
 
             List<Boolean> bitVector = bitVector(embedding);
-            int key = this.hash.hash(bitVector, size());
+            int key = key(Integer.parseInt(toBitString(bitVector), 2), size());
 
             synchronized (this.lock)
             {
@@ -112,6 +109,29 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
                 this.bucketSignatures.set(key, bitVector);
             }
         }
+    }
+
+    private static String toBitString(List<Boolean> bitVector)
+    {
+        StringBuilder builder = new StringBuilder();
+        bitVector.forEach(b -> {
+            if (b)
+            {
+                builder.append("1");
+            }
+
+            else
+            {
+                builder.append("0");
+            }
+        });
+
+        return builder.toString();
+    }
+
+    private static int key(int value, int size)
+    {
+        return value % size;
     }
 
     private int embeddingsDimension(Set<String> entities, DBDriver<List<Double>, String> embeddingsDB)
@@ -208,8 +228,9 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         }
 
         List<Boolean> bitVector = bitVector(embedding);
-        int key = this.hash.hash(bitVector, size());
+        int key = key(Integer.parseInt(toBitString(bitVector), 2), size());
         add(key, entityId, table);
+        this.bucketSignatures.set(key, bitVector);
 
         return true;
     }
@@ -229,7 +250,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         List<Boolean> searchBitVector = bitVector(embedding);
         int buckets = size(), closestIdx = 0, closestDist = Integer.MAX_VALUE;
 
-        for (int i = 1; i < buckets; i++)
+        for (int i = 0; i < buckets; i++)
         {
             if (this.bucketSignatures.get(i) == null)
             {

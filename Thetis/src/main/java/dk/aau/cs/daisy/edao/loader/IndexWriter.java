@@ -5,14 +5,11 @@ import com.google.common.hash.Funnels;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dk.aau.cs.daisy.edao.commands.parser.TableParser;
-import dk.aau.cs.daisy.edao.connector.DBDriver;
-import dk.aau.cs.daisy.edao.connector.Factory;
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 import dk.aau.cs.daisy.edao.store.*;
 import dk.aau.cs.daisy.edao.store.lsh.HashFunction;
 import dk.aau.cs.daisy.edao.store.lsh.TypesLSHIndex;
 import dk.aau.cs.daisy.edao.store.lsh.VectorLSHIndex;
-import dk.aau.cs.daisy.edao.structures.IdDictionary;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 import dk.aau.cs.daisy.edao.structures.graph.Entity;
@@ -59,7 +56,7 @@ public class IndexWriter implements IndexIO
     private final Map<String, Stats> tableStats = new TreeMap<>();
     private final Set<PairNonComparable<String, Set<String>>> tableEntities = Collections.synchronizedSet(new HashSet<>());
     private List<String> disallowedEntityTypes;
-    private static final HashFunction HASH_FUNCTION = (obj, num) -> {
+    private static final HashFunction HASH_FUNCTION_NUMERIC = (obj, num) -> {
         List<?> sig = (List<?>) obj;
         int sum = 0;
 
@@ -153,11 +150,11 @@ public class IndexWriter implements IndexIO
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 0/2");
         this.typesLSH = new TypesLSHIndex(this.neo4j.getConfigFile(), types, permutations, bandFraction, this.tableEntities,
-                HASH_FUNCTION, buckets, this.threads, (EntityLinking) this.linker.getLinker());
+                HASH_FUNCTION_NUMERIC, buckets, this.threads, (EntityLinking) this.linker.getLinker());
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 1/2");
 
-        this.embeddingsLSH = new VectorLSHIndex(buckets, permutations, HASH_FUNCTION, this.tableEntities, this.threads,
+        this.embeddingsLSH = new VectorLSHIndex(buckets, permutations, this.tableEntities, this.threads,
                 (EntityLinking) this.linker.getLinker());
         Logger.log(Logger.Level.INFO, "Loaded LSH index 2/2");
     }
