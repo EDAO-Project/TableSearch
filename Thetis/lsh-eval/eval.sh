@@ -4,7 +4,7 @@ set -e
 
 INDEX_DIR="/data/cikm/indexes/"
 TABLES="/data/cikm/SemanticTableSearchDataset/table_corpus/corpus/"
-OUTPUT_DIR="/src/lsh-eval/"
+OUTPUT_DIR="/src/lsh-eval/results/"
 TOP_K=100
 QUERIES_DIR="/data/cikm/SemanticTableSearchDataset/queries/"
 
@@ -24,10 +24,11 @@ do
 
     for QUERY_DIR in ${QUERIES_DIR}*_tuples_per_query ; \
     do
-        SPLIT=(${QUERY_DIR//_/ })
-        TUPLES=${SPLIT[-4]}
+        SPLIT1=(${QUERY_DIR//"/"/ })
+        SPLIT2=(${SPLIT1[-1]//_/ })
+        TUPLES=${SPLIT2[0]}
         OUT_TUPLES=${OUT}/${TUPLES}_tuple_queries
-        mkdir ${OUT_TUPLES}
+        mkdir -p ${OUT_TUPLES}
 
         java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${BUCKET_INDEX_DIR} \
             -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_TUPLES} -t 4 -pf LSH_TYPES
@@ -43,17 +44,18 @@ do
     SPLIT=(${BUCKET_INDEX_DIR//_/ })
     BUCKETS=${SPLIT[-6]}
     OUT=${OUTPUT_DIR}embeddings/buckets_${BUCKETS}
-    mkdir ${OUT}
+    mkdir -p ${OUT}
 
     echo "BUCKETS: "${BUCKETS}
     echo
 
     for QUERY_DIR in ${QUERIES_DIR}*_tuples_per_query ; \
     do
-        SPLIT=(${QUERY_DIR//_/ })
-        TUPLES=${SPLIT[-4]}
+        SPLIT1=(${QUERY_DIR//"/"/ })
+        SPLIT2=(${SPLIT1[-1]//_/ })
+        TUPLES=${SPLIT2[0]}
         OUT_TUPLES=${OUT}/${TUPLES}_tuple_queries
-        mkdir ${OUT_TUPLES}
+        mkdir -p ${OUT_TUPLES}
 
         java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${BUCKET_INDEX_DIR} \
             -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_TUPLES} -t 4 -pf LSH_EMBEDDINGS
@@ -69,8 +71,9 @@ mkdir ${OUT}
 
 for QUERY_DIR in ${QUERIES_DIR}*_tuples_per_query ; \
 do
-    SPLIT=(${QUERY_DIR//_/ })
-    TUPLES=${SPLIT[-4]}
+    SPLIT1=(${QUERY_DIR//"/"/ })
+    SPLIT2=(${SPLIT1[-1]//_/ })
+    TUPLES=${SPLIT2[0]}
     OUT_TUPLES=${OUT}/${TUPLES}_tuple_queries
     mkdir ${OUT_TUPLES}
 
