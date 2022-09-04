@@ -292,7 +292,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         {
             int bandEnd = Math.min(idx + bandSize, permutationSize);
             List<Integer> subSignature = this.signature.get(signatureIndex).getSecond().subList(idx, bandEnd);
-            int key = Math.abs(this.hash.hash(subSignature, buckets()));
+            int key = Math.abs(this.hash.hash(subSignature, size()));
             keys.add(key);
         }
 

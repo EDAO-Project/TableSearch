@@ -19,7 +19,12 @@ public abstract class BucketIndex<K, V> implements Serializable
         }
     }
 
-    public int buckets()
+    public List<Bucket<K, V>> buckets()
+    {
+        return this.buckets;
+    }
+
+    public int size()
     {
         return this.buckets.size();
     }

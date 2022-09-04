@@ -104,7 +104,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
             }
 
             List<Boolean> bitVector = bitVector(embedding);
-            int key = this.hash.hash(bitVector, buckets());
+            int key = this.hash.hash(bitVector, size());
 
             synchronized (this.lock)
             {
@@ -208,7 +208,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         }
 
         List<Boolean> bitVector = bitVector(embedding);
-        int key = this.hash.hash(bitVector, buckets());
+        int key = this.hash.hash(bitVector, size());
         add(key, entityId, table);
 
         return true;
@@ -227,7 +227,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         }
 
         List<Boolean> searchBitVector = bitVector(embedding);
-        int buckets = buckets(), closestIdx = 0, closestDist = Integer.MAX_VALUE;
+        int buckets = size(), closestIdx = 0, closestDist = Integer.MAX_VALUE;
 
         for (int i = 1; i < buckets; i++)
         {
