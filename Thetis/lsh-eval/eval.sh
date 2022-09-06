@@ -31,7 +31,7 @@ do
         mkdir -p ${OUT_TUPLES}
 
         java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${BUCKET_INDEX_DIR} \
-            -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_TUPLES} -t 4 -pf LSH_TYPES
+            -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_TUPLES} -t 4 -pf LSH_TYPES --singleColumnPerQueryEntity --adjustedJaccardSimilarity
     done
 done
 
@@ -58,7 +58,7 @@ do
         mkdir -p ${OUT_TUPLES}
 
         java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${BUCKET_INDEX_DIR} \
-            -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_TUPLES} -t 4 -pf LSH_EMBEDDINGS
+            -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_TUPLES} -t 4 -pf LSH_EMBEDDINGS --singleColumnPerQueryEntity --adjustedJaccardSimilarity
     done
 done
 
@@ -78,5 +78,5 @@ do
     mkdir ${OUT_TUPLES}
 
     java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}buckets_15_bandsize_0_2_permutations_15 \
-        -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_TUPLES} -t 4
+        -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_TUPLES} -t 4 --singleColumnPerQueryEntity --adjustedJaccardSimilarity
 done
