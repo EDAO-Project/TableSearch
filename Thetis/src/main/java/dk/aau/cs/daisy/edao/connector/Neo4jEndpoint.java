@@ -2,9 +2,7 @@ package dk.aau.cs.daisy.edao.connector;
 
 import dk.aau.cs.daisy.edao.structures.Pair;
 import org.neo4j.driver.*;
-import org.neo4j.driver.Record;
 
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import java.io.*;
