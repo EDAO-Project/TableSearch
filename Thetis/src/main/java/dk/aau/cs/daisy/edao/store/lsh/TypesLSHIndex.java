@@ -30,7 +30,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
     private transient int threads;
     private transient final Object lock = new Object();
     private transient EntityLinking linker = null;
-    private final Set<Id> loadedEntities = new HashSet<>();
+    private final Map<Id, Integer> entityToSigIndex = new HashMap<>();
 
     /**
      * @param neo4jConfigFile Neo4J connector configuration file
@@ -144,7 +144,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 
         synchronized (this.lock)
         {
-            extendSignature(this.signature, matrix, this.permutations, this.loadedEntities);
+            extendSignature(this.signature, matrix, this.permutations, this.entityToSigIndex);
         }
 
         for (int entity = 0; entity < matrix.size(); entity++)
@@ -213,14 +213,14 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
     private static List<PairNonComparable<Id, List<Integer>>> extendSignature(List<PairNonComparable<Id, List<Integer>>> signature,
                                                                      List<PairNonComparable<Id, Set<Integer>>> entityMatrix,
                                                                      List<List<Integer>> permutations,
-                                                                     Set<Id> loadedEntities)
+                                                                     Map<Id, Integer> entityToSigIdx)
     {
         for (PairNonComparable<Id, Set<Integer>> entity : entityMatrix)
         {
             List<Integer> entitySignature;
             Id entityId = entity.getFirst();
 
-            if (!loadedEntities.contains(entityId))
+            if (!entityToSigIdx.containsKey(entityId))
             {
                 Set<Integer> bitVector = entity.getSecond();
 
@@ -241,7 +241,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
                 }
 
                 signature.add(new PairNonComparable<>(entity.getFirst(), entitySignature));
-                loadedEntities.add(entityId);
+                entityToSigIdx.put(entityId, signature.size() - 1);
             }
         }
 
@@ -312,9 +312,9 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         {
             Set<Integer> entityBitVector = bitVector(entity, neo4j);
             extendSignature(this.signature, List.of(new PairNonComparable<>(entityId, entityBitVector)),
-                    this.permutations, this.loadedEntities);
+                    this.permutations, this.entityToSigIndex);
 
-            return entitySignatureIndex(this.signature, entityId);
+            return this.entityToSigIndex.get(entityId);
         }
 
         catch (IOException e)
