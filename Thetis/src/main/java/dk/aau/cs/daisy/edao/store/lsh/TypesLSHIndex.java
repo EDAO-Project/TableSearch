@@ -264,7 +264,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
             }
         }
 
-        return smallest;
+        return permutation.get(smallest);
     }
 
     private static int entitySignatureIndex(List<PairNonComparable<Id, List<Integer>>> signature, Id entityId)
