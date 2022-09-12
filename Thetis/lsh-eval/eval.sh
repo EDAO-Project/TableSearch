@@ -29,7 +29,7 @@ QUERIES_DIR="/data/cikm/SemanticTableSearchDataset/queries/"
 #        OUT_TUPLES=${OUT}/${TUPLES}_tuple_queries
 #        mkdir -p ${OUT_TUPLES}
 
-#        for TOP_K in {10,50,100} ; \
+#        for TOP_K in {10,100} ; \
 #        do
 #            OUT_K=${OUT_TUPLES}/${TOP_K}
 #            mkdir -p ${OUT_K}
@@ -62,7 +62,7 @@ do
         OUT_TUPLES=${OUT}/${TUPLES}_tuple_queries
         mkdir -p ${OUT_TUPLES}
 
-        for TOP_K in {10,50,100} ; \
+        for TOP_K in {10,100} ; \
         do
             OUT_K=${OUT_TUPLES}/${TOP_K}
             mkdir -p ${OUT_K}
@@ -94,7 +94,7 @@ do
         OUT_TUPLES=${OUT_BUCKETS}/${TUPLES}_tuple_queries
         mkdir -p ${OUT_TUPLES}
 
-        for TOP_K in {10,50,100} ; \
+        for TOP_K in {10,100} ; \
         do
             OUT_K=${OUT_TUPLES}/${TOP_K}
             mkdir -p ${OUT_K}

@@ -98,7 +98,7 @@ def plot_ndcg(query_tuples):
     corpus = '../../data/cikm/SemanticTableSearchDataset/table_corpus/tables'
     mapping_file = '../../data/cikm/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
     query_files = os.listdir(query_dir)
-    top_k = [10, 50, 100]
+    top_k = [10, 100]
     buckets = [150, 300]
     ndcg = dictionary()
     ndcg['types'] = dictionary()
