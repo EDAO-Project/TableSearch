@@ -28,6 +28,7 @@ def plot_runtime():
     rects_embeddings = ax.bar(x, embeddings, width / 3, label = 'LSH of embeddings')
     rescts_baseline = ax.bar(x + width / 3, baseline, width / 3, label = 'Pure brute-force')
 
+    ax.set_title('Top-K = 100')
     ax.set_xlabel('# query tuples')
     ax.set_ylabel('Runtime (s)')
     ax.set_xticks(x, labels)
