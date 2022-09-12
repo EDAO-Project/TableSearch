@@ -31,8 +31,11 @@ QUERIES_DIR="/data/cikm/SemanticTableSearchDataset/queries/"
 
 #        for TOP_K in {10,50,100} ; \
 #        do
-#        java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${BUCKET_INDEX_DIR} \
-#            -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_TUPLES} -t 4 -pf LSH_TYPES --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
+#            OUT_K=${OUT_TUPLES}/${TOP_K}
+#            mkdir -p ${OUT_K}
+
+#            java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${BUCKET_INDEX_DIR} \
+#                -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_TYPES --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
 #        done
 #    done
 #done
@@ -61,8 +64,11 @@ do
 
         for TOP_K in {10,50,100} ; \
         do
+            OUT_K=${OUT_TUPLES}/${TOP_K}
+            mkdir -p ${OUT_K}
+
             java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${BUCKET_INDEX_DIR} \
-                -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_TUPLES} -t 4 -pf LSH_EMBEDDINGS --singleColumnPerQueryEntity --adjustedJaccardSimilarity 
+                -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_EMBEDDINGS --singleColumnPerQueryEntity --adjustedJaccardSimilarity 
                 --useMaxSimilarityPerColumn
         done
     done
@@ -90,8 +96,11 @@ do
 
         for TOP_K in {10,50,100} ; \
         do
-        java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}buckets_${BUCKETS}_bandsize_0_5_permutations_15 \
-            -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_TUPLES} -t 4 --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
+            OUT_K=${OUT_TUPLES}/${TOP_K}
+            mkdir -p ${OUT_K}
+
+            java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}buckets_${BUCKETS}_bandsize_0_5_permutations_15 \
+                -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_K} -t 4 --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
         done
     done
 done
