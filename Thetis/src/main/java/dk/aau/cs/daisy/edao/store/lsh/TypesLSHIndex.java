@@ -2,6 +2,7 @@ package dk.aau.cs.daisy.edao.store.lsh;
 
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
+import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
@@ -31,6 +32,8 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
     private transient final Object lock = new Object();
     private transient EntityLinking linker = null;
     private final Map<Id, Integer> entityToSigIndex = new HashMap<>();
+    private Set<String> unimportantTypes;
+    private static final double UNIMPORTANT_PERCENTILE = 0.9;
 
     /**
      * @param neo4jConfigFile Neo4J connector configuration file
@@ -40,9 +43,9 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
      * @param hash A hash function to be applied on min-hash signature to compute bucket index
      * @param bucketCount Number of LSH buckets (this determines runtime and accuracy!)
      */
-    public TypesLSHIndex(File neo4jConfigFile, Iterator<Type> entityTypes, int permutationVectors, double bandFraction,
+    public TypesLSHIndex(File neo4jConfigFile, int permutationVectors, double bandFraction,
                          Set<PairNonComparable<String, Set<String>>> tableEntities, HashFunction hash, int bucketCount,
-                         int threads, EntityLinking linker)
+                         int threads, EntityLinking linker, EntityTable entityTable)
     {
         super(bucketCount);
 
@@ -59,7 +62,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         this.threads = threads;
         this.linker = linker;
 
-        loadTypes(entityTypes);
+        loadTypes(entityTable);
 
         try
         {
@@ -77,20 +80,23 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         this.linker = linker;
     }
 
-    private void loadTypes(Iterator<Type> entityTypes)
+    private void loadTypes(EntityTable entityTable)
     {
         int counter = 0;
         this.universeTypes = new HashMap<>();
+        Iterator<Type> types = entityTable.allTypes();
 
-        while (entityTypes.hasNext())
+        while (types.hasNext())
         {
-            String type = entityTypes.next().getType();
+            String type = types.next().getType();
 
             if (!this.universeTypes.containsKey(type))
             {
                 this.universeTypes.put(type, counter++);
             }
         }
+
+        this.unimportantTypes = new TypeStats(entityTable).popularByPercentile(UNIMPORTANT_PERCENTILE);
     }
 
     /**
@@ -169,7 +175,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 
         for (String type : types)
         {
-            if (this.universeTypes.containsKey(type))
+            if (!this.unimportantTypes.contains(type) && this.universeTypes.containsKey(type))
             {
                 indices.add(this.universeTypes.get(type));
             }
