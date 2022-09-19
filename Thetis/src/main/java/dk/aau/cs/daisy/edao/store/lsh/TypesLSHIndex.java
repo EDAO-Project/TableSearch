@@ -22,6 +22,7 @@ import java.util.concurrent.Future;
 public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<String, String>, Serializable
 {
     private File neo4jConfFile;
+    private int shingles;
     private int permutationVectors;
     private double bandFraction;
     private List<List<Integer>> permutations;
@@ -43,7 +44,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
      * @param hash A hash function to be applied on min-hash signature to compute bucket index
      * @param bucketCount Number of LSH buckets (this determines runtime and accuracy!)
      */
-    public TypesLSHIndex(File neo4jConfigFile, int permutationVectors, double bandFraction,
+    public TypesLSHIndex(File neo4jConfigFile, int permutationVectors, double bandFraction, int shingleSize,
                          Set<PairNonComparable<String, Set<String>>> tableEntities, HashFunction hash, int bucketCount,
                          int threads, EntityLinking linker, EntityTable entityTable)
     {
@@ -54,7 +55,13 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
             throw new IllegalArgumentException("Band fraction must be greater than zero and no larger than 1");
         }
 
+        else if (shingles <= 0)
+        {
+            throw new IllegalArgumentException("Shingle size must be greater than 0");
+        }
+
         this.neo4jConfFile = neo4jConfigFile;
+        this.shingles = shingleSize;
         this.permutationVectors = permutationVectors;
         this.signature = new ArrayList<>();
         this.bandFraction = bandFraction;
@@ -113,7 +120,14 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         ExecutorService executor = Executors.newFixedThreadPool(this.threads);
         List<Future<?>> futures = new ArrayList<>(tableEntities.size());
         Neo4jEndpoint neo4j = new Neo4jEndpoint(this.neo4jConfFile);
-        this.permutations = createPermutations(this.permutationVectors, this.universeTypes.size());
+        int typesDimension = this.universeTypes.size();
+
+        for (int i = 1; i < this.shingles; i++)
+        {
+            typesDimension = concat(typesDimension, this.universeTypes.size());
+        }
+
+        this.permutations = createPermutations(this.permutationVectors, ++typesDimension);
 
         for (PairNonComparable<String, Set<String>> table : tableEntities)
         {
@@ -172,12 +186,26 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
     {
         Set<String> types = types(entity, neo4j);
         Set<Integer> indices = new HashSet<>(types.size());
+        List<Integer> shingle = new ArrayList<>(this.shingles);
 
         for (String type : types)
         {
             if (!this.unimportantTypes.contains(type) && this.universeTypes.containsKey(type))
             {
-                indices.add(this.universeTypes.get(type));
+                shingle.add(this.universeTypes.get(type));
+
+                if (shingle.size() == this.shingles)
+                {
+                    int concatenated = shingle.get(0);
+
+                    for (int i = 1; i < shingle.size(); i++)
+                    {
+                        concatenated = concat(concatenated, shingle.get(i));
+                    }
+
+                    indices.add(concatenated);
+                    shingle.clear();
+                }
             }
         }
 
@@ -271,21 +299,6 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         }
 
         return permutation.get(smallest);
-    }
-
-    private static int entitySignatureIndex(List<PairNonComparable<Id, List<Integer>>> signature, Id entityId)
-    {
-        int signatures = signature.size();
-
-        for (int i = 0; i < signatures; i++)
-        {
-            if (signature.get(i).getFirst().equals(entityId))
-            {
-                return i;
-            }
-        }
-
-        return -1;
     }
 
     private List<Integer> createKeys(int signatureIndex)
@@ -387,5 +400,10 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         }
 
         return candidateTables;
+    }
+
+    private static int concat(int a, int b)
+    {
+        return (int) (b + a * Math.pow(10, Math.ceil(Math.log10(b + 1))));
     }
 }

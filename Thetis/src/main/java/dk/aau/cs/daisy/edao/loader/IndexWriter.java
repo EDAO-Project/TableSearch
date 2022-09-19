@@ -148,8 +148,8 @@ public class IndexWriter implements IndexIO
         double bandFraction = Configuration.getBandFraction();
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 0/2");
-        this.typesLSH = new TypesLSHIndex(this.neo4j.getConfigFile(), permutations, bandFraction, this.tableEntities,
-                HASH_FUNCTION_NUMERIC, buckets, this.threads, (EntityLinking) this.linker.getLinker(),
+        this.typesLSH = new TypesLSHIndex(this.neo4j.getConfigFile(), permutations, bandFraction, 2,
+                this.tableEntities, HASH_FUNCTION_NUMERIC, buckets, this.threads, (EntityLinking) this.linker.getLinker(),
                 (EntityTable) this.entityTable.getIndex());
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 1/2");
