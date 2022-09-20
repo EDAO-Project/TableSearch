@@ -61,4 +61,9 @@ public class EntityTable implements Index<Id, Entity>, Serializable
 
         return types.iterator();
     }
+
+    public Iterator<Id> allIds()
+    {
+        return this.idx.keySet().iterator();
+    }
 }
