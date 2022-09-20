@@ -80,9 +80,8 @@ def ground_truth(query_filename, ground_truth_folder, table_corpus_folder, pickl
 
     return query, relevances
 
-# Predicted tables not among among ground truth are given a score 0
 # Returns None if results for given query ID do not exist
-def predicted_scores(query_id, tables, mode, buckets, tuples, k, gt_tables):
+def predicted_scores(query_id, mode, buckets, tuples, k, gt_tables):
     path = 'results/' + mode + '/buckets_' + str(buckets) + '/' + str(tuples) + '_tuple_queries/' + str(k) + '/search_output/' + query_id + '/filenameToScore.json'
 
     if not os.path.exists(path):
@@ -102,13 +101,64 @@ def predicted_scores(query_id, tables, mode, buckets, tuples, k, gt_tables):
 
         return list(scores.values())
 
-# Returns map: ['types'|'embeddings'|'baseline']->[<# BUCKETS: [150|300]>]->[<TOP-K: [10|50|100]>]->
+def full_corpus(base_dir):
+    folders = os.listdir(base_dir)
+    tables = list()
+
+    for folder in folders:
+        files = os.listdir(base_dir + '/' + folder)
+
+        for file in files:
+            tables.append(file)
+
+    return tables
+
+def gen_boxplots(ndcg_dict, query_tuples):
+    labels = ['LSH of types @ 10', 'LSH of types @ 100', 'LSH of embeddings @ 10', 'LSH of embeddings @ 100', 'Brute-force @ 10', 'Brute force @ 100']
+    colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
+    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (9, 4))
+    scores_150_buckets = list()
+    scores_300_buckets = list()
+
+    scores_150_buckets.append(ndcg_dict['types']['150']['10'])
+    scores_150_buckets.append(ndcg_dict['types']['150']['100'])
+    scores_150_buckets.append(ndcg_dict['embeddings']['150']['10'])
+    scores_150_buckets.append(ndcg_dict['embeddings']['150']['100'])
+    scores_150_buckets.append(ndcg_dict['baseline']['150']['10'])
+    scores_150_buckets.append(ndcg_dict['baseline']['150']['100'])
+
+    scores_300_buckets.append(ndcg_dict['types']['300']['10'])
+    scores_300_buckets.append(ndcg_dict['types']['300']['100'])
+    scores_300_buckets.append(ndcg_dict['embeddings']['300']['10'])
+    scores_300_buckets.append(ndcg_dict['embeddings']['300']['100'])
+    scores_300_buckets.append(ndcg_dict['baseline']['150']['10'])
+    scores_300_buckets.append(ndcg_dict['baseline']['150']['100'])
+
+    plot_150_buckets = ax1.boxplot(scores_150_buckets, notch = True, vert = True, patch_artist = True, labels = labels)
+    ax1.set_title('150 LSH buckets')
+
+    plot_300_buckets - ax2.boxplot(scores_300_buckets, notch = True, Vert = True, patch_artist = True, labels = labels)
+    ax2.set_title('300 LSH buckets')
+
+    for plot in (plot_150_buckets, plot_300_buckets):
+        for patch, color in zip(plot['boxes'], colors):
+            patch.set_facecolor(color)
+
+    for ax in [ax1, ax2]:
+        ax.yaxis.grid(True)
+        ax.set_ylabel('NDCG')
+
+    plt.savefig(str(query_tuples), format = 'pdf')
+    plt.clf()
+
+# Returns map: ['types'|'embeddings'|'baseline']->[<# BUCKETS: [150|300]>]->[<TOP-K: [10|100]>]->[NDCG SCORES]
 def plot_ndcg(query_tuples):
     query_dir = '../../data/cikm/SemanticTableSearchDataset/queries/' + str(query_tuples) + '_tuples_per_query/'
     ground_truth_dir = '../../data/cikm/SemanticTableSearchDataset/ground_truth/wikipedia_categories'
     corpus = '../../data/cikm/SemanticTableSearchDataset/table_corpus/tables'
     mapping_file = '../../data/cikm/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
     query_files = os.listdir(query_dir)
+    table_files = full_corpus(corpus)
     top_k = [10, 100]
     buckets = [150, 300]
     ndcg = dict()
@@ -117,42 +167,55 @@ def plot_ndcg(query_tuples):
     ndcg['baseline'] = dict()
 
     for b in buckets:
-        ndcg['types'][b] = dict()
-        ndcg['embeddings'][b] = dict()
-        ndcg['baseline'][b] = dict()
+        ndcg['types'][str(b)] = dict()
+        ndcg['embeddings'][str(b)] = dict()
+        ndcg['baseline']['150'] = dict()
 
         for k in top_k:
-            ndcg['types'][b][k] = list()
-            ndcg['embeddings'][b][k] = list()
-            ndcg['baseline'][b][k] = list()
+            ndcg['types'][str(b)][str(k)] = list()
+            ndcg['embeddings'][str(b)][str(k)] = list()
+            ndcg['baseline']['150'][str(k)] = list()
 
             for query_file in query_files:
                 query_id = query_file.split('.')[0]
                 query_path = query_dir + query_file
                 truth = ground_truth(query_path, ground_truth_dir, corpus, mapping_file)
-                gt_rels = dict()
+                gt_rels = {table:0 for table in table_files}
 
                 for relevance in truth[1]:
                     gt_rels[relevance[1]] = relevance[0]
 
                 # Types
-                predicted_relevance = None
-
-                # Embeddings
-                predicted_relevance = predicted_scores(query_id, gt_rels, 'embeddings', b, query_tuples, k, gt_rels)
+                predicted_relevance = predicted_scores(query_id, 'types', b, query_tuples, k, gt_rels)
 
                 if predicted_relevance is None:
                     continue
 
-                print('GT: ' + str(list(gt_rels.values())) + '\nPR: ' + str(predicted_relevance))
-                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg['embeddings'][b][k].append(ndcg_embeddings)
+                ndch_types = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg['types'][str(b)][str(k)].append(ndcg_types)
 
-                # Baseline
-                predicted_relevance = list()
+                # Embeddings
+                predicted_relevance = predicted_scores(query_id, 'embeddings', b, query_tuples, k, gt_rels)
+
+                if predicted_relevance is None:
+                    continue
+
+                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg['embeddings'][str(b)][str(k)].append(ndcg_embeddings)
+
+                # Baseline - get only for 150 buckets
+                predicted_relevance = predicted_scores(query_id, 'baseline', 150, query_tuples, k, gt_rels)
+
+                if predicted_relevance is None:
+                    continue
+
+                ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg['baseline']['150'][str(k)].append(ndcg_baseline)
+
+    gen_boxplots(ndcg, query_tuples)
 
 #plot_runtime()
-#plot_ndcg(1)
+plot_ndcg(1)
 #plot_ndcg(2)
-plot_ndcg(5)
+#plot_ndcg(5)
 #plot_ndcg(10)
