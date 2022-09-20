@@ -81,15 +81,26 @@ def ground_truth(query_filename, ground_truth_folder, table_corpus_folder, pickl
     return query, relevances
 
 # Predicted tables not among among ground truth are given a score 0
-def predicted_scores(query_id, tables, mode, buckets, tuples, k):
+# Returns None if results for given query ID do not exist
+def predicted_scores(query_id, tables, mode, buckets, tuples, k, gt_tables):
     path = 'results/' + mode + '/buckets_' + str(buckets) + '/' + str(tuples) + '_tuple_queries/' + str(k) + '/search_output/' + query_id + '/filenameToScore.json'
-    tables = json.load(path)
-    scores = list()
 
-    for table in tables['scores']:
-        scores.append(float(table['score']))
+    if not os.path.exists(path):
+        return None
 
-    return scores
+    with open(path, 'r') as f:
+        tables = json.load(f)
+        predicted = dict()
+
+        for table in tables['scores']:
+            predicted[table['tableID']] = table['score']
+
+        scores = {table:0 for table in gt_tables}
+
+        for table in predicted:
+            scores[table] = predicted[table]
+
+        return list(scores.values())
 
 # Returns map: ['types'|'embeddings'|'baseline']->[<# BUCKETS: [150|300]>]->[<TOP-K: [10|50|100]>]->
 def plot_ndcg(query_tuples):
@@ -100,15 +111,15 @@ def plot_ndcg(query_tuples):
     query_files = os.listdir(query_dir)
     top_k = [10, 100]
     buckets = [150, 300]
-    ndcg = dictionary()
-    ndcg['types'] = dictionary()
-    ndcg['embeddings' = dictionary()
-    ndcg['baseline'] = dictionary()
+    ndcg = dict()
+    ndcg['types'] = dict()
+    ndcg['embeddings'] = dict()
+    ndcg['baseline'] = dict()
 
     for b in buckets:
-        ndcg['types'][b] = dictionary()
-        ndcg['embeddings'][b] = dictionary()
-        ndcg['baseline'][b] = dictionary()
+        ndcg['types'][b] = dict()
+        ndcg['embeddings'][b] = dict()
+        ndcg['baseline'][b] = dict()
 
         for k in top_k:
             ndcg['types'][b][k] = list()
@@ -118,29 +129,30 @@ def plot_ndcg(query_tuples):
             for query_file in query_files:
                 query_id = query_file.split('.')[0]
                 query_path = query_dir + query_file
-                truth_embeddings = ground_truth(query_path, ground_truth_dir, corpus, mapping_file)
-                print(str(truth_embeddings))
+                truth = ground_truth(query_path, ground_truth_dir, corpus, mapping_file)
+                gt_rels = dict()
 
-                gt_relevance = list()
-                gt_tables = list()
-
-                for relevance in truth_embeddings[1]:
-                    gt_relevance.append(relevance[0])
-                    gt_tables.append(relevance[1])
+                for relevance in truth[1]:
+                    gt_rels[relevance[1]] = relevance[0]
 
                 # Types
                 predicted_relevance = None
 
                 # Embeddings
-                predicted_relevance = predicted_scores(query_id, gt_tables, 'embeddings', b, query_tuples, k)
-                ndcg_embeddings = ndcg_score(gt_relevance, predicted_relevance, k = k)
+                predicted_relevance = predicted_scores(query_id, gt_rels, 'embeddings', b, query_tuples, k, gt_rels)
+
+                if predicted_relevance is None:
+                    continue
+
+                print('GT: ' + str(list(gt_rels.values())) + '\nPR: ' + str(predicted_relevance))
+                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
                 ndcg['embeddings'][b][k].append(ndcg_embeddings)
 
                 # Baseline
                 predicted_relevance = list()
 
 #plot_runtime()
-plot_ndcg(1)
+#plot_ndcg(1)
 #plot_ndcg(2)
-#plot_ndcg(5)
+plot_ndcg(5)
 #plot_ndcg(10)
