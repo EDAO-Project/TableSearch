@@ -26,6 +26,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -66,6 +67,17 @@ public class IndexWriter implements IndexIO
         }
 
         return sum % num;
+    };
+    private static final Function<List<Boolean>, Integer> HASH_FUNCTION_BOOLEAN = vector -> {
+        int sum = 0, dim = vector.size();
+
+        for (int i = 0; i < dim; i++)
+        {
+            int bit = vector.get(i) ? 1 : 0;
+            sum += bit * Math.pow(2, i);
+        }
+
+        return sum;
     };
 
     public IndexWriter(List<Path> files, File outputDir, Neo4jEndpoint neo4j, int threads, boolean logProgress,
@@ -155,7 +167,7 @@ public class IndexWriter implements IndexIO
         Logger.log(Logger.Level.INFO, "Loaded LSH index 1/2");
 
         this.embeddingsLSH = new VectorLSHIndex(buckets, permutations, this.tableEntities, this.threads,
-                (EntityLinking) this.linker.getLinker());
+                (EntityLinking) this.linker.getLinker(), HASH_FUNCTION_BOOLEAN);
         Logger.log(Logger.Level.INFO, "Loaded LSH index 2/2");
     }
 
