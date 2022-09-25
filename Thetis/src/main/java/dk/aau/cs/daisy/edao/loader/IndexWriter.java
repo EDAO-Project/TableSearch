@@ -68,7 +68,8 @@ public class IndexWriter implements IndexIO
 
         return sum % num;
     };
-    private static final Function<List<Boolean>, Integer> HASH_FUNCTION_BOOLEAN = vector -> {
+    private static final HashFunction HASH_FUNCTION_BOOLEAN = (obj, num) -> {
+        List<Boolean> vector = (List<Boolean>) obj;
         int sum = 0, dim = vector.size();
 
         for (int i = 0; i < dim; i++)
@@ -77,7 +78,7 @@ public class IndexWriter implements IndexIO
             sum += bit * Math.pow(2, i);
         }
 
-        return sum;
+        return sum % num;
     };
 
     public IndexWriter(List<Path> files, File outputDir, Neo4jEndpoint neo4j, int threads, boolean logProgress,
