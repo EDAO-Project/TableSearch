@@ -50,10 +50,12 @@ public class Prefilter extends AbstractSearch
         List<Pair<String, Double>> candidates = new ArrayList<>();
         List<Table<String>> subQueries = List.of(query);
         Map<String, Integer> tableCounter = new HashMap<>();
+        boolean isQuerySplit = false;
 
         if (query.rowCount() >= SIZE_THRESHOLD)
         {
             subQueries = split(query, SPLITS_SIZE);
+            isQuerySplit = true;
         }
 
         for (Table<String> subQuery : subQueries)
@@ -64,7 +66,12 @@ public class Prefilter extends AbstractSearch
 
         for (Map.Entry<String, Integer> entry : tableCounter.entrySet())
         {
-            if (entry.getValue() >= MIN_EXISTS_IN)
+            if (isQuerySplit && entry.getValue() >= MIN_EXISTS_IN)
+            {
+                candidates.add(new Pair<>(entry.getKey(), -1.0));
+            }
+
+            else
             {
                 candidates.add(new Pair<>(entry.getKey(), -1.0));
             }
