@@ -3,7 +3,6 @@ package dk.aau.cs.daisy.edao.store.lsh;
 import dk.aau.cs.daisy.edao.connector.DBDriver;
 import dk.aau.cs.daisy.edao.connector.Factory;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
-import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 
@@ -13,7 +12,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.function.Function;
 
 /**
  * LSH index of entity embeddings
@@ -26,7 +24,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
     private transient int threads;
     private transient final Object lock = new Object();
     private transient EntityLinking linker = null;
-    private Function<List<Boolean>, Integer> hash;
+    private HashFunction hash;
 
     /**
      * @param bucketCount Number of LSH index buckets
@@ -35,7 +33,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
      * @param hash Hash function applied to bit vector representations of entities
      */
     public VectorLSHIndex(int bucketCount, int projections, Set<PairNonComparable<String, Set<String>>> tableVectors,
-                          int threads, EntityLinking linker, Function<List<Boolean>, Integer> hash)
+                          int threads, EntityLinking linker, HashFunction hash)
     {
         super(bucketCount);
         this.bucketSignatures = new ArrayList<>(Collections.nCopies(bucketCount, null));
@@ -105,7 +103,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
             }
 
             List<Boolean> bitVector = bitVector(embedding);
-            int key = key(this.hash.apply(bitVector), size());
+            int key = this.hash.hash(bitVector, size());
 
             synchronized (this.lock)
             {
@@ -113,11 +111,6 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
                 this.bucketSignatures.set(key, bitVector);
             }
         }
-    }
-
-    private static int key(int value, int size)
-    {
-        return value % size;
     }
 
     private int embeddingsDimension(Set<String> entities, DBDriver<List<Double>, String> embeddingsDB)
@@ -214,7 +207,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         }
 
         List<Boolean> bitVector = bitVector(embedding);
-        int key  = key(this.hash.apply(bitVector), size());
+        int key = this.hash.hash(bitVector, size());
         add(key, entityId, table);
         this.bucketSignatures.set(key, bitVector);
 

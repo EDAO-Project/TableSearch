@@ -55,7 +55,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
             throw new IllegalArgumentException("Band fraction must be greater than zero and no larger than 1");
         }
 
-        else if (shingles <= 0)
+        else if (shingleSize <= 0)
         {
             throw new IllegalArgumentException("Shingle size must be greater than 0");
         }
