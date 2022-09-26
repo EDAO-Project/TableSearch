@@ -124,7 +124,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
                 synchronized (this.lock)
                 {
                     int subEnd = Math.min(group * this.bandSize + this.bandSize, bitVector.size());
-                    List<Integer> subBitVector = bitVector.subList(group * this.bandSize, subEnd);
+                    List<Integer> subBitVector = new ArrayList<>(bitVector.subList(group * this.bandSize, subEnd));
                     add(group, keys.get(group), entityId, tableName);
                     this.groupsBucketSignatures.get(group).set(keys.get(group), subBitVector);
                 }
@@ -233,7 +233,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
             synchronized (this.lock)
             {
                 int subEnd = Math.min(group * this.bandSize + this.bandSize, bitVector.size());
-                List<Integer> subBitVector = bitVector.subList(group * this.bandSize, subEnd);
+                List<Integer> subBitVector = new ArrayList<>(bitVector.subList(group * this.bandSize, subEnd));
                 add(group, keys.get(group), entityId, table);
                 this.groupsBucketSignatures.get(group).set(keys.get(group), subBitVector);
             }
