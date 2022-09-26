@@ -184,12 +184,15 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 
     private Set<Integer> bitVector(String entity, Neo4jEndpoint neo4j)
     {
-        Set<String> types = types(entity, neo4j);
+        List<String> types = types(entity, neo4j);
+        int typesCount = types.size();
         Set<Integer> indices = new HashSet<>(types.size());
         List<Integer> shingle = new ArrayList<>(this.shingles);
 
-        for (String type : types)
+        for (int i = 0; i < typesCount; i++)
         {
+            String type = types.get(i);
+
             if (!this.unimportantTypes.contains(type) && this.universeTypes.containsKey(type))
             {
                 shingle.add(this.universeTypes.get(type));
@@ -198,13 +201,14 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
                 {
                     int concatenated = shingle.get(0);
 
-                    for (int i = 1; i < shingle.size(); i++)
+                    for (int j = 1; j < shingle.size(); j++)
                     {
-                        concatenated = concat(concatenated, shingle.get(i));
+                        concatenated = concat(concatenated, shingle.get(j));
                     }
 
                     indices.add(concatenated);
                     shingle.clear();
+                    i -= this.shingles - 1;
                 }
             }
         }
@@ -212,9 +216,9 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         return indices;
     }
 
-    private synchronized Set<String> types(String entity, Neo4jEndpoint neo4j)
+    private synchronized List<String> types(String entity, Neo4jEndpoint neo4j)
     {
-        return new HashSet<>(neo4j.searchTypes(entity));   // We could also use the EntityTable index here
+        return neo4j.searchTypes(entity);   // Type ordering is important because of n-gram computation
     }
 
     private static List<List<Integer>> createPermutations(int vectors, int dimension)
