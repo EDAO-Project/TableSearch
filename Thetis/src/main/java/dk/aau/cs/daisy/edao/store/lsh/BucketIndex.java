@@ -7,41 +7,91 @@ import java.util.Set;
 
 public abstract class BucketIndex<K, V> implements Serializable
 {
-    private List<Bucket<K, V>> buckets;
+    private List<BucketGroup<K, V>> groups;
 
-    protected BucketIndex(int buckets)
+    protected BucketIndex(int groups, int groupBuckets)
     {
-        this.buckets = new ArrayList<>();
+        this.groups = new ArrayList<>(groups);
 
-        for (int i = 0; i < buckets; i++)
+        for (int i = 0; i < groups; i++)
         {
-            this.buckets.add(new Bucket<>());
+            this.groups.add(new BucketGroup<>(groupBuckets));
         }
     }
 
-    public List<Bucket<K, V>> buckets()
+    /**
+     * Getter to list of all bucket groups
+     * @return All bucket groups
+     */
+    public List<BucketGroup<K, V>> bucketGroups()
     {
-        return this.buckets;
+        return this.groups;
     }
 
+    /**
+     * Getter to number of bucket groups
+     * @return Number of bucket groups
+     */
     public int size()
     {
-        return this.buckets.size();
+        return this.groups.size();
     }
 
-    protected void add(int idx, K key, V value)
+    /**
+     * Getter to size of each bucket group
+     * @return Size of each bucket group
+     */
+    public int groupSize()
     {
-        this.buckets.get(idx).add(key, value);
+        return this.groups.get(0).size();
     }
 
-    protected Set<V> get(int idx)
+    /**
+     * Add key-value pair to bucket bucket group
+     * @param group Group containing bucket to be populated
+     * @param bucketIndex Index of bucket within group to be populated
+     * @param key Key from key-value pair to be added
+     * @param value Value from key-value pair to be added
+     */
+    protected void add(int group, int bucketIndex, K key, V value)
     {
-        return this.buckets.get(idx).all();
+        this.groups.get(group).add(bucketIndex, key, value);
+    }
+
+    /**
+     * Getter to set of values in bucket from a specific bucket group
+     * @param group Index of bucket group with bucket of interest
+     * @param bucketIndex Bucket of interest within bucket group
+     * @return All values in bucket in bucket group
+     */
+    protected Set<V> get(int group, int bucketIndex)
+    {
+        return this.groups.get(group).get(bucketIndex);
     }
 
     @Override
     public String toString()
     {
-        return this.buckets.toString();
+        return this.groups.toString();
+    }
+
+    /**
+     * Creates keys from bands for each bucket group
+     * @return List of keys, one for each bucket group
+     */
+    protected static List<Integer> createKeys(int permutations, int bandSize, List<Integer> signature,
+                                              int bucketGroupSize, HashFunction hash)
+    {
+        List<Integer> keys = new ArrayList<>();
+
+        for (int idx = 0; idx < permutations; idx += bandSize)
+        {
+            int bandEnd = Math.min(idx + bandSize, permutations);
+            List<Integer> subSignature = signature.subList(idx, bandEnd);
+            int key = Math.abs(hash.hash(subSignature, bucketGroupSize));
+            keys.add(key);
+        }
+
+        return keys;
     }
 }

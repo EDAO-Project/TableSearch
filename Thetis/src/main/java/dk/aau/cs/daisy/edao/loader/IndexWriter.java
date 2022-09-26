@@ -69,13 +69,12 @@ public class IndexWriter implements IndexIO
         return sum % num;
     };
     private static final HashFunction HASH_FUNCTION_BOOLEAN = (obj, num) -> {
-        List<Boolean> vector = (List<Boolean>) obj;
+        List<Integer> vector = (List<Integer>) obj;
         int sum = 0, dim = vector.size();
 
         for (int i = 0; i < dim; i++)
         {
-            int bit = vector.get(i) ? 1 : 0;
-            sum += bit * Math.pow(2, i);
+            sum += vector.get(i) * Math.pow(2, i);
         }
 
         return sum % num;
@@ -157,18 +156,18 @@ public class IndexWriter implements IndexIO
 
     private void loadLSHIndexes()
     {
-        int permutations = Configuration.getPermutationVectors(), buckets = Configuration.getBucketCount();
-        double bandFraction = Configuration.getBandFraction();
+        int permutations = Configuration.getPermutationVectors(), bandSize = Configuration.getBandSize();
+        int bucketGroups = permutations / bandSize, bucketsPerGroup = (int) Math.pow(2, bandSize);
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 0/2");
-        this.typesLSH = new TypesLSHIndex(this.neo4j.getConfigFile(), permutations, bandFraction, 2,
-                this.tableEntities, HASH_FUNCTION_NUMERIC, buckets, this.threads, (EntityLinking) this.linker.getLinker(),
-                (EntityTable) this.entityTable.getIndex());
+        this.typesLSH = new TypesLSHIndex(this.neo4j.getConfigFile(), permutations, bandSize, 2,
+                this.tableEntities, HASH_FUNCTION_NUMERIC, bucketGroups, bucketsPerGroup, this.threads,
+                (EntityLinking) this.linker.getLinker(), (EntityTable) this.entityTable.getIndex());
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 1/2");
 
-        this.embeddingsLSH = new VectorLSHIndex(buckets, permutations, this.tableEntities, this.threads,
-                (EntityLinking) this.linker.getLinker(), HASH_FUNCTION_BOOLEAN);
+        this.embeddingsLSH = new VectorLSHIndex(bucketGroups, bucketsPerGroup, permutations, bandSize,
+                this.tableEntities, this.threads, (EntityLinking) this.linker.getLinker(), HASH_FUNCTION_BOOLEAN);
         Logger.log(Logger.Level.INFO, "Loaded LSH index 2/2");
     }
 

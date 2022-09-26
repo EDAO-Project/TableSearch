@@ -139,26 +139,15 @@ public class IndexTables extends Command {
         Configuration.setPermutationVectors(value);
     }
 
-    @CommandLine.Option(names = {"-bf", "--band-fraction"}, paramLabel = "BAND-FRACTION", description = "Size of bands in LSH index of entity types defined as the fraction of the entity vector representation dimension", defaultValue = "0.2")
-    public void setBandFraction(double val)
+    @CommandLine.Option(names = {"-bs", "--band-size"}, paramLabel = "BAND-SIZE", description = "Size of bands in LSH index of entity types", defaultValue = "4")
+    public void setBandSize(int val)
     {
-        if (val <= 0.0 || val > 1.0)
+        if (val <= 1)
         {
-            throw new CommandLine.ParameterException(spec.commandLine(), "Band fraction must be greater than 0.0 and at most 1.0");
+            throw new CommandLine.ParameterException(spec.commandLine(), "Band size must be greater than 0");
         }
 
-        Configuration.setBandFraction(val);
-    }
-
-    @CommandLine.Option(names = {"-bc", "--bucket-count"}, paramLabel = "BUCKET-COUNT", description = "NUmber of buckets in LSH indexes", defaultValue = "20")
-    public void setBucketCount(int count)
-    {
-        if (count < 1)
-        {
-            throw new CommandLine.ParameterException(spec.commandLine(), "Number of LSH index buckets must be greater than 1");
-        }
-
-        Configuration.setBucketCount(count);
+        Configuration.setBandSize(val);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////

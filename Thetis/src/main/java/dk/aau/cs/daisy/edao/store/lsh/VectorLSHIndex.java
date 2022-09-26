@@ -20,7 +20,8 @@ import java.util.concurrent.Future;
 public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<String, String>, Serializable
 {
     private Set<List<Double>> projections;
-    private List<List<Boolean>> bucketSignatures;
+    private List<List<List<Integer>>> groupsBucketSignatures;
+    private int bandSize;
     private transient int threads;
     private transient final Object lock = new Object();
     private transient EntityLinking linker = null;
@@ -32,14 +33,27 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
      * @param tableVectors Tables containing entities and their vector (embedding) representations
      * @param hash Hash function applied to bit vector representations of entities
      */
-    public VectorLSHIndex(int bucketCount, int projections, Set<PairNonComparable<String, Set<String>>> tableVectors,
-                          int threads, EntityLinking linker, HashFunction hash)
+    public VectorLSHIndex(int bucketGroups, int bucketCount, int projections, int bandSize,
+                          Set<PairNonComparable<String, Set<String>>> tableVectors, int threads, EntityLinking linker,
+                          HashFunction hash)
     {
-        super(bucketCount);
-        this.bucketSignatures = new ArrayList<>(Collections.nCopies(bucketCount, null));
+        super(bucketGroups, bucketCount);
+        this.groupsBucketSignatures = new ArrayList<>(groupSize());
+        this.bandSize = bandSize;
         this.threads = threads;
         this.linker = linker;
         this.hash = hash;
+
+        for (int group = 0; group < bucketGroups; group++)
+        {
+            this.groupsBucketSignatures.add(new ArrayList<>());
+
+            for (int bucket = 0; bucket < bucketCount; bucket++)
+            {
+                this.groupsBucketSignatures.get(group).add(null);
+            }
+        }
+
         load(tableVectors, projections);
     }
 
@@ -102,13 +116,18 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
                 }
             }
 
-            List<Boolean> bitVector = bitVector(embedding);
-            int key = this.hash.hash(bitVector, size());
+            List<Integer> bitVector = bitVector(embedding);
+            List<Integer> keys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
 
-            synchronized (this.lock)
+            for (int group = 0; group < keys.size(); group++)
             {
-                add(key, entityId, tableName);
-                this.bucketSignatures.set(key, bitVector);
+                synchronized (this.lock)
+                {
+                    int subEnd = Math.min(group * this.bandSize + this.bandSize, bitVector.size());
+                    List<Integer> subBitVector = bitVector.subList(group * this.bandSize, subEnd);
+                    add(group, keys.get(group), entityId, tableName);
+                    this.groupsBucketSignatures.get(group).set(keys.get(group), subBitVector);
+                }
             }
         }
     }
@@ -169,14 +188,14 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         return product;
     }
 
-    private List<Boolean> bitVector(List<Double> vector)
+    private List<Integer> bitVector(List<Double> vector)
     {
-        List<Boolean> bitVector = new ArrayList<>(this.projections.size());
+        List<Integer> bitVector = new ArrayList<>(this.projections.size());
 
         for (List<Double> projection : this.projections)
         {
             double dotProduct = dot(projection, vector);
-            bitVector.add(dotProduct > 0);
+            bitVector.add(dotProduct > 0 ? 1 : 0);
         }
 
         return bitVector;
@@ -206,10 +225,19 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
             return false;
         }
 
-        List<Boolean> bitVector = bitVector(embedding);
-        int key = this.hash.hash(bitVector, size());
-        add(key, entityId, table);
-        this.bucketSignatures.set(key, bitVector);
+        List<Integer> bitVector = bitVector(embedding);
+        List<Integer> keys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
+
+        for (int group = 0; group < keys.size(); group++)
+        {
+            synchronized (this.lock)
+            {
+                int subEnd = Math.min(group * this.bandSize + this.bandSize, bitVector.size());
+                List<Integer> subBitVector = bitVector.subList(group * this.bandSize, subEnd);
+                add(group, keys.get(group), entityId, table);
+                this.groupsBucketSignatures.get(group).set(keys.get(group), subBitVector);
+            }
+        }
 
         return true;
     }
@@ -217,6 +245,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
     @Override
     public Set<String> search(String entity)
     {
+        Set<String> tables = new HashSet<>();
         DBDriver<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
         List<Double> embedding = embeddingsDB.select(entity);
         embeddingsDB.close();
@@ -226,25 +255,34 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
             return new HashSet<>();
         }
 
-        List<Boolean> searchBitVector = bitVector(embedding);
-        int buckets = size(), closestIdx = 0, closestDist = Integer.MAX_VALUE;
+        List<Integer> searchBitVector = bitVector(embedding);
+        int buckets = groupSize(), bits = searchBitVector.size(), closestIdx = 0, closestDist = Integer.MAX_VALUE;
 
-        for (int i = 0; i < buckets; i++)
+        for (int band = 0; band < bits; band += this.bandSize)
         {
-            if (this.bucketSignatures.get(i) == null)
+            int bandEnd = Math.min(band + this.bandSize, bits);
+            int group = band / this.bandSize;
+
+            for (int bucket = 0; bucket < buckets; bucket++)
             {
-                continue;
+                if (this.groupsBucketSignatures.get(group).get(bucket) == null)
+                {
+                    continue;
+                }
+
+                List<Integer> subBitVector = searchBitVector.subList(band, bandEnd);
+                int distance = (int) new HammingDistance<>(subBitVector, this.groupsBucketSignatures.get(group).get(bucket)).distance();
+
+                if (distance < closestDist)
+                {
+                    closestDist = distance;
+                    closestIdx = bucket;
+                }
             }
 
-            int distance = (int) new HammingDistance<>(searchBitVector, this.bucketSignatures.get(i)).distance();
-
-            if (distance < closestDist)
-            {
-                closestDist = distance;
-                closestIdx = i;
-            }
+            tables.addAll(get(group, closestIdx));
         }
 
-        return get(closestIdx);
+        return tables;
     }
 }

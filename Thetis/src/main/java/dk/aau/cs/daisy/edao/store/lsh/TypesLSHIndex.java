@@ -24,7 +24,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
     private File neo4jConfFile;
     private int shingles;
     private int permutationVectors;
-    private double bandFraction;
+    private int bandSize;
     private List<List<Integer>> permutations;
     private List<PairNonComparable<Id, List<Integer>>> signature;
     private Map<String, Integer> universeTypes;
@@ -39,20 +39,19 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
     /**
      * @param neo4jConfigFile Neo4J connector configuration file
      * @param permutationVectors Number of permutation vectors used to create min-hash signature (this determines the signature dimension for each entity)
-     * @param bandFraction Factor of the dimension each band must make up in size
      * @param tableEntities Set of tables containing its set of entities
      * @param hash A hash function to be applied on min-hash signature to compute bucket index
      * @param bucketCount Number of LSH buckets (this determines runtime and accuracy!)
      */
-    public TypesLSHIndex(File neo4jConfigFile, int permutationVectors, double bandFraction, int shingleSize,
-                         Set<PairNonComparable<String, Set<String>>> tableEntities, HashFunction hash, int bucketCount,
-                         int threads, EntityLinking linker, EntityTable entityTable)
+    public TypesLSHIndex(File neo4jConfigFile, int permutationVectors, int bandSize, int shingleSize,
+                         Set<PairNonComparable<String, Set<String>>> tableEntities, HashFunction hash, int bucketGroups,
+                         int bucketCount, int threads, EntityLinking linker, EntityTable entityTable)
     {
-        super(bucketCount);
+        super(bucketGroups, bucketCount);
 
-        if (bandFraction <= 0 || bandFraction > 1)
+        if (bandSize <= 0)
         {
-            throw new IllegalArgumentException("Band fraction must be greater than zero and no larger than 1");
+            throw new IllegalArgumentException("Band size must be greater than 0");
         }
 
         else if (shingleSize <= 0)
@@ -64,7 +63,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         this.shingles = shingleSize;
         this.permutationVectors = permutationVectors;
         this.signature = new ArrayList<>();
-        this.bandFraction = bandFraction;
+        this.bandSize = bandSize;
         this.hash = hash;
         this.threads = threads;
         this.linker = linker;
@@ -169,14 +168,16 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 
         for (int entity = 0; entity < matrix.size(); entity++)
         {
-            List<Integer> keys = createKeys(entity);
+            List<Integer> keys = createKeys(this.permutations.size(), this.bandSize,
+                    this.signature.get(entity).getSecond(), groupSize(), this.hash);
+            int keysCount = keys.size();
             Id entityId = matrix.get(entity).getFirst();
 
-            for (int key : keys)
+            for (int group = 0; group < keysCount; group++)
             {
                 synchronized (this.lock)
                 {
-                    add(key, entityId, tableName);
+                    add(group, keys.get(group), entityId, tableName);
                 }
             }
         }
@@ -305,23 +306,6 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         return permutation.get(smallest);
     }
 
-    private List<Integer> createKeys(int signatureIndex)
-    {
-        int bandSize = (int) Math.floor(this.permutations.size() * this.bandFraction);
-        int permutationSize = this.permutations.size();
-        List<Integer> keys = new ArrayList<>();
-
-        for (int idx = 0; idx < permutationSize; idx += bandSize)
-        {
-            int bandEnd = Math.min(idx + bandSize, permutationSize);
-            List<Integer> subSignature = this.signature.get(signatureIndex).getSecond().subList(idx, bandEnd);
-            int key = Math.abs(this.hash.hash(subSignature, size()));
-            keys.add(key);
-        }
-
-        return keys;
-    }
-
     private int createOrGetSignature(String entity)
     {
         Id entityId = this.linker.kgUriLookup(entity);
@@ -370,11 +354,15 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         try
         {
             int entitySignature = createOrGetSignature(entity);
-            List<Integer> bucketKeys = createKeys(entitySignature);
+            List<Integer> bucketKeys = createKeys(this.permutations.size(), this.bandSize,
+                    this.signature.get(entitySignature).getSecond(), groupSize(), this.hash);
 
-            for (int bucketKey : bucketKeys)
+            for (int group = 0; group < bucketKeys.size(); group++)
             {
-                add(bucketKey, entityId, table);
+                synchronized (this.lock)
+                {
+                    add(group, bucketKeys.get(group), entityId, table);
+                }
             }
 
             return true;
@@ -396,11 +384,12 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
     {
         Set<String> candidateTables = new HashSet<>();
         int entitySignatureIdx = createOrGetSignature(entity);
-        List<Integer> keys = createKeys(entitySignatureIdx);
+        List<Integer> keys = createKeys(this.permutations.size(), this.bandSize,
+                this.signature.get(entitySignatureIdx).getSecond(), groupSize(), this.hash);
 
-        for (int key : keys)
+        for (int group = 0; group < keys.size(); group++)
         {
-            candidateTables.addAll(get(key));
+            candidateTables.addAll(get(group, keys.get(group)));
         }
 
         return candidateTables;

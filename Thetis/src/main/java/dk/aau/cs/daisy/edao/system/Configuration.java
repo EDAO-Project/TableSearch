@@ -301,23 +301,13 @@ public class Configuration
         return Integer.parseInt(readProperties().getProperty("PermutationVectors"));
     }
 
-    public static void setBandFraction(double value)
+    public static void setBandSize(int value)
     {
-        addProperty("BandFraction", String.valueOf(value));
+        addProperty("BandSize", String.valueOf(value));
     }
 
-    public static double getBandFraction()
+    public static int getBandSize()
     {
-        return Double.parseDouble(readProperties().getProperty("BandFraction"));
-    }
-
-    public static void setBucketCount(int count)
-    {
-        addProperty("BucketCount", String.valueOf(count));
-    }
-
-    public static int getBucketCount()
-    {
-        return Integer.parseInt(readProperties().getProperty("BucketCount"));
+        return Integer.parseInt(readProperties().getProperty("BandSize"));
     }
 }
