@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 INDEX_DIR="/data/cikm/indexes/"
 TABLES="/data/cikm/SemanticTableSearchDataset/table_corpus/corpus/"
 
@@ -13,7 +11,7 @@ done
 for INDEX_PATH in ${INDEX_DIR}* ;\
 do
     SPLIT=(${INDEX_PATH//_/ })
-    BUCKETS=${SPLIT[-6]}
+    BUCKETS=${SPLIT[-5]}
     echo "Loading for "${BUCKETS}" buckets..."
     echo
 
