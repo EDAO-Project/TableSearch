@@ -2,17 +2,18 @@
 
 INDEX_DIR="/data/cikm/indexes/"
 TABLES="/data/cikm/SemanticTableSearchDataset/table_corpus/corpus/"
+BANDSIZE=4
 
-for B in {150,300} ; \
+for V in {32,64} ;\
 do
-    mkdir -p ${INDEX_DIR}buckets_${B}_bandsize_4_vectors_32
+    mkdir -o ${INDEX_DIR}vectors_${V}_bandsize_${BANDSIZE}
 done
 
 for INDEX_PATH in ${INDEX_DIR}* ;\
 do
     SPLIT=(${INDEX_PATH//_/ })
-    BUCKETS=${SPLIT[-5]}
-    echo "Loading for "${BUCKETS}" buckets..."
+    VECTORS=${SPLIT[-3]}
+    echo "Loading for "${BUCKETS}" permutation/projection..."
     echo
 
     java -Xms25g -jar target/Thetis.0.1.jar index --table-type wikitables --table-dir ${TABLES} \
