@@ -32,7 +32,7 @@ public class TypeStatsTest
     public void testPercentileAll()
     {
         TypeStats stats = new TypeStats(this.entTable);
-        Set<String> all = stats.popularByPercentile(1.0);
+        Set<String> all = stats.popularByPercentile(0.0);
         assertTrue(all.contains("type1"));
         assertTrue(all.contains("type2"));
         assertTrue(all.contains("type3"));
@@ -42,7 +42,7 @@ public class TypeStatsTest
     public void testPercentileNone()
     {
         TypeStats stats = new TypeStats(this.entTable);
-        Set<String> none = stats.popularByPercentile(0.0);
+        Set<String> none = stats.popularByPercentile(1.0);
         assertTrue(none.isEmpty());
     }
 
