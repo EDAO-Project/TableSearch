@@ -186,8 +186,8 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 
     private Set<Integer> bitVector(String entity, Neo4jEndpoint neo4j)
     {
-        Set<String> types = types(entity, neo4j).stream().filter(t -> this.unimportantTypes.contains(t) ||
-                !this.universeTypes.containsKey(t)).collect(Collectors.toSet());
+        Set<String> types = types(entity, neo4j).stream().filter(t -> !this.unimportantTypes.contains(t) &&
+                this.universeTypes.containsKey(t)).collect(Collectors.toSet());
         Set<List<String>> shingles = TypeShingles.shingles(types, this.shingles);
         Set<Integer> indices = new HashSet<>();
 
