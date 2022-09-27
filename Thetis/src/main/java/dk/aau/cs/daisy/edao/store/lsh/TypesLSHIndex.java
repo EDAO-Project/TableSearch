@@ -15,6 +15,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 /**
  * BucketIndex key is RDF type and value is table ID
@@ -185,41 +186,32 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 
     private Set<Integer> bitVector(String entity, Neo4jEndpoint neo4j)
     {
-        List<String> types = types(entity, neo4j);
-        int typesCount = types.size();
-        Set<Integer> indices = new HashSet<>(types.size());
-        List<Integer> shingle = new ArrayList<>(this.shingles);
+        Set<String> types = types(entity, neo4j).stream().filter(t -> this.unimportantTypes.contains(t) ||
+                !this.universeTypes.containsKey(t)).collect(Collectors.toSet());
+        Set<List<String>> shingles = TypeShingles.shingles(types, this.shingles);
+        Set<Integer> indices = new HashSet<>();
 
-        for (int i = 0; i < typesCount; i++)
+        for (List<String> shingle : shingles)
         {
-            String type = types.get(i);
+            List<Integer> shingleIds = new ArrayList<>(shingle.stream().map(s -> this.universeTypes.get(s)).toList());
+            shingleIds.sort(Comparator.comparingInt(v -> v));
 
-            if (!this.unimportantTypes.contains(type) && this.universeTypes.containsKey(type))
+            int concatenated = shingleIds.get(0);
+
+            for (int i = 1; i < shingleIds.size(); i++)
             {
-                shingle.add(this.universeTypes.get(type));
-
-                if (shingle.size() == this.shingles)
-                {
-                    int concatenated = shingle.get(0);
-
-                    for (int j = 1; j < shingle.size(); j++)
-                    {
-                        concatenated = concat(concatenated, shingle.get(j));
-                    }
-
-                    indices.add(concatenated);
-                    shingle.clear();
-                    i -= this.shingles - 1;
-                }
+                concatenated = concat(concatenated, shingleIds.get(i));
             }
+
+            indices.add(concatenated);
         }
 
         return indices;
     }
 
-    private synchronized List<String> types(String entity, Neo4jEndpoint neo4j)
+    private synchronized Set<String> types(String entity, Neo4jEndpoint neo4j)
     {
-        return neo4j.searchTypes(entity);   // Type ordering is important because of n-gram computation
+        return new HashSet<>(neo4j.searchTypes(entity));
     }
 
     private static List<List<Integer>> createPermutations(int vectors, int dimension)
