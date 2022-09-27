@@ -84,4 +84,10 @@ public class Id implements Serializable, Comparable<Id>
 
         return this.id < other.getId() ? -1 : 1;
     }
+
+    @Override
+    public String toString()
+    {
+        return "|" + this.id + "|";
+    }
 }
