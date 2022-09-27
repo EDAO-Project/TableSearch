@@ -308,7 +308,7 @@ public class SearchTables extends Command {
             }
 
             this.store.close();
-            return 1;
+            return 0;
         }
 
         catch (IOException e)

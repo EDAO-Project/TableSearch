@@ -200,7 +200,7 @@ public class IndexTables extends Command {
         }
 
         Logger.logNewLine(Logger.Level.INFO, "DONE");
-        return 23;
+        return 0;
     }
 
     private boolean embeddingsAreLoaded()

@@ -24,17 +24,14 @@ public final class TypeStats
 
         Map<String, Integer> occurrences = countOccurrences();
         List<Map.Entry<String, Integer>> frequencies = new ArrayList<>(occurrences.entrySet());
-        frequencies.sort((t1, t2) -> t2.getValue() - t1.getValue());
+        frequencies.sort(Comparator.comparingInt(Map.Entry::getValue));
 
-        Iterator<Map.Entry<String, Integer>> iter = frequencies.iterator();
+        int percentilePosition = (int) (percentile * frequencies.size());
         Set<String> popularTypes = new HashSet<>();
-        int sum = 0, types = occurrences.values().stream().reduce(0, Integer::sum);
 
-        while ((double) sum / types < percentile && iter.hasNext())
+        for (int i = percentilePosition; i < frequencies.size(); i++)
         {
-            Map.Entry<String, Integer> entry = iter.next();
-            popularTypes.add(entry.getKey());
-            sum += entry.getValue();
+            popularTypes.add(frequencies.get(i).getKey());
         }
 
         return popularTypes;
