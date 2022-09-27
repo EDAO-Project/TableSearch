@@ -6,13 +6,14 @@ BANDSIZE=4
 
 for V in {32,64} ;\
 do
-    mkdir -o ${INDEX_DIR}vectors_${V}_bandsize_${BANDSIZE}
+    mkdir -p ${INDEX_DIR}vectors_${V}_bandsize_${BANDSIZE}
 done
 
 for INDEX_PATH in ${INDEX_DIR}* ;\
 do
     SPLIT=(${INDEX_PATH//_/ })
     VECTORS=${SPLIT[-3]}
+
     echo "Loading for "${BUCKETS}" permutation/projection..."
     echo
 
