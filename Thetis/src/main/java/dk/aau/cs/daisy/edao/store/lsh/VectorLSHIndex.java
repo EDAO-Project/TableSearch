@@ -1,5 +1,7 @@
 package dk.aau.cs.daisy.edao.store.lsh;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import dk.aau.cs.daisy.edao.connector.DBDriver;
 import dk.aau.cs.daisy.edao.connector.Factory;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
@@ -26,6 +28,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
     private transient final Object lock = new Object();
     private transient EntityLinking linker = null;
     private HashFunction hash;
+    private transient Cache<Id, List<Integer>> cache;
 
     /**
      * @param bucketCount Number of LSH index buckets
@@ -43,6 +46,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         this.threads = threads;
         this.linker = linker;
         this.hash = hash;
+        this.cache = CacheBuilder.newBuilder().maximumSize(500).build();
 
         for (int group = 0; group < bucketGroups; group++)
         {
@@ -105,6 +109,13 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         {
             List<Double> embedding;
             Id entityId = this.linker.kgUriLookup(entity);
+            List<Integer> keys;
+
+            if ((keys = this.cache.getIfPresent(entityId)) != null)
+            {
+                insertEntity(entityId, keys, null, tableName, false);
+                continue;
+            }
 
             synchronized (this.lock)
             {
@@ -117,17 +128,26 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
             }
 
             List<Integer> bitVector = bitVector(embedding);
-            List<Integer> keys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
+            keys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
+            this.cache.put(entityId, keys);
+            insertEntity(entityId, keys, bitVector, tableName, true);
+        }
+    }
 
-            for (int group = 0; group < keys.size(); group++)
+    private void insertEntity(Id entityId, List<Integer> keys, List<Integer> bitVector, String tableName, boolean updateBucketSignatures)
+    {
+        for (int group = 0; group < keys.size(); group++)
+        {
+            synchronized (this.lock)
             {
-                synchronized (this.lock)
+                if (updateBucketSignatures)
                 {
                     int subEnd = Math.min(group * this.bandSize + this.bandSize, bitVector.size());
                     List<Integer> subBitVector = new ArrayList<>(bitVector.subList(group * this.bandSize, subEnd));
-                    add(group, keys.get(group), entityId, tableName);
                     this.groupsBucketSignatures.get(group).set(keys.get(group), subBitVector);
                 }
+
+                add(group, keys.get(group), entityId, tableName);
             }
         }
     }
