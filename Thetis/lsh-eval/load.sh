@@ -14,9 +14,9 @@ do
     SPLIT=(${INDEX_PATH//_/ })
     VECTORS=${SPLIT[-3]}
 
-    echo "Loading for "${BUCKETS}" permutation/projection..."
+    echo "Loading for "${VECTORS}" permutation/projection..."
     echo
 
     java -Xms25g -jar target/Thetis.0.1.jar index --table-type wikitables --table-dir ${TABLES} \
-        --output-dir ${INDEX_PATH} -t 4 -pv 32 -bs 4
+        --output-dir ${INDEX_PATH} -t 4 -pv ${VECTORS} -bs 4
 done
