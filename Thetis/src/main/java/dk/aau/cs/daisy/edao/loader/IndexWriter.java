@@ -58,15 +58,16 @@ public class IndexWriter implements IndexIO
     private final Set<PairNonComparable<String, Set<String>>> tableEntities = Collections.synchronizedSet(new HashSet<>());
     private List<String> disallowedEntityTypes;
     private static final HashFunction HASH_FUNCTION_NUMERIC = (obj, num) -> {
-        List<?> sig = (List<?>) obj;
-        int sum = 0;
+        List<Integer> sig = (List<Integer>) obj;
+        int sum1 = 0, sum2 = 0, size = sig.size();
 
-        for (int i = 0; i < sig.size(); i++)
+        for (int i = 0; i < size; i++)
         {
-            sum += Math.pow(sig.get(i).hashCode(), i);
+            sum1 = (sum1 + sig.get(i)) % 255;
+            sum2 = (sum2 + sum1) % 255;
         }
 
-        return sum % num;
+        return ((sum2 << 8) | sum1) % num;
     };
     private static final HashFunction HASH_FUNCTION_BOOLEAN = (obj, num) -> {
         List<Integer> vector = (List<Integer>) obj;

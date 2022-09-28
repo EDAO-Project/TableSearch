@@ -295,7 +295,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
             }
         }
 
-        return permutation.get(smallest);
+        return smallest;
     }
 
     private int createOrGetSignature(String entity)
