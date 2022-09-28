@@ -1,0 +1,19 @@
+{
+    "queries": [
+        [
+            "http://dbpedia.org/resource/Asif_Iqbal_(cricketer)",
+            "http://dbpedia.org/resource/Fast_bowling",
+            "http://dbpedia.org/resource/List_of_Karachi_first-class_cricket_teams",
+        ],
+        [
+            "http://dbpedia.org/resource/Zaheer_Abbas",
+            "http://dbpedia.org/resource/Off_break",
+            "http://dbpedia.org/resource/List_of_Karachi_first-class_cricket_teams"
+        ],
+        [
+            "http://dbpedia.org/resource/Wasim_Bari",
+            "http://dbpedia.org/resource/Wicket-keeper",
+            "http://dbpedia.org/resource/List_of_Karachi_first-class_cricket_teams"
+        ]
+    ]
+}

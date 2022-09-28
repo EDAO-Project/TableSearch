@@ -1,9 +1,0 @@
-{
-    "queries": [
-        [
-            "http://dbpedia.org/resource/Along_Came_Polly",
-            "http://dbpedia.org/resource/Providence_(TV_series)",
-            "http://dbpedia.org/resource/Spin_City"
-        ]
-    ]
-}

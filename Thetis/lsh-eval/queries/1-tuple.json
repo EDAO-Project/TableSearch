@@ -1,0 +1,9 @@
+{
+    "queries": [
+        [
+            "http://dbpedia.org/resource/Houston_Astros",
+            "http://dbpedia.org/resource/Jack_Billingham",
+            "http://dbpedia.org/resource/Larry_Dierker"
+        ]
+    ]
+}

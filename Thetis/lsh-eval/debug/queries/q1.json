@@ -1,9 +1,0 @@
-{
-    "queries": [
-        [
-            "http://dbpedia.org/resource/Badminton_Asia_Championships",
-            "http://dbpedia.org/resource/World_Badminton_Grand_Prix_Finals",
-            "http://dbpedia.org/resource/1996_All_England_Open_Badminton_Championships"
-        ]
-    ]
-}

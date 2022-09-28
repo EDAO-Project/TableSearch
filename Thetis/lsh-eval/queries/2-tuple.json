@@ -1,0 +1,12 @@
+{
+    "queries": [
+        [
+            "http://dbpedia.org/resource/Ina-Yoko_Teutenberg",
+            "http://dbpedia.org/resource/Velocio-SRAM_Pro_Cycling"
+        ],
+        [
+            "http://dbpedia.org/resource/Annette_Beutler",
+            "http://dbpedia.org/resource/Team_Flexpoint"
+        ]
+    ]
+}
