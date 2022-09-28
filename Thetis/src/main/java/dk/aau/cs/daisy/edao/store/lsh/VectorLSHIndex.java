@@ -144,10 +144,17 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
                 {
                     int subEnd = Math.min(group * this.bandSize + this.bandSize, bitVector.size());
                     List<Integer> subBitVector = new ArrayList<>(bitVector.subList(group * this.bandSize, subEnd));
-                    this.groupsBucketSignatures.get(group).set(keys.get(group), subBitVector);
+
+                    synchronized (this.lock)
+                    {
+                        this.groupsBucketSignatures.get(group).set(keys.get(group), subBitVector);
+                    }
                 }
 
-                add(group, keys.get(group), entityId, tableName);
+                synchronized (this.lock)
+                {
+                    add(group, keys.get(group), entityId, tableName);
+                }
             }
         }
     }
