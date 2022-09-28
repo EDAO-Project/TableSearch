@@ -94,7 +94,7 @@ do
         OUT_K=${OUT_TUPLES}/${TOP_K}
         mkdir -p ${OUT_K}
 
-        java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}buckets_${BUCKETS}_bandsize_0_5_permutations_15 \
+        java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_32_bandsize_4 \
             -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_K} -t 4 --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
     done
 done
