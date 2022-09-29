@@ -159,7 +159,11 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         {
             Id entityId = this.linker.kgUriLookup(entity);
             Set<Integer> entityBitVector = bitVector(entity, neo4j);
-            matrix.add(new PairNonComparable<>(entityId, entityBitVector));
+
+            if (!entityBitVector.isEmpty())
+            {
+                matrix.add(new PairNonComparable<>(entityId, entityBitVector));
+            }
         }
 
         synchronized (this.lock)
