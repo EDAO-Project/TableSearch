@@ -1,0 +1,9 @@
+{
+    "queries": [
+        [
+            "http://dbpedia.org/resource/Zaheer_Abbas",
+            "http://dbpedia.org/resource/Off_break",
+            "http://dbpedia.org/resource/List_of_Karachi_first-class_cricket_teams"
+        ]
+    ]
+}

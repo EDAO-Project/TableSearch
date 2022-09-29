@@ -1,0 +1,9 @@
+{
+    "queries": [
+        [
+            "http://dbpedia.org/resource/Wasim_Bari",
+            "http://dbpedia.org/resource/Wicket-keeper",
+            "http://dbpedia.org/resource/List_of_Karachi_first-class_cricket_teams"
+        ]
+    ]
+}

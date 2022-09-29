@@ -1,0 +1,9 @@
+{
+    "queries": [
+        [
+            "http://dbpedia.org/resource/Brad_Moran_(footballer)",
+            "http://dbpedia.org/resource/Australian_rules_football",
+            "http://dbpedia.org/resource/Adelaide_Football_Club"
+        ]
+    ]
+}
