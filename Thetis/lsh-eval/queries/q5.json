@@ -1,8 +1,0 @@
-{
-    "queries": [
-        [
-            "http://dbpedia.org/resource/Annette_Beutler",
-            "http://dbpedia.org/resource/Team_Flexpoint"
-        ]
-    ]
-}
