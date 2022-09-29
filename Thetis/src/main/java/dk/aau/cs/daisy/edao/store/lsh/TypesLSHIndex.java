@@ -314,6 +314,12 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         try (Neo4jEndpoint neo4j = new Neo4jEndpoint(this.neo4jConfFile))
         {
             Set<Integer> entityBitVector = bitVector(entity, neo4j);
+
+            if (entityBitVector.isEmpty())
+            {
+                return -1;
+            }
+
             extendSignature(this.signature, List.of(new PairNonComparable<>(entityId, entityBitVector)),
                     this.permutations, this.entityToSigIndex);
 
@@ -350,6 +356,12 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         try
         {
             int entitySignature = createOrGetSignature(entity);
+
+            if (entitySignature == -1)
+            {
+                return false;
+            }
+
             List<Integer> bucketKeys = createKeys(this.permutations.size(), this.bandSize,
                     this.signature.get(entitySignature).getSecond(), groupSize(), this.hash);
 
@@ -380,12 +392,16 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
     {
         Set<String> candidateTables = new HashSet<>();
         int entitySignatureIdx = createOrGetSignature(entity);
-        List<Integer> keys = createKeys(this.permutations.size(), this.bandSize,
-                this.signature.get(entitySignatureIdx).getSecond(), groupSize(), this.hash);
 
-        for (int group = 0; group < keys.size(); group++)
+        if (entitySignatureIdx != -1)
         {
-            candidateTables.addAll(get(group, keys.get(group)));
+            List<Integer> keys = createKeys(this.permutations.size(), this.bandSize,
+                    this.signature.get(entitySignatureIdx).getSecond(), groupSize(), this.hash);
+
+            for (int group = 0; group < keys.size(); group++)
+            {
+                candidateTables.addAll(get(group, keys.get(group)));
+            }
         }
 
         return candidateTables;
