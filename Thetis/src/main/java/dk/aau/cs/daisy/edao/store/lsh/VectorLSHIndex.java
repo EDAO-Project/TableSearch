@@ -254,17 +254,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
 
         List<Integer> bitVector = bitVector(embedding);
         List<Integer> keys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
-
-        for (int group = 0; group < keys.size(); group++)
-        {
-            synchronized (this.lock)
-            {
-                int subEnd = Math.min(group * this.bandSize + this.bandSize, bitVector.size());
-                List<Integer> subBitVector = new ArrayList<>(bitVector.subList(group * this.bandSize, subEnd));
-                add(group, keys.get(group), entityId, table);
-                this.groupsBucketSignatures.get(group).set(keys.get(group), subBitVector);
-            }
-        }
+        insertEntity(entityId, keys, bitVector, table, true);
 
         return true;
     }
@@ -283,31 +273,11 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         }
 
         List<Integer> searchBitVector = bitVector(embedding);
-        int buckets = groupSize(), bits = searchBitVector.size(), closestIdx = 0, closestDist = Integer.MAX_VALUE;
+        List<Integer> keys = createKeys(this.projections.size(), this.bandSize, searchBitVector, groupSize(), this.hash);
 
-        for (int band = 0; band < bits; band += this.bandSize)
+        for (int group = 0; group < keys.size(); group++)
         {
-            int bandEnd = Math.min(band + this.bandSize, bits);
-            int group = band / this.bandSize;
-
-            for (int bucket = 0; bucket < buckets; bucket++)
-            {
-                if (this.groupsBucketSignatures.get(group).get(bucket) == null)
-                {
-                    continue;
-                }
-
-                List<Integer> subBitVector = searchBitVector.subList(band, bandEnd);
-                int distance = (int) new HammingDistance<>(subBitVector, this.groupsBucketSignatures.get(group).get(bucket)).distance();
-
-                if (distance < closestDist)
-                {
-                    closestDist = distance;
-                    closestIdx = bucket;
-                }
-            }
-
-            tables.addAll(get(group, closestIdx));
+            tables.addAll(get(group, keys.get(group)));
         }
 
         return tables;
