@@ -1,20 +1,20 @@
 #!/bin/bash
 
-set -e
-
-INDEX_DIR="/data/cikm/indexes/"
-TABLES="/data/cikm/SemanticTableSearchDataset/table_corpus/corpus/"
+#INDEX_DIR="/data/cikm/indexes/"
+INDEX_DIR="/src/lsh-eval/indexes/"
+#TABLES="/data/cikm/SemanticTableSearchDataset/table_corpus/corpus/"
+TABLES="/src/lsh-eval/tables/"
 OUTPUT_DIR="/src/lsh-eval/results/"
 #QUERIES_DIR="/data/cikm/SemanticTableSearchDataset/queries/"
-QUERIES_DIR="queries/"
+QUERIES_DIR="/src/lsh-eval/queries/"
 
 # Run for each bucket configuration using LSH of entity types
 #echo "Evalution of LSH pre-filtering using entity types..."
 #echo
 
-#for INDEX_DIR in ${INDEX_DIR}* ; \
+#for I in ${INDEX_DIR}* ; \
 #do
-#    SPLIT=(${INDEX_DIR//_/ })
+#    SPLIT=(${I//_/ })
 #    VECTORS=${SPLIT[-3]}
 #    OUT=${OUTPUT_DIR}types/vectors_${VECTORS}
 #    mkdir -p ${OUT}
@@ -35,7 +35,7 @@ QUERIES_DIR="queries/"
 #            OUT_K=${OUT_TUPLES}/${TOP_K}
 #            mkdir -p ${OUT_K}
 
-#            java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR} \
+#            java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${I} \
 #                -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_TYPES --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
 #        done
 #    done
@@ -45,9 +45,9 @@ QUERIES_DIR="queries/"
 #echo "Evalution of LSH pre-filtering using entity embeddings..."
 #echo
 
-#for INDEX_DIR in ${INDEX_DIR}* ; \
+#for I in ${INDEX_DIR}* ; \
 #do
-#    SPLIT=(${INDEX_DIR//_/ })
+#    SPLIT=(${I//_/ })
 #    VECTORS=${SPLIT[-3]}
 #    OUT=${OUTPUT_DIR}embeddings/vectors_${VECTORS}
 #    mkdir -p ${OUT}
@@ -68,7 +68,7 @@ QUERIES_DIR="queries/"
 #            OUT_K=${OUT_TUPLES}/${TOP_K}
 #            mkdir -p ${OUT_K}
 
-#            java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR} \
+#            java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${I} \
 #                -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_EMBEDDINGS --singleColumnPerQueryEntity --adjustedJaccardSimilarity
 #                --useMaxSimilarityPerColumn
 #        done
@@ -100,9 +100,9 @@ QUERIES_DIR="queries/"
 #    done
 #done
 
-for INDEX_DIR in ${INDEX_DIR}* ; \
+for I in ${INDEX_DIR}* ; \
 do
-    SPLIT=(${INDEX_DIR//_/ })
+    SPLIT=(${I//_/ })
     VECTORS=${SPLIT[-3]}
     OUT=${OUTPUT_DIR}types/vectors_${VECTORS}
     mkdir -p ${OUT}
@@ -115,13 +115,14 @@ do
         OUT_K=${OUT}/${TOP_K}
         mkdir -p ${OUT_K}
 
-        java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR} \
-            -q ${QUERIES_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_TYPES --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityP>#        done
+        java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${I} \
+            -q ${QUERIES_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_TYPES --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
+    done
 done
 
-for INDEX_DIR in ${INDEX_DIR}* ; \
+for I in ${INDEX_DIR}* ; \
 do
-    SPLIT=(${INDEX_DIR//_/ })
+    SPLIT=(${I//_/ })
     VECTORS=${SPLIT[-3]}
     OUT=${OUTPUT_DIR}embeddings/vectors_${VECTORS}
     mkdir -p ${OUT}
@@ -134,7 +135,7 @@ do
         OUT_K=${OUT}/${TOP_K}
         mkdir -p ${OUT_K}
 
-        java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR} \
+        java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${I} \
             -q ${QUERIES_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_EMBEDDINGS --singleColumnPerQueryEntity --adjustedJaccardSimilarity
             --useMaxSimilarityPerColumn
     done

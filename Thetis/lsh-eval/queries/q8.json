@@ -1,9 +1,0 @@
-{
-    "queries": [
-        [
-            "http://dbpedia.org/resource/Trent_Durrington",
-            "http://dbpedia.org/resource/Baseball",
-            "http://dbpedia.org/resource/Boston_Red_Sox"
-        ]
-    ]
-}
