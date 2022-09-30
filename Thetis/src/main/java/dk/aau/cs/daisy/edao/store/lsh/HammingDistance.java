@@ -22,7 +22,7 @@ public class HammingDistance<E> extends Distance
 
         for (int i = 0; i < dimension; i++)
         {
-            mismatches += getVec1().get(i).equals(getVec2().get(i)) ? 1 : 0;
+            mismatches += getVec1().get(i).equals(getVec2().get(i)) ? 0 : 1;
         }
 
         return mismatches;
