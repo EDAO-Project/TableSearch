@@ -1,9 +1,7 @@
 #!/bin/bash
 
-#INDEX_DIR="/data/cikm/indexes/"
-#TABLES="/data/cikm/SemanticTableSearchDataset/table_corpus/corpus/"
-INDEX_DIR="/src/lsh-eval/indexes/"
-TABLES="/src/lsh-eval/tables/"
+INDEX_DIR="/data/cikm/indexes/"
+TABLES="/data/cikm/SemanticTableSearchDataset/table_corpus/corpus/"
 BANDSIZE=4
 
 for V in {32,64} ;\
