@@ -81,7 +81,7 @@ def ground_truth(query_filename, ground_truth_folder, table_corpus_folder, pickl
     return query, relevances
 
 # Returns None if results for given query ID do not exist
-def predicted_scores(query_id, mode, vectors, tuples, k, gt_tables):
+def predicted_scores(query_id, mode, vectors, k, gt_tables):
     path = 'results/' + mode + '/vectors_' + str(vectors) + '/' + str(k) + '/search_output/' + query_id + '/filenameToScore.json'
 
     if not os.path.exists(path):
@@ -102,18 +102,15 @@ def predicted_scores(query_id, mode, vectors, tuples, k, gt_tables):
         return list(scores.values())
 
 def full_corpus(base_dir):
-    folders = os.listdir(base_dir)
+    files = os.listdir(base_dir)
     tables = list()
 
-    for folder in folders:
-        files = os.listdir(base_dir + '/' + folder)
-
-        for file in files:
-            tables.append(file)
+    for file in files:
+        tables.append(file)
 
     return tables
 
-def gen_boxplots(ndcg_dict, query_tuples):
+def gen_boxplots(ndcg_dict):
     labels = ['T@10', 'T@100', 'E@10', 'E@100', 'B@10', 'B@100']
     colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
     fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (9, 4))
@@ -150,18 +147,17 @@ def gen_boxplots(ndcg_dict, query_tuples):
         ax.yaxis.grid(True)
         ax.set_ylabel('NDCG')
 
-    plt.savefig(str(query_tuples) + '-tuple-queries.pdf', format = 'pdf')
+    plt.savefig('debug_plot.pdf', format = 'pdf')
     plt.clf()
 
 # Returns map: ['types'|'embeddings'|'baseline']->[<# BUCKETS: [150|300]>]->[<TOP-K: [10|100]>]->[NDCG SCORES]
-def plot_ndcg(query_tuples):
-    #query_dir = '../../data/cikm/SemanticTableSearchDataset/queries/' + str(query_tuples) + '_tuples_per_query/'
-    query_dir = '../../data/cikm/SemanticTableSearchDataset/queries/copy/' + str(query_tuples) + '_tuples_per_query/'
+def plot_ndcg():
+    query_dir = 'queries/'
     ground_truth_dir = '../../data/cikm/SemanticTableSearchDataset/ground_truth/wikipedia_categories'
-    corpus = '../../data/cikm/SemanticTableSearchDataset/table_corpus/tables'
+    corpus = 'tables/redirected'
     mapping_file = '../../data/cikm/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
     query_files = os.listdir(query_dir)
-    table_files = full_corpus(corpus + '/redirect')
+    table_files = full_corpus(corpus)
     top_k = [10, 100]
     vectors = [32, 64]
     ndcg = dict()
@@ -194,21 +190,21 @@ def plot_ndcg(query_tuples):
                     gt_rels[relevance[1]] = relevance[0]
 
                 # Types
-                predicted_relevance = predicted_scores(query_id, 'types', v, query_tuples, k, gt_rels)
+                predicted_relevance = predicted_scores(query_id, 'types', v, k, gt_rels)
 
                 if not predicted_relevance is None:
                     ndcg_types = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
                     ndcg['types'][str(v)][str(k)].append(ndcg_types)
 
                 # Embeddings
-                predicted_relevance = predicted_scores(query_id, 'embeddings', v, query_tuples, k, gt_rels)
+                predicted_relevance = predicted_scores(query_id, 'embeddings', v, k, gt_rels)
 
                 if not predicted_relevance is None:
                     ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
                     ndcg['embeddings'][str(v)][str(k)].append(ndcg_embeddings)
 
                 # Baseline - get only for 150 buckets
-                predicted_relevance = predicted_scores(query_id, 'baseline', 32, query_tuples, k, gt_rels)
+                predicted_relevance = predicted_scores(query_id, 'baseline', 32, k, gt_rels)
 
                 if not predicted_relevance is None:
                     ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
@@ -217,10 +213,7 @@ def plot_ndcg(query_tuples):
                 if count == 100:
                     break
 
-    gen_boxplots(ndcg, query_tuples)
+    gen_boxplots(ndcg)
 
 #plot_runtime()
-plot_ndcg(1)
-#plot_ndcg(2)
-#plot_ndcg(5)
-#plot(10)
+plot_ndcg()
