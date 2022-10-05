@@ -552,8 +552,14 @@ public class SearchTables extends Command {
         }
         jsonObj.add("scores", innerObjs);
 
-        // Runtime to process all tables (does not consider time to compute scores)
+        // Runtime to process all tables (does not consider time to compute scores) and algorithm to compute the results
+        String algorithm = (this.prefilterTechnique != null ? this.prefilterTechnique.name() : "") + "brute-force with " +
+                (this.useMaxSimilarityPerColumn ? "max similarity per column aggregation" : "average similarity per column aggregation") +
+                " (" + (this.usePretrainedEmbeddings ? "embeddings - " + this.embeddingSimFunction.name() : "types - " +
+                (this.adjustedJaccardSimilarity ? "with" : "without") + "adjusted Jaccard") + ")";
         jsonObj.addProperty("runtime", runtime);
+        jsonObj.addProperty("threads", this.threads);
+        jsonObj.addProperty("algorithm", algorithm);
 
         if (this.usePretrainedEmbeddings) {
             // Add the embedding statistics
