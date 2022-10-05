@@ -114,30 +114,34 @@ def gen_boxplots(ndcg_dict):
     labels = ['T@10', 'T@100', 'E@10', 'E@100', 'B@10', 'B@100']
     colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
     fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (9, 4))
-    scores_150_buckets = list()
-    scores_300_buckets = list()
+    scores_32_vectors = list()
+    scores_64_vectors = list()
 
-    scores_150_buckets.append(ndcg_dict['types']['32']['10'])
-    scores_150_buckets.append(ndcg_dict['types']['32']['100'])
-    scores_150_buckets.append(ndcg_dict['embeddings']['32']['10'])
-    scores_150_buckets.append(ndcg_dict['embeddings']['32']['100'])
-    scores_150_buckets.append(ndcg_dict['baseline']['32']['10'])
-    scores_150_buckets.append(ndcg_dict['baseline']['32']['100'])
+    scores_32_vectors.append(ndcg_dict['types']['32']['10'])
+    scores_32_vectors.append(ndcg_dict['types']['32']['100'])
+    scores_32_vectors.append(ndcg_dict['embeddings']['32']['10'])
+    scores_32_vectors.append(ndcg_dict['embeddings']['32']['100'])
+    scores_32_vectors.append(ndcg_dict['baseline_jaccard']['32']['10'])
+    scores_32_vectors.append(ndcg_dict['baseline_jaccard']['32']['100'])
+    scores_32_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
+    scores_32_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
 
-    scores_300_buckets.append(ndcg_dict['types']['64']['10'])
-    scores_300_buckets.append(ndcg_dict['types']['64']['100'])
-    scores_300_buckets.append(ndcg_dict['embeddings']['64']['10'])
-    scores_300_buckets.append(ndcg_dict['embeddings']['64']['100'])
-    scores_300_buckets.append(ndcg_dict['baseline']['32']['10'])
-    scores_300_buckets.append(ndcg_dict['baseline']['32']['100'])
+    scores_64_vectors.append(ndcg_dict['types']['64']['10'])
+    scores_64_vectors.append(ndcg_dict['types']['64']['100'])
+    scores_64_vectors.append(ndcg_dict['embeddings']['64']['10'])
+    scores_64_vectors.append(ndcg_dict['embeddings']['64']['100'])
+    scores_64_vectors.append(ndcg_dict['baseline_jaccard']['32']['10'])
+    scores_64_vectors.append(ndcg_dict['baseline_jaccard']['32']['100'])
+    scores_64_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
+    scores_64_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
 
-    plot_150_buckets = ax1.boxplot(scores_150_buckets, vert = True, patch_artist = True, labels = labels)
+    plot_32_vectors = ax1.boxplot(scores_32_vectors, vert = True, patch_artist = True, labels = labels)
     ax1.set_title('32 permutation/projection')
 
-    plot_300_buckets = ax2.boxplot(scores_300_buckets, vert = True, patch_artist = True, labels = labels)
+    plot_64_vectors = ax2.boxplot(scores_64_vectors, vert = True, patch_artist = True, labels = labels)
     ax2.set_title('64 permutation/projection')
 
-    for plot in (plot_150_buckets, plot_300_buckets):
+    for plot in (plot_32_vectors, plot_64_vectors):
         for patch, color in zip(plot['boxes'], colors):
             patch.set_facecolor(color)
 
@@ -154,10 +158,10 @@ def gen_boxplots(ndcg_dict):
 def plot_ndcg():
     query_dir = 'queries/'
     ground_truth_dir = '../../data/cikm/SemanticTableSearchDataset/ground_truth/wikipedia_categories'
-    corpus = 'tables/redirected'
+    corpus = 'tables'
     mapping_file = '../../data/cikm/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
     query_files = os.listdir(query_dir)
-    table_files = full_corpus(corpus)
+    table_files = full_corpus(corpus + '/redirect')
     top_k = [10, 100]
     vectors = [32, 64]
     ndcg = dict()
@@ -188,6 +192,8 @@ def plot_ndcg():
 
                 for relevance in truth[1]:
                     gt_rels[relevance[1]] = relevance[0]
+
+#                print(gt_rels)
 
                 # Types
                 predicted_relevance = predicted_scores(query_id, 'types', v, k, gt_rels)

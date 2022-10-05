@@ -117,30 +117,34 @@ def gen_boxplots(ndcg_dict, query_tuples):
     labels = ['T@10', 'T@100', 'E@10', 'E@100', 'B@10', 'B@100']
     colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
     fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (9, 4))
-    scores_150_buckets = list()
-    scores_300_buckets = list()
+    scores_32_vectors = list()
+    scores_64_vectors = list()
 
-    scores_150_buckets.append(ndcg_dict['types']['32']['10'])
-    scores_150_buckets.append(ndcg_dict['types']['32']['100'])
-    scores_150_buckets.append(ndcg_dict['embeddings']['32']['10'])
-    scores_150_buckets.append(ndcg_dict['embeddings']['32']['100'])
-    scores_150_buckets.append(ndcg_dict['baseline']['32']['10'])
-    scores_150_buckets.append(ndcg_dict['baseline']['32']['100'])
+    scores_32_vectors.append(ndcg_dict['types']['32']['10'])
+    scores_32_vectors.append(ndcg_dict['types']['32']['100'])
+    scores_32_vectors.append(ndcg_dict['embeddings']['32']['10'])
+    scores_32_vectors.append(ndcg_dict['embeddings']['32']['100'])
+    scores_32_vectors.append(ndcg_dict['baseline_jaccard']['32']['10'])
+    scores_32_vectors.append(ndcg_dict['baseline_jaccard']['32']['100'])
+    scores_32_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
+    scores_32_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
 
-    scores_300_buckets.append(ndcg_dict['types']['64']['10'])
-    scores_300_buckets.append(ndcg_dict['types']['64']['100'])
-    scores_300_buckets.append(ndcg_dict['embeddings']['64']['10'])
-    scores_300_buckets.append(ndcg_dict['embeddings']['64']['100'])
-    scores_300_buckets.append(ndcg_dict['baseline']['32']['10'])
-    scores_300_buckets.append(ndcg_dict['baseline']['32']['100'])
+    scores_64_vectors.append(ndcg_dict['types']['64']['10'])
+    scores_64_vectors.append(ndcg_dict['types']['64']['100'])
+    scores_64_vectors.append(ndcg_dict['embeddings']['64']['10'])
+    scores_64_vectors.append(ndcg_dict['embeddings']['64']['100'])
+    scores_64_vectors.append(ndcg_dict['baseline_jaccard']['32']['10'])
+    scores_64_vectors.append(ndcg_dict['baseline_jaccard']['32']['100'])
+    scores_64_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
+    scores_64_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
 
-    plot_150_buckets = ax1.boxplot(scores_150_buckets, vert = True, patch_artist = True, labels = labels)
+    plot_32_vectors = ax1.boxplot(scores_32_vectors, vert = True, patch_artist = True, labels = labels)
     ax1.set_title('32 permutation/projection')
 
-    plot_300_buckets = ax2.boxplot(scores_300_buckets, vert = True, patch_artist = True, labels = labels)
+    plot_64_vectors = ax2.boxplot(scores_64_vectors, vert = True, patch_artist = True, labels = labels)
     ax2.set_title('64 permutation/projection')
 
-    for plot in (plot_150_buckets, plot_300_buckets):
+    for plot in (plot_32_vectors, plot_64_vectors):
         for patch, color in zip(plot['boxes'], colors):
             patch.set_facecolor(color)
 
@@ -167,17 +171,20 @@ def plot_ndcg(query_tuples):
     ndcg = dict()
     ndcg['types'] = dict()
     ndcg['embeddings'] = dict()
-    ndcg['baseline'] = dict()
+    ndcg['baseline_jaccard'] = dict()
+    ndcg['baseline_cosine'] = dict()
 
     for v in vectors:
         ndcg['types'][str(v)] = dict()
         ndcg['embeddings'][str(v)] = dict()
-        ndcg['baseline']['32'] = dict()
+        ndcg['baseline_jaccard']['32'] = dict()
+        ndcg['baseline_cosine']['32'] = dict()
 
         for k in top_k:
             ndcg['types'][str(v)][str(k)] = list()
             ndcg['embeddings'][str(v)][str(k)] = list()
-            ndcg['baseline']['32'][str(k)] = list()
+            ndcg['baseline_jaccard']['32'][str(k)] = list()
+            ndcg['baseline_cosine']['32'][str(k)] = list()
 
             count = 0
             print('K = ' + str(k) + ', vectors = ' + str(v))
@@ -207,14 +214,24 @@ def plot_ndcg(query_tuples):
                     ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
                     ndcg['embeddings'][str(v)][str(k)].append(ndcg_embeddings)
 
-                # Baseline - get only for 150 buckets
-                predicted_relevance = predicted_scores(query_id, 'baseline', 32, query_tuples, k, gt_rels)
+                # Baseline (Jaccard) - get only for 32 permutation/projection vectors
+                predicted_relevance = predicted_scores(query_id, 'baseline_jaccard', 32, query_tuples, k, gt_rels)
 
                 if not predicted_relevance is None:
                     ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                    ndcg['baseline']['32'][str(k)].append(ndcg_baseline)
+                    ndcg['baseline_jaccard']['32'][str(k)].append(ndcg_baseline)
 
-                if count == 100:
+                if count == 50:
+                    break
+
+                # Baseline (Cosine) - get only for 32 permutation/projection vectors
+                predicted_relevance = predicted_scores(query_id, 'baseline_cosine', 32, query_tuples, k, gt_rels)
+
+                if not predicted_relevance is None:
+                    ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg['baseline_cosine']['32'][str(k)].append(ndcg_baseline)
+
+                if count == 50:
                     break
 
     gen_boxplots(ndcg, query_tuples)
