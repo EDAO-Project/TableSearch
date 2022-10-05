@@ -118,11 +118,15 @@ public class AnalogousSearch extends AbstractSearch
     private void prefilterSearchSpace(Table<String> query)
     {
         Iterator<Pair<String, Double>> res = this.prefilter.search(query).getResults();
-        this.corpus.clear();
 
-        while (res.hasNext())
+        if (res.hasNext())
         {
-            this.corpus.add(res.next().getFirst());
+            this.corpus.clear();
+
+            while (res.hasNext())
+            {
+                this.corpus.add(res.next().getFirst());
+            }
         }
     }
 
