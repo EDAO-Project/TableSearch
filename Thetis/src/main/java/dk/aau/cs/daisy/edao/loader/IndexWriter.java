@@ -160,6 +160,11 @@ public class IndexWriter implements IndexIO
         int permutations = Configuration.getPermutationVectors(), bandSize = Configuration.getBandSize();
         int bucketGroups = permutations / bandSize, bucketsPerGroup = (int) Math.pow(2, bandSize);
 
+        if (permutations % bandSize != 0)
+        {
+            throw new IllegalArgumentException("Number of permutation/projection vectors is not divisible by band size");
+        }
+
         Logger.log(Logger.Level.INFO, "Loaded LSH index 0/2");
         this.typesLSH = new TypesLSHIndex(this.neo4j.getConfigFile(), permutations, bandSize, 2,
                 this.tableEntities, HASH_FUNCTION_NUMERIC, bucketGroups, bucketsPerGroup, this.threads,
