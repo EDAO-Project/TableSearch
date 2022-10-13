@@ -66,7 +66,7 @@ do
             mkdir -p ${OUT_K}
 
             java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${I} \
-                -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_EMBEDDINGS --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
+                -q ${QUERY_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_EMBEDDINGS --singleColumnPerQueryEntity --useMaxSimilarityPerColumn --usePretrainedEmbeddings --embeddingSimilarityFunction norm_cos
         done
     done
 done
