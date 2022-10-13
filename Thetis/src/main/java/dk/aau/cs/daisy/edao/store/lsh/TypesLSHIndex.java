@@ -24,6 +24,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 {
     private File neo4jConfFile;
     private int shingles;
+    private int vote;
     private int permutationVectors;
     private int bandSize;
     private List<List<Integer>> permutations;
@@ -46,7 +47,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
      */
     public TypesLSHIndex(File neo4jConfigFile, int permutationVectors, int bandSize, int shingleSize,
                          Set<PairNonComparable<String, Set<String>>> tableEntities, HashFunction hash, int bucketGroups,
-                         int bucketCount, int threads, EntityLinking linker, EntityTable entityTable)
+                         int bucketCount, int vote, int threads, EntityLinking linker, EntityTable entityTable)
     {
         super(bucketGroups, bucketCount);
 
@@ -62,6 +63,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 
         this.neo4jConfFile = neo4jConfigFile;
         this.shingles = shingleSize;
+        this.vote = vote;
         this.permutationVectors = permutationVectors;
         this.signature = new ArrayList<>();
         this.bandSize = bandSize;
@@ -390,7 +392,6 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
     @Override
     public Set<String> search(String entity)
     {
-        Set<String> candidateTables = new HashSet<>();
         int entitySignatureIdx = createOrGetSignature(entity);
 
         if (entitySignatureIdx != -1)
@@ -398,13 +399,10 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
             List<Integer> keys = createKeys(this.permutations.size(), this.bandSize,
                     this.signature.get(entitySignatureIdx).getSecond(), groupSize(), this.hash);
 
-            for (int group = 0; group < keys.size(); group++)
-            {
-                candidateTables.addAll(get(group, keys.get(group)));
-            }
+            return super.search(keys, this.vote);
         }
 
-        return candidateTables;
+        return new HashSet<>();
     }
 
     private static int concat(int a, int b)

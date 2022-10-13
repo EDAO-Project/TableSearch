@@ -158,7 +158,7 @@ public class IndexWriter implements IndexIO
     private void loadLSHIndexes()
     {
         int permutations = Configuration.getPermutationVectors(), bandSize = Configuration.getBandSize();
-        int bucketGroups = permutations / bandSize, bucketsPerGroup = (int) Math.pow(2, bandSize);
+        int bucketGroups = permutations / bandSize, bucketsPerGroup = (int) Math.pow(2, bandSize), vote = 2;
 
         if (permutations % bandSize != 0)
         {
@@ -167,13 +167,13 @@ public class IndexWriter implements IndexIO
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 0/2");
         this.typesLSH = new TypesLSHIndex(this.neo4j.getConfigFile(), permutations, bandSize, 2,
-                this.tableEntities, HASH_FUNCTION_NUMERIC, bucketGroups, bucketsPerGroup, this.threads,
+                this.tableEntities, HASH_FUNCTION_NUMERIC, bucketGroups, bucketsPerGroup, vote, this.threads,
                 (EntityLinking) this.linker.getLinker(), (EntityTable) this.entityTable.getIndex());
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 1/2");
 
         this.embeddingsLSH = new VectorLSHIndex(bucketGroups, bucketsPerGroup, permutations, bandSize,
-                this.tableEntities, this.threads, (EntityLinking) this.linker.getLinker(), HASH_FUNCTION_BOOLEAN);
+                this.tableEntities, this.threads, (EntityLinking) this.linker.getLinker(), HASH_FUNCTION_BOOLEAN, vote);
         Logger.log(Logger.Level.INFO, "Loaded LSH index 2/2");
     }
 

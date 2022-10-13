@@ -1,9 +1,8 @@
 package dk.aau.cs.daisy.edao.store.lsh;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public abstract class BucketIndex<K, V> implements Serializable
 {
@@ -93,5 +92,20 @@ public abstract class BucketIndex<K, V> implements Serializable
         }
 
         return keys;
+    }
+
+    protected Set<V> search(List<Integer> keys, int vote)
+    {
+        Map<V, Integer> occurrences = new HashMap<>();
+
+        for (int group = 0; group < keys.size(); group++)
+        {
+            Set<V> bucketTables = get(group, keys.get(group));
+            bucketTables.forEach(t -> occurrences.put(t, occurrences.containsKey(t) ? occurrences.get(t) + 1 : 1));
+        }
+
+        return occurrences.entrySet().stream()
+                .filter(e -> e.getValue() >= vote)
+                .map(Map.Entry::getKey).collect(Collectors.toSet());
     }
 }

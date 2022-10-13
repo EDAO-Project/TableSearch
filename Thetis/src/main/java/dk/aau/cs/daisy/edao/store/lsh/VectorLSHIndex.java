@@ -28,6 +28,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
     private transient EntityLinking linker = null;
     private HashFunction hash;
     private transient Cache<Id, List<Integer>> cache;
+    private int vote;
 
     /**
      * @param bucketCount Number of LSH index buckets
@@ -37,13 +38,14 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
      */
     public VectorLSHIndex(int bucketGroups, int bucketCount, int projections, int bandSize,
                           Set<PairNonComparable<String, Set<String>>> tableVectors, int threads, EntityLinking linker,
-                          HashFunction hash)
+                          HashFunction hash, int vote)
     {
         super(bucketGroups, bucketCount);
         this.bandSize = bandSize;
         this.threads = threads;
         this.linker = linker;
         this.hash = hash;
+        this.vote = vote;
         this.cache = CacheBuilder.newBuilder().maximumSize(500).build();
         load(tableVectors, projections);
     }
@@ -247,12 +249,6 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
 
         List<Integer> searchBitVector = bitVector(embedding);
         List<Integer> keys = createKeys(this.projections.size(), this.bandSize, searchBitVector, groupSize(), this.hash);
-
-        for (int group = 0; group < keys.size(); group++)
-        {
-            tables.addAll(get(group, keys.get(group)));
-        }
-
-        return tables;
+        return super.search(keys, this.vote);
     }
 }
