@@ -7,6 +7,8 @@ import dk.aau.cs.daisy.edao.connector.Factory;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.PairNonComparable;
+import dk.aau.cs.daisy.edao.structures.table.Table;
+import dk.aau.cs.daisy.edao.utilities.Utils;
 
 import java.io.Serializable;
 import java.util.*;
@@ -23,6 +25,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
 {
     private Set<List<Double>> projections;
     private int bandSize;
+    private boolean aggregateColumns;
     private transient int threads;
     private transient final Object lock = new Object();
     private transient EntityLinking linker = null;
@@ -33,12 +36,12 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
     /**
      * @param bucketCount Number of LSH index buckets
      * @param projections Number of projections, which determines hash size
-     * @param tableVectors Tables containing entities and their vector (embedding) representations
+     * @param tables Set of tables containing entities to be loaded
      * @param hash Hash function applied to bit vector representations of entities
      */
     public VectorLSHIndex(int bucketGroups, int bucketCount, int projections, int bandSize,
-                          Set<PairNonComparable<String, Set<String>>> tableVectors, int threads, EntityLinking linker,
-                          HashFunction hash, int vote)
+                          Set<PairNonComparable<String, Table<String>>> tables, int threads, EntityLinking linker,
+                          HashFunction hash, int vote, boolean aggregateColumns)
     {
         super(bucketGroups, bucketCount);
         this.bandSize = bandSize;
@@ -46,8 +49,9 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         this.linker = linker;
         this.hash = hash;
         this.vote = vote;
+        this.aggregateColumns = aggregateColumns;
         this.cache = CacheBuilder.newBuilder().maximumSize(500).build();
-        load(tableVectors, projections);
+        load(tables, projections);
     }
 
     public void useEntityLinker(EntityLinking linker)
@@ -55,21 +59,27 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         this.linker = linker;
     }
 
-    private void load(Set<PairNonComparable<String, Set<String>>> tableVectors, int projections)
+    private void load(Set<PairNonComparable<String, Table<String>>> tables, int projections)
     {
         DBDriver<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
         ExecutorService executor = Executors.newFixedThreadPool(this.threads);
-        List<Future<?>> futures = new ArrayList<>(tableVectors.size());
+        List<Future<?>> futures = new ArrayList<>(tables.size());
 
-        if (tableVectors.isEmpty())
+        if (tables.isEmpty())
         {
             throw new RuntimeException("No tables to load LSH index of embeddings");
         }
 
-        int dimension = embeddingsDimension(tableVectors.iterator().next().getSecond(), embeddingsDB);
+        int dimension = embeddingsDimension(tables.iterator().next().getSecond(), embeddingsDB);
+
+        if (dimension == -1)
+        {
+            throw new RuntimeException("No embeddings exists for table entities");
+        }
+
         this.projections = createProjections(projections, dimension);
 
-        for (PairNonComparable<String, Set<String>> table : tableVectors)
+        for (PairNonComparable<String, Table<String>> table : tables)
         {
             futures.add(executor.submit(() -> loadTable(table, embeddingsDB)));
         }
@@ -90,40 +100,85 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         embeddingsDB.close();
     }
 
-    private void loadTable(PairNonComparable<String, Set<String>> table, DBDriver<List<Double>, String> embeddingsDB)
+    private void loadTable(PairNonComparable<String, Table<String>> table, DBDriver<List<Double>, String> embeddingsDB)
     {
         String tableName = table.getFirst();
+        Table<String> t = table.getSecond();
+        int rows = t.rowCount();
 
-        for (String entity : table.getSecond())
+        if (this.aggregateColumns)
         {
-            List<Double> embedding;
-            Id entityId = this.linker.kgUriLookup(entity);
-            List<Integer> keys;
+            loadByColumns(tableName, t, embeddingsDB);
+            return;
+        }
 
-            if ((keys = this.cache.getIfPresent(entityId)) != null)
+        for (int row = 0; row < rows; row++)
+        {
+            for (int column = 0; column < t.getRow(row).size(); column++)
             {
-                insertEntity(entityId, keys, null, tableName, false);
-                continue;
-            }
+                String entity = t.getRow(row).get(column);
+                List<Double> embedding;
+                Id entityId = this.linker.kgUriLookup(entity);
+                List<Integer> keys;
 
-            synchronized (this.lock)
-            {
-                embedding = embeddingsDB.select(entity);
-
-                if (embedding == null)
+                if ((keys = this.cache.getIfPresent(entityId)) != null)
                 {
+                    insertEntity(entityId, keys, tableName);
                     continue;
                 }
-            }
 
-            List<Integer> bitVector = bitVector(embedding);
-            keys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
-            this.cache.put(entityId, keys);
-            insertEntity(entityId, keys, bitVector, tableName, true);
+                synchronized (this.lock)
+                {
+                    embedding = embeddingsDB.select(entity);
+
+                    if (embedding == null)
+                    {
+                        continue;
+                    }
+                }
+
+                List<Integer> bitVector = bitVector(embedding);
+                keys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
+                this.cache.put(entityId, keys);
+                insertEntity(entityId, keys, tableName);
+            }
         }
     }
 
-    private void insertEntity(Id entityId, List<Integer> keys, List<Integer> bitVector, String tableName, boolean updateBucketSignatures)
+    private void loadByColumns(String tableName, Table<String> table, DBDriver<List<Double>, String> embeddingsDB)
+    {
+        if (table.rowCount() == 0)
+        {
+            return;
+        }
+
+        int rows = table.rowCount(), columns = table.getRow(0).size();
+
+        for (int column = 0; column < columns; column++)
+        {
+            List<List<Double>> columnEmbeddings = new ArrayList<>(rows);
+
+            for (int row = 0; row < rows; row++)
+            {
+                if (columns < table.getRow(row).size())
+                {
+                    List<Double> embeddings = embeddingsDB.select(table.getRow(row).get(column));
+
+                    if (embeddings != null)
+                    {
+                        columnEmbeddings.add(embeddings);
+                    }
+                }
+            }
+
+            List<Double> averageEmbeddings = Utils.getAverageVector(new Table.Row<>(columnEmbeddings));
+            List<Integer> bitVector = bitVector(averageEmbeddings);
+            List<Integer> keys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
+            insertEntity(Id.any(), keys, tableName);
+        }
+    }
+
+    private void insertEntity(Id entityId, List<Integer> keys, String tableName)
     {
         for (int group = 0; group < keys.size(); group++)
         {
@@ -134,18 +189,20 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         }
     }
 
-    private int embeddingsDimension(Set<String> entities, DBDriver<List<Double>, String> embeddingsDB)
+    private int embeddingsDimension(Table<String> table, DBDriver<List<Double>, String> embeddingsDB)
     {
         int dimension = -1;
 
-        for (String entity : entities)
+        for (int row = 0; row < table.rowCount(); row++)
         {
-            List<Double> embedding = embeddingsDB.select(entity);
-
-            if (embedding != null && !embedding.isEmpty())
+            for (int column = 0; column < table.getRow(row).size(); column++)
             {
-                dimension = embedding.size();
-                break;
+                List<Double> embedding = embeddingsDB.select(table.getRow(row).get(column));
+
+                if (embedding != null && !embedding.isEmpty())
+                {
+                    return embedding.size();
+                }
             }
         }
 
@@ -229,7 +286,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
 
         List<Integer> bitVector = bitVector(embedding);
         List<Integer> keys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
-        insertEntity(entityId, keys, bitVector, table, true);
+        insertEntity(entityId, keys, table);
 
         return true;
     }
