@@ -6,6 +6,7 @@ import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
+import dk.aau.cs.daisy.edao.structures.table.Table;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,10 +24,7 @@ import java.util.stream.Collectors;
 public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<String, String>, Serializable
 {
     private File neo4jConfFile;
-    private int shingles;
-    private int vote;
-    private int permutationVectors;
-    private int bandSize;
+    private int shingles, vote, permutationVectors, bandSize;
     private List<List<Integer>> permutations;
     private List<PairNonComparable<Id, List<Integer>>> signature;
     private Map<String, Integer> universeTypes;
@@ -41,12 +39,12 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
     /**
      * @param neo4jConfigFile Neo4J connector configuration file
      * @param permutationVectors Number of permutation vectors used to create min-hash signature (this determines the signature dimension for each entity)
-     * @param tableEntities Set of tables containing its set of entities
+     * @param tables Set of tables containing  entities to be loaded
      * @param hash A hash function to be applied on min-hash signature to compute bucket index
      * @param bucketCount Number of LSH buckets (this determines runtime and accuracy!)
      */
     public TypesLSHIndex(File neo4jConfigFile, int permutationVectors, int bandSize, int shingleSize,
-                         Set<PairNonComparable<String, Set<String>>> tableEntities, HashFunction hash, int bucketGroups,
+                         Set<PairNonComparable<String, Table<String>>> tables, HashFunction hash, int bucketGroups,
                          int bucketCount, int vote, int threads, EntityLinking linker, EntityTable entityTable)
     {
         super(bucketGroups, bucketCount);
@@ -75,7 +73,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 
         try
         {
-            build(tableEntities);
+            build(tables);
         }
 
         catch (IOException e)
@@ -112,7 +110,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
      * Instead of storing actual matrix, we only store the smallest index per entity
      * as this is all we need when computing the signature
      */
-    private void build(Set<PairNonComparable<String, Set<String>>> tableEntities) throws IOException
+    private void build(Set<PairNonComparable<String, Table<String>>> tables) throws IOException
     {
         if (this.linker == null)
         {
@@ -120,7 +118,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         }
 
         ExecutorService executor = Executors.newFixedThreadPool(this.threads);
-        List<Future<?>> futures = new ArrayList<>(tableEntities.size());
+        List<Future<?>> futures = new ArrayList<>(tables.size());
         Neo4jEndpoint neo4j = new Neo4jEndpoint(this.neo4jConfFile);
         int typesDimension = this.universeTypes.size();
 
@@ -131,7 +129,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 
         this.permutations = createPermutations(this.permutationVectors, ++typesDimension);
 
-        for (PairNonComparable<String, Set<String>> table : tableEntities)
+        for (PairNonComparable<String, Table<String>> table : tables)
         {
             futures.add(executor.submit(() -> loadTable(table, neo4j)));
         }
@@ -152,19 +150,25 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         neo4j.close();
     }
 
-    private void loadTable(PairNonComparable<String, Set<String>> table, Neo4jEndpoint neo4j)
+    private void loadTable(PairNonComparable<String, Table<String>> table, Neo4jEndpoint neo4j)
     {
         String tableName = table.getFirst();
         List<PairNonComparable<Id, Set<Integer>>> matrix = new ArrayList<>();
+        Table<String> t = table.getSecond();
+        int rows = t.rowCount();
 
-        for (String entity : table.getSecond())
+        for (int row = 0; row < rows; row++)
         {
-            Id entityId = this.linker.kgUriLookup(entity);
-            Set<Integer> entityBitVector = bitVector(entity, neo4j);
-
-            if (!entityBitVector.isEmpty())
+            for (int column = 0; column < t.getRow(row).size(); column++)
             {
-                matrix.add(new PairNonComparable<>(entityId, entityBitVector));
+                String entity = t.getRow(row).get(column);
+                Id entityId = this.linker.kgUriLookup(entity);
+                Set<Integer> entityBitVector = bitVector(entity, neo4j);
+
+                if (!entityBitVector.isEmpty())
+                {
+                    matrix.add(new PairNonComparable<>(entityId, entityBitVector));
+                }
             }
         }
 

@@ -15,6 +15,8 @@ import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 import dk.aau.cs.daisy.edao.structures.graph.Entity;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
+import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
+import dk.aau.cs.daisy.edao.structures.table.Table;
 import dk.aau.cs.daisy.edao.system.Configuration;
 import dk.aau.cs.daisy.edao.system.Logger;
 import dk.aau.cs.daisy.edao.tables.JsonTable;
@@ -26,7 +28,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -55,7 +56,7 @@ public class IndexWriter implements IndexIO
             5_000_000,
             0.01);
     private final Map<String, Stats> tableStats = new TreeMap<>();
-    private final Set<PairNonComparable<String, Set<String>>> tableEntities = Collections.synchronizedSet(new HashSet<>());
+    private final Set<PairNonComparable<String, Table<String>>> tableEntities = Collections.synchronizedSet(new HashSet<>());
     private List<String> disallowedEntityTypes;
     private static final HashFunction HASH_FUNCTION_NUMERIC = (obj, num) -> {
         List<Integer> sig = (List<Integer>) obj;
@@ -173,7 +174,8 @@ public class IndexWriter implements IndexIO
         Logger.log(Logger.Level.INFO, "Loaded LSH index 1/2");
 
         this.embeddingsLSH = new VectorLSHIndex(bucketGroups, bucketsPerGroup, permutations, bandSize,
-                this.tableEntities, this.threads, (EntityLinking) this.linker.getLinker(), HASH_FUNCTION_BOOLEAN, vote);
+                this.tableEntities, this.threads, (EntityLinking) this.linker.getLinker(), HASH_FUNCTION_BOOLEAN,
+                vote, true);
         Logger.log(Logger.Level.INFO, "Loaded LSH index 2/2");
     }
 
@@ -188,12 +190,13 @@ public class IndexWriter implements IndexIO
 
         String tableName = tablePath.getFileName().toString();
         Map<Pair<Integer, Integer>, List<String>> entityMatches = new HashMap<>();  // Maps a cell specified by RowNumber, ColumnNumber to the list of entities it matches to
-        Set<String> entities = new HashSet<>(); // The set of entities corresponding to this filename/table
+        Table<String> parsedTable = new DynamicTable<>();   // The set of entities corresponding to this filename/table
         int row = 0;
 
         for (List<JsonTable.TableCell> tableRow : table.rows)
         {
             int column = 0;
+            List<String> parsedRow = new ArrayList<>();
 
             for (JsonTable.TableCell cell : tableRow)
             {
@@ -248,7 +251,7 @@ public class IndexWriter implements IndexIO
                         for (String entity : matchesUris)
                         {
                             this.filter.put(entity);
-                            entities.add(entity);
+                            parsedRow.add(entity);
                         }
 
                         entityMatches.put(new Pair<>(row, column), matchesUris);
@@ -258,17 +261,18 @@ public class IndexWriter implements IndexIO
                 column++;
             }
 
+            parsedTable.addRow(new Table.Row<>(parsedRow));
             row++;
         }
 
-        this.tableEntities.add(new PairNonComparable<>(tableName, entities));
-        saveStats(table, FilenameUtils.removeExtension(tableName), entities.iterator(), entityMatches);
+        this.tableEntities.add(new PairNonComparable<>(tableName, parsedTable));
+        saveStats(table, FilenameUtils.removeExtension(tableName), parsedTable, entityMatches);
         return true;
     }
 
-    private void saveStats(JsonTable jTable, String tableFileName, Iterator<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
+    private void saveStats(JsonTable jTable, String tableFileName, Table<String> table, Map<Pair<Integer, Integer>, List<String>> entityMatches)
     {
-        Stats stats = collectStats(jTable, tableFileName, entities, entityMatches);
+        Stats stats = collectStats(jTable, tableFileName, table, entityMatches);
 
         synchronized (this.lock)
         {
@@ -276,35 +280,38 @@ public class IndexWriter implements IndexIO
         }
     }
 
-    private Stats collectStats(JsonTable jTable, String tableFileName, Iterator<String> entities, Map<Pair<Integer, Integer>, List<String>> entityMatches)
+    private Stats collectStats(JsonTable jTable, String tableFileName, Table<String> table, Map<Pair<Integer, Integer>, List<String>> entityMatches)
     {
         List<Integer> numEntitiesPerRow = new ArrayList<>(Collections.nCopies(jTable.numDataRows, 0));
         List<Integer> numEntitiesPerCol = new ArrayList<>(Collections.nCopies(jTable.numCols, 0));
         List<Integer> numCellToEntityMatchesPerCol = new ArrayList<>(Collections.nCopies(jTable.numCols, 0));
         List<Boolean> tableColumnsIsNumeric = new ArrayList<>(Collections.nCopies(jTable.numCols, false));
         long numCellToEntityMatches = 0L; // Specifies the total number (bag semantics) of entities all cells map to
-        int entityCount = 0;
+        int entityCount = 0, rows = table.rowCount();
 
-        while (entities.hasNext())
+        for (int row = 0; row < rows; row++)
         {
-            entityCount++;
-            Id entityId = ((EntityLinking) this.linker.getLinker()).kgUriLookup(entities.next());
-
-            if (entityId == null)
+            for (int column = 0; column < table.getRow(row).size(); column++)
             {
-                continue;
-            }
+                entityCount++;
+                Id entityId = ((EntityLinking) this.linker.getLinker()).kgUriLookup(table.getRow(row).get(column));
 
-            List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> locations =
-                    ((EntityTableLink) this.entityTableLink.getIndex()).getLocations(entityId, tableFileName);
-
-            if (locations != null)
-            {
-                for (Pair<Integer, Integer> location : locations)
+                if (entityId == null)
                 {
-                    numEntitiesPerRow.set(location.getFirst(), numEntitiesPerRow.get(location.getFirst()) + 1);
-                    numEntitiesPerCol.set(location.getSecond(), numEntitiesPerCol.get(location.getSecond()) + 1);
-                    numCellToEntityMatches++;
+                    continue;
+                }
+
+                List<dk.aau.cs.daisy.edao.structures.Pair<Integer, Integer>> locations =
+                        ((EntityTableLink) this.entityTableLink.getIndex()).getLocations(entityId, tableFileName);
+
+                if (locations != null)
+                {
+                    for (Pair<Integer, Integer> location : locations)
+                    {
+                        numEntitiesPerRow.set(location.getFirst(), numEntitiesPerRow.get(location.getFirst()) + 1);
+                        numEntitiesPerCol.set(location.getSecond(), numEntitiesPerCol.get(location.getSecond()) + 1);
+                        numCellToEntityMatches++;
+                    }
                 }
             }
         }
