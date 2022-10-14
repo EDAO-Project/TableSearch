@@ -159,7 +159,9 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 
         for (int row = 0; row < rows; row++)
         {
-            for (int column = 0; column < t.getRow(row).size(); column++)
+            int columns = t.getRow(row).size();
+
+            for (int column = 0; column < columns; column++)
             {
                 String entity = t.getRow(row).get(column);
                 Id entityId = this.linker.kgUriLookup(entity);
@@ -177,12 +179,14 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
             extendSignature(this.signature, matrix, this.permutations, this.entityToSigIndex);
         }
 
-        for (int entity = 0; entity < matrix.size(); entity++)
+        Set<Integer> newSignatures = matrix.stream().map(e -> this.entityToSigIndex.get(e.getFirst())).collect(Collectors.toSet());
+
+        for (int entityIdx : newSignatures)
         {
             List<Integer> keys = createKeys(this.permutations.size(), this.bandSize,
-                    this.signature.get(entity).getSecond(), groupSize(), this.hash);
+                    this.signature.get(entityIdx).getSecond(), groupSize(), this.hash);
             int keysCount = keys.size();
-            Id entityId = matrix.get(entity).getFirst();
+            Id entityId = this.signature.get(entityIdx).getFirst();
 
             for (int group = 0; group < keysCount; group++)
             {

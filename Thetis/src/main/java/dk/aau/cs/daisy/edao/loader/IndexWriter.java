@@ -175,7 +175,7 @@ public class IndexWriter implements IndexIO
 
         this.embeddingsLSH = new VectorLSHIndex(bucketGroups, bucketsPerGroup, permutations, bandSize,
                 this.tableEntities, this.threads, (EntityLinking) this.linker.getLinker(), HASH_FUNCTION_BOOLEAN,
-                vote, true);
+                vote, false);
         Logger.log(Logger.Level.INFO, "Loaded LSH index 2/2");
     }
 
