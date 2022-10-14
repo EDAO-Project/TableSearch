@@ -9,7 +9,8 @@ for I in ${INDEX_DIR}* ; \
 do
     SPLIT=(${I//_/ })
     VECTORS=${SPLIT[-3]}
-    OUT=${OUTPUT_DIR}types/vectors_${VECTORS}
+    BAND_SIZE=${SPLIT[-1]}
+    OUT=${OUTPUT_DIR}types/vectors_${VECTORS}/bandsize_${BAND_SIZE}
     mkdir -p ${OUT}
 
     echo "PERMUTATION VECTORS: "${VECTORS}
@@ -29,7 +30,8 @@ for I in ${INDEX_DIR}* ; \
 do
     SPLIT=(${I//_/ })
     VECTORS=${SPLIT[-3]}
-    OUT=${OUTPUT_DIR}embeddings/vectors_${VECTORS}
+    BAND_SIZE=${SPLIT[-1]}
+    OUT=${OUTPUT_DIR}embeddings/vectors_${VECTORS}/bandsize_${BAND_SIZE}
     mkdir -p ${OUT}
 
     echo "PROJECTION VECTORS: "${VECTORS}
@@ -41,30 +43,30 @@ do
         mkdir -p ${OUT_K}
 
         java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${I} \
-            -q ${QUERIES_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_EMBEDDINGS --singleColumnPerQueryEntity --useMaxSimilarityPerColumn --usePretrainedEmbeddings --embeddingSimilarityFunction norm_cos
+            -q ${QUERIES_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_EMBEDDINGS --singleColumnPerQueryEntity --useMaxSimilarityPerColumn --adjustedJaccardSimilarity
     done
 done
 
-OUT=${OUTPUT_DIR}baseline_jaccard/vectors_32
-mkdir -p ${OUT}
+#OUT=${OUTPUT_DIR}baseline_jaccard/vectors_32
+#mkdir -p ${OUT}
 
-for TOP_K in {10,100} ; \
-do
-    OUT_K=${OUT}/${TOP_K}
-    mkdir -p ${OUT_K}
+#for TOP_K in {10,100} ; \
+#do
+#    OUT_K=${OUT}/${TOP_K}
+#    mkdir -p ${OUT_K}
 
-    java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_32_bandsize_4 \
-        -q ${QUERIES_DIR} -td ${TABLES} -od ${OUT_K} -t 4 --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
-done
+#    java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_32_bandsize_8 \
+#        -q ${QUERIES_DIR} -td ${TABLES} -od ${OUT_K} -t 4 --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
+#done
 
-OUT=${OUTPUT_DIR}baseline_cosine/vectors_32
-mkdir -p ${OUT}
+#OUT=${OUTPUT_DIR}baseline_cosine/vectors_32
+#mkdir -p ${OUT}
 
-for TOP_K in {10,100} ; \
-do
-    OUT_K=${OUT}/${TOP_K}
-    mkdir -p ${OUT_K}
+#for TOP_K in {10,100} ; \
+#do
+#    OUT_K=${OUT}/${TOP_K}
+#    mkdir -p ${OUT_K}
 
-    java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_32_bandsize_4 \
-        -q ${QUERIES_DIR} -td ${TABLES} -od ${OUT_K} -t 4 --singleColumnPerQueryEntity --usePretrainedEmbeddings --useMaxSimilarityPerColumn --embeddingSimilarityFunction norm_cos
-done
+#    java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_32_bandsize_8 \
+#        -q ${QUERIES_DIR} -td ${TABLES} -od ${OUT_K} -t 4 --singleColumnPerQueryEntity --usePretrainedEmbeddings --useMaxSimilarityPerColumn --embeddingSimilarityFunction norm_cos
+#done
