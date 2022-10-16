@@ -82,10 +82,10 @@ def ground_truth(query_filename, ground_truth_folder, table_corpus_folder, pickl
 
 # Returns None if results for given query ID do not exist
 def predicted_scores(query_id, votes, mode, vectors, band_size, k, gt_tables, is_baseline = False):
-    path = 'results/vote_' + str(votes)'/' + mode + '/vectors_' + str(vectors) + '/bandsize_' + str(band_size) + '/' + str(k) + '/search_output/' + query_id + '/filenameToScore.json'
+    path = 'results/vote_' + str(votes) + '/' + mode + '/vectors_' + str(vectors) + '/bandsize_' + str(band_size) + '/' + str(k) + '/search_output/' + query_id + '/filenameToScore.json'
 
     if is_baseline:
-        path = 'results/basline/baseline_' + mode '/' + str(k) + '/search_output/' + query_id + '/filenameToScore.json'
+        path = 'results/baseline/baseline_' + mode + '/' + str(k) + '/search_output/' + query_id + '/filenameToScore.json'
 
     if not os.path.exists(path):
         return None
@@ -113,48 +113,48 @@ def full_corpus(base_dir):
 
     return tables
 
-def gen_boxplots(ndcg_dict):
-    labels = ['T@10', 'T@100', 'E@10', 'E@100', 'B@10', 'B@100']
+def gen_boxplots(ndcg_dict, votes):
+    labels = ['T(V=30, BS=10)', 'T(V=10, BS=6)', 'T(V=32, BS=8)', 'E(V=30, BS=10)', 'E(V=30, BS=6)', 'E(V=32, BS=8)', 'B - Jaccard', 'B - cosine']
     colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
-    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (9, 4))
-    scores_32_vectors = list()
-    scores_64_vectors = list()
+    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (35, 6))
+    data10 = list()
+    data100 = list()
 
-    scores_32_vectors.append(ndcg_dict['types']['32']['10'])
-    scores_32_vectors.append(ndcg_dict['types']['32']['100'])
-    scores_32_vectors.append(ndcg_dict['embeddings']['32']['10'])
-    scores_32_vectors.append(ndcg_dict['embeddings']['32']['100'])
-    scores_32_vectors.append(ndcg_dict['baseline_jaccard']['32']['10'])
-    scores_32_vectors.append(ndcg_dict['baseline_jaccard']['32']['100'])
-    scores_32_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
-    scores_32_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
+    data10.append(ndcg_dict[str(votes)]['types']['30']['10']['10'])
+    data10.append(ndcg_dict[str(votes)]['types']['30']['6']['10'])
+    data10.append(ndcg_dict[str(votes)]['types']['32']['8']['10'])
+    data10.append(ndcg_dict[str(votes)]['embeddings']['30']['10']['10'])
+    data10.append(ndcg_dict[str(votes)]['embeddings']['30']['6']['10'])
+    data10.append(ndcg_dict[str(votes)]['embeddings']['32']['8']['10'])
+    data10.append(ndcg_dict['baseline']['jaccard']['10'])
+    data10.append(ndcg_dict['baseline']['cosine']['10'])
 
-    scores_64_vectors.append(ndcg_dict['types']['64']['10'])
-    scores_64_vectors.append(ndcg_dict['types']['64']['100'])
-    scores_64_vectors.append(ndcg_dict['embeddings']['64']['10'])
-    scores_64_vectors.append(ndcg_dict['embeddings']['64']['100'])
-    scores_64_vectors.append(ndcg_dict['baseline_jaccard']['32']['10'])
-    scores_64_vectors.append(ndcg_dict['baseline_jaccard']['32']['100'])
-    scores_64_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
-    scores_64_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
+    data100.append(ndcg_dict[str(votes)]['types']['30']['10']['100'])
+    data100.append(ndcg_dict[str(votes)]['types']['30']['6']['100'])
+    data100.append(ndcg_dict[str(votes)]['types']['32']['8']['100'])
+    data100.append(ndcg_dict[str(votes)]['embeddings']['30']['10']['100'])
+    data100.append(ndcg_dict[str(votes)]['embeddings']['30']['6']['100'])
+    data100.append(ndcg_dict[str(votes)]['embeddings']['32']['8']['100'])
+    data100.append(ndcg_dict['baseline']['jaccard']['100'])
+    data100.append(ndcg_dict['baseline']['cosine']['100'])
 
-    plot_32_vectors = ax1.boxplot(scores_32_vectors, vert = True, patch_artist = True, labels = labels)
-    ax1.set_title('32 permutation/projection')
+    plot_k_10 = ax1.boxplot(data10, vert = True, patch_artist = True, labels = labels)
+    ax1.set_title('K = 10')
 
-    plot_64_vectors = ax2.boxplot(scores_64_vectors, vert = True, patch_artist = True, labels = labels)
-    ax2.set_title('64 permutation/projection')
+    plot_k_100 = ax2.boxplot(data100, vert = True, patch_artist = True, labels = labels)
+    ax2.set_title('K = 100')
 
-    for plot in (plot_32_vectors, plot_64_vectors):
+    for plot in (plot_k_10, plot_k_100):
         for patch, color in zip(plot['boxes'], colors):
             patch.set_facecolor(color)
 
-    ax1.set_xlabel('Approach@K (T = LSH of types, E = LSH of embeddings, B = Brute-Force')
+    ax1.set_xlabel('T = LSH of types, E = LSH of embeddings, B = Brute-Force V = # permutation/projection vectors, BS = band size')
 
     for ax in [ax1, ax2]:
         ax.yaxis.grid(True)
         ax.set_ylabel('NDCG')
 
-    plt.savefig('debug_plot.pdf', format = 'pdf')
+    plt.savefig('debug_plot_' + str(votes) + '_votes.pdf', format = 'pdf')
     plt.clf()
 
 # Returns map: ['types'|'embeddings'|'baseline']->[<# BUCKETS: [150|300]>]->[<TOP-K: [10|100]>]->[NDCG SCORES]
@@ -168,17 +168,22 @@ def plot_ndcg():
     top_k = [10, 100]
     votes = [1, 2, 3, 4]
     ndcg = dict()
-    ndcg['types'] = dict()
-    ndcg['embeddings'] = dict()
-    ndcg['baseline'] = dict()
 
     for vote in votes:
+        ndcg[str(vote)] = dict()
+        ndcg[str(vote)]['types'] = dict()
+        ndcg[str(vote)]['embeddings'] = dict()
+        ndcg[str(vote)]['types']['30'] = dict()
+        ndcg[str(vote)]['types']['32'] = dict()
+        ndcg[str(vote)]['embeddings']['30'] = dict()
+        ndcg[str(vote)]['embeddings']['32'] = dict()
         ndcg[str(vote)]['types']['30']['10'] = dict()
         ndcg[str(vote)]['types']['30']['6'] = dict()
         ndcg[str(vote)]['types']['32']['8'] = dict()
         ndcg[str(vote)]['embeddings']['30']['10'] = dict()
         ndcg[str(vote)]['embeddings']['30']['6'] = dict()
         ndcg[str(vote)]['embeddings']['32']['8'] = dict()
+        ndcg['baseline'] = dict()
         ndcg['baseline']['jaccard'] = dict()
         ndcg['baseline']['cosine'] = dict()
 
@@ -257,7 +262,7 @@ def plot_ndcg():
                     ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
                     ndcg['baseline']['cosine'][str(k)].append(ndcg_baseline)
 
-    gen_boxplots(ndcg)
+        gen_boxplots(ndcg, vote)
 
 #plot_runtime()
 plot_ndcg()
