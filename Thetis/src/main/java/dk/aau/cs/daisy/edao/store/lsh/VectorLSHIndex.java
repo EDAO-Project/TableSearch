@@ -164,14 +164,14 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
                 {
                     List<Double> embeddings = embeddingsDB.select(table.getRow(row).get(column));
 
-                    if (embeddings != null)
+                    if (embeddings != null && !embeddings.isEmpty())
                     {
                         columnEmbeddings.add(embeddings);
                     }
                 }
             }
 
-            List<Double> averageEmbeddings = Utils.getAverageVector(new Table.Row<>(columnEmbeddings));
+            List<Double> averageEmbeddings = Utils.averageVector(columnEmbeddings);
             List<Integer> bitVector = bitVector(averageEmbeddings);
             List<Integer> keys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
             insertEntity(Id.any(), keys, tableName);

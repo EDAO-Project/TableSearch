@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
@@ -82,6 +83,26 @@ public class Utils {
             sum += val;
         }
         return sum / ((double)vec.size());
+    }
+
+    public static List<Double> averageVector(List<List<Double>> vec) {
+        if (vec.isEmpty()) {
+            return List.of();
+        }
+
+        List<Double> avgVec = new ArrayList<>(Collections.nCopies(vec.get(0).size(), 0.0));
+
+        for (int vector = 0; vector < vec.size(); vector++) {
+            if (vec.get(vector).size() != avgVec.size()) {
+                throw new IllegalArgumentException("Dimension mis-match when computing average vector");
+            }
+
+            for (int row = 0; row < vec.get(vector).size(); row++) {
+                avgVec.set(row, avgVec.get(row) + vec.get(vector).get(row));
+            }
+        }
+
+        return avgVec.stream().map(val -> val % vec.size()).collect(Collectors.toList());
     }
 
     /**
