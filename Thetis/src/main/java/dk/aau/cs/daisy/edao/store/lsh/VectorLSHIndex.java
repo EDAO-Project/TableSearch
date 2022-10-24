@@ -31,7 +31,6 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
     private transient EntityLinking linker = null;
     private HashFunction hash;
     private transient Cache<Id, List<Integer>> cache;
-    private int vote;
 
     /**
      * @param bucketCount Number of LSH index buckets
@@ -41,14 +40,13 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
      */
     public VectorLSHIndex(int bucketGroups, int bucketCount, int projections, int bandSize,
                           Set<PairNonComparable<String, Table<String>>> tables, int threads, EntityLinking linker,
-                          HashFunction hash, int vote, boolean aggregateColumns)
+                          HashFunction hash, boolean aggregateColumns)
     {
         super(bucketGroups, bucketCount);
         this.bandSize = bandSize;
         this.threads = threads;
         this.linker = linker;
         this.hash = hash;
-        this.vote = vote;
         this.aggregateColumns = aggregateColumns;
         this.cache = CacheBuilder.newBuilder().maximumSize(500).build();
         load(tables, projections);
@@ -297,7 +295,12 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
     @Override
     public Set<String> search(String entity)
     {
-        Set<String> tables = new HashSet<>();
+        return search(entity, 1);
+    }
+
+    @Override
+    public Set<String> search(String entity, int vote)
+    {
         DBDriver<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
         List<Double> embedding = embeddingsDB.select(entity);
         embeddingsDB.close();
@@ -309,6 +312,6 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
 
         List<Integer> searchBitVector = bitVector(embedding);
         List<Integer> keys = createKeys(this.projections.size(), this.bandSize, searchBitVector, groupSize(), this.hash);
-        return super.search(keys, this.vote);
+        return super.search(keys, vote);
     }
 }

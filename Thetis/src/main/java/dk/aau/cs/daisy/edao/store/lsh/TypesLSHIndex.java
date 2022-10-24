@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<String, String>, Serializable
 {
     private File neo4jConfFile;
-    private int shingles, vote, permutationVectors, bandSize;
+    private int shingles, permutationVectors, bandSize;
     private List<List<Integer>> permutations;
     private List<PairNonComparable<Id, List<Integer>>> signature;
     private Map<String, Integer> universeTypes;
@@ -45,7 +45,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
      */
     public TypesLSHIndex(File neo4jConfigFile, int permutationVectors, int bandSize, int shingleSize,
                          Set<PairNonComparable<String, Table<String>>> tables, HashFunction hash, int bucketGroups,
-                         int bucketCount, int vote, int threads, EntityLinking linker, EntityTable entityTable)
+                         int bucketCount, int threads, EntityLinking linker, EntityTable entityTable)
     {
         super(bucketGroups, bucketCount);
 
@@ -61,7 +61,6 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 
         this.neo4jConfFile = neo4jConfigFile;
         this.shingles = shingleSize;
-        this.vote = vote;
         this.permutationVectors = permutationVectors;
         this.signature = new ArrayList<>();
         this.bandSize = bandSize;
@@ -392,13 +391,19 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         }
     }
 
+    @Override
+    public Set<String> search(String entity)
+    {
+        return search(entity, 1);
+    }
+
     /**
      * Finds buckets of similar entities and returns tables contained
      * @param entity Query entity
      * @return Set of tables
      */
     @Override
-    public Set<String> search(String entity)
+    public Set<String> search(String entity, int vote)
     {
         int entitySignatureIdx = createOrGetSignature(entity);
 
@@ -407,7 +412,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
             List<Integer> keys = createKeys(this.permutations.size(), this.bandSize,
                     this.signature.get(entitySignatureIdx).getSecond(), groupSize(), this.hash);
 
-            return super.search(keys, this.vote);
+            return super.search(keys, vote);
         }
 
         return new HashSet<>();
