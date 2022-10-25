@@ -511,6 +511,9 @@ public class AnalogousSearch extends AbstractSearch
 
     private double cosineSimilarity(String ent1, String ent2)
     {
+        if (!this.currentEntityEmbeddings.containsKey(ent1) || !this.currentEntityEmbeddings.containsKey(ent2))
+            return 0.0;
+
         double cosineSim = Utils.cosineSimilarity(this.currentEntityEmbeddings.get(ent1), this.currentEntityEmbeddings.get(ent2)),
                 simScore = 0.0;
 
