@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Storage of embedding in a Milvus instance
@@ -94,6 +95,12 @@ public class EmbeddingStore implements DBDriverBatch<List<Double>, String>, Expl
         QueryResults results = this.milvus.select(command);
         return ((List<List<Double>>) new QueryResultsWrapper(results).
                 getFieldWrapper("embedding").getFieldData()).get(0);
+    }
+
+    @Override
+    public Map<String, List<Double>> batchSelect(List<String> iris)
+    {
+        throw new UnsupportedOperationException("This operation is not supported");
     }
 
     /**
