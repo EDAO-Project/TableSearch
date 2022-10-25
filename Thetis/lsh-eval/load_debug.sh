@@ -9,6 +9,7 @@ mkdir ${INDEX_DIR}vectors_30_bandsize_10
 mkdir ${INDEX_DIR}vectors_32_bandsize_4
 mkdir ${INDEX_DIR}vectors_32_bandsize_16
 mkdir ${INDEX_DIR}vectors_128_bandsize_8
+mkdir ${INDEX_DIR}vectors_64_bandsize_8
 
 for INDEX_PATH in ${INDEX_DIR}* ;\
 do
