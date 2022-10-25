@@ -1,6 +1,6 @@
 #!/bin/bash
 
-INDEX_DIR="lsh-eval/indexes/"
+INDEX_DIR="lsh-eval/indexes/aggregation/"
 TABLES="lsh-eval/tables/redirect/"
 
 mkdir -p ${INDEX_DIR}vectors_32_bandsize_8
