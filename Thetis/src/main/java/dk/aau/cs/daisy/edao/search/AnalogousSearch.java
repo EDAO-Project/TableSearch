@@ -66,7 +66,8 @@ public class AnalogousSearch extends AbstractSearch
     private final Object lock = new Object();
     private Set<String> corpus;
     private Prefilter prefilter;
-    private Map<String, List<Double>> currentEntityEmbeddings = null;
+    private Map<String, List<Double>> queryEntityEmbeddings = null;
+    private Map<String, Map<String, List<Double>>> tablesToEntityMappings = new HashMap<>();
 
     public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK,
                            int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
@@ -101,6 +102,65 @@ public class AnalogousSearch extends AbstractSearch
                 weightedJaccard, adjustedJaccard, useMaxSimilarityPerColumn, hungarianAlgorithmSameAlignmentAcrossTuples,
                 similarityMeasure, embeddingStore);
         this.prefilter = prefilter;
+    }
+
+    private void setQueryEntityEmbeddings(Table<String> query)
+    {
+        List<String> entities = new ArrayList<>();
+        int queryRows = query.rowCount();
+
+        for (int row = 0; row < queryRows; row++)
+        {
+            int columns = query.getRow(row).size();
+
+            for (int column = 0; column < columns; column++)
+            {
+                entities.add(query.getRow(row).get(column));
+            }
+        }
+
+        this.queryEntityEmbeddings = this.embeddings.batchSelect(entities);
+    }
+
+    private void insertTableEntityEmbeddings(JsonTable table, String tableId)
+    {
+        List<String> entities = new ArrayList<>();
+
+        for (List<JsonTable.TableCell> row : table.rows)
+        {
+            int columns = row.size();
+
+            for (int column = 0; column < columns; column++)
+            {
+                for (String link : row.get(column).links)
+                {
+                    String uri = getLinker().mapTo(link);
+
+                    if (uri != null)
+                    {
+                        entities.add(uri);
+                        break;
+                    }
+                }
+            }
+        }
+
+        this.tablesToEntityMappings.put(tableId, this.embeddings.batchSelect(entities));
+    }
+
+    private List<Double> getTableEntityEmbedding(String entity)
+    {
+        for (Map.Entry<String, Map<String, List<Double>>> embedding : this.tablesToEntityMappings.entrySet())
+        {
+            List<Double> e = embedding.getValue().get(entity);
+
+            if (e != null)
+            {
+                return e;
+            }
+        }
+
+        return null;
     }
 
     public void setCorpus(Set<String> tableFiles)
@@ -145,6 +205,11 @@ public class AnalogousSearch extends AbstractSearch
         {
             prefilterSearchSpace(query);
             Logger.logNewLine(Logger.Level.INFO, "Pre-filtered corpus in " + this.prefilter.elapsedNanoSeconds() + "ns");
+        }
+
+        if (this.useEmbeddings)
+        {
+            setQueryEntityEmbeddings(query);
         }
 
         try
@@ -232,7 +297,7 @@ public class AnalogousSearch extends AbstractSearch
 
         if (this.useEmbeddings)
         {
-            this.currentEntityEmbeddings = getQueryAndTableEmbeddings(query, jTable);
+            insertTableEntityEmbeddings(jTable, table);
         }
 
         List<List<Integer>> queryRowToColumnMappings = new ArrayList<>();  // If each query entity needs to map to only one column find the best mapping
@@ -335,44 +400,12 @@ public class AnalogousSearch extends AbstractSearch
         Double score = aggregateTableSimilarities(query, scores, statBuilder);
         this.tableStats.put(table, statBuilder.finish());
 
+        if (this.useEmbeddings)
+        {
+            this.tablesToEntityMappings.remove(table);
+        }
+
         return new Pair<>(table, score);
-    }
-
-    private Map<String, List<Double>> getQueryAndTableEmbeddings(Table<String> query, JsonTable table)
-    {
-        int queryRows = query.rowCount();
-        List<String> entities = new ArrayList<>();
-
-        for (int row = 0; row < queryRows; row++)
-        {
-            int columns = query.getRow(row).size();
-
-            for (int column = 0; column < columns; column++)
-            {
-                entities.add(query.getRow(row).get(column));
-            }
-        }
-
-        for (List<JsonTable.TableCell> row : table.rows)
-        {
-            int columns = row.size();
-
-            for (int column = 0; column < columns; column++)
-            {
-                for (String link : row.get(column).links)
-                {
-                    String uri = getLinker().mapTo(link);
-
-                    if (uri != null)
-                    {
-                        entities.add(uri);
-                        break;
-                    }
-                }
-            }
-        }
-
-        return this.embeddings.batchSelect(entities);
     }
 
     /**
@@ -511,11 +544,23 @@ public class AnalogousSearch extends AbstractSearch
 
     private double cosineSimilarity(String ent1, String ent2)
     {
-        if (!this.currentEntityEmbeddings.containsKey(ent1) || !this.currentEntityEmbeddings.containsKey(ent2)
-                || this.currentEntityEmbeddings.get(ent1) == null || this.currentEntityEmbeddings.get(ent2) == null)
+        List<Double> ent1Embeddings = this.queryEntityEmbeddings.get(ent1),
+                ent2Embeddings = this.queryEntityEmbeddings.get(ent2);
+
+        if (ent1Embeddings == null)
+        {
+            ent1Embeddings = getTableEntityEmbedding(ent1);
+        }
+
+        if (ent2Embeddings == null)
+        {
+            ent2Embeddings = getTableEntityEmbedding(ent2);
+        }
+
+        if (ent1Embeddings == null || ent2Embeddings == null)
             return 0.0;
 
-        double cosineSim = Utils.cosineSimilarity(this.currentEntityEmbeddings.get(ent1), this.currentEntityEmbeddings.get(ent2)),
+        double cosineSim = Utils.cosineSimilarity(ent1Embeddings, ent2Embeddings),
                 simScore = 0.0;
 
         if (this.embeddingSimFunction == CosineSimilarityFunction.NORM_COS)
@@ -544,7 +589,7 @@ public class AnalogousSearch extends AbstractSearch
     {
         try
         {
-            return this.currentEntityEmbeddings.containsKey(entity);
+            return this.queryEntityEmbeddings.containsKey(entity) || getTableEntityEmbedding(entity) != null;
         }
 
         catch (IllegalArgumentException exc)
