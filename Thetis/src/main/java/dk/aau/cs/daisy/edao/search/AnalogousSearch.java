@@ -67,7 +67,7 @@ public class AnalogousSearch extends AbstractSearch
     private Set<String> corpus;
     private Prefilter prefilter;
     private Map<String, List<Double>> queryEntityEmbeddings = null;
-    private Map<String, Map<String, List<Double>>> tablesToEntityMappings = Collections.synchronizedMap(new HashMap<>());
+    private Map<String, Map<String, List<Double>>> tablesToEntityMappings = new ConcurrentHashMap<>();
 
     public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK,
                            int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
@@ -119,7 +119,7 @@ public class AnalogousSearch extends AbstractSearch
             }
         }
 
-        this.queryEntityEmbeddings = Collections.synchronizedMap(this.embeddings.batchSelect(entities));
+        this.queryEntityEmbeddings = new ConcurrentHashMap<>(this.embeddings.batchSelect(entities));
     }
 
     private void insertTableEntityEmbeddings(JsonTable table, String tableId)
