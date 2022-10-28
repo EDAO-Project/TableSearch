@@ -119,7 +119,7 @@ def full_corpus(base_dir):
 def gen_boxplots(ndcg_dict, votes):
     labels = ['T(V=30, BS=10)', 'T(V=10, BS=6)', 'T(V=10, BS=4)', 'T(V=32, BS=8)', 'T(V=64, BS=8)', 'T(V=32, BS=16)', 'T(V=128, BS=8)', 'E(V=30, BS=10)', 'E(V=30, BS=6)', 'E(V=32, BS=4)', 'E(V=32, BS=8)', 'E(V=64, BS=8)', 'E(V=32, BS=16)', 'E(V=128, BS=8)', 'EC(V=30, BS=10)', 'EC(V=30, BS=6)', 'EC(V=32, BS=4)', 'EC(V=32, BS=8)', 'EC(V=64, BS=8)', 'EC(V=32, BS=16)', 'EC(V=128, BS=8)', 'B - Jaccard', 'B - cosine']
     colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
-    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (60, 8))
+    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (85, 10))
     data10 = list()
     data100 = list()
 
