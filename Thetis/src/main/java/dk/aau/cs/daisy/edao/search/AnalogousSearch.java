@@ -63,7 +63,7 @@ public class AnalogousSearch extends AbstractSearch
     private SimilarityMeasure measure;
     private DBDriverBatch<List<Double>, String> embeddings;
     private Map<String, Stats> tableStats = new TreeMap<>();
-    private final Object lock = new Object();
+    private final Object lockStats = new Object(), lockEmbeddings = new Object();
     private Set<String> corpus;
     private Prefilter prefilter;
     private Map<String, List<Double>> queryEntityEmbeddings = null;
@@ -145,12 +145,18 @@ public class AnalogousSearch extends AbstractSearch
             }
         }
 
-        this.tablesToEntityMappings.put(tableId, this.embeddings.batchSelect(entities));
+        synchronized (this.lockEmbeddings)
+        {
+            this.tablesToEntityMappings.put(tableId, this.embeddings.batchSelect(entities));
+        }
     }
 
-    private synchronized void removeTableEmbeddings(String tableId)
+    private void removeTableEmbeddings(String tableId)
     {
-        this.tablesToEntityMappings.remove(tableId);
+        synchronized (this.lockEmbeddings)
+        {
+            this.tablesToEntityMappings.remove(tableId);
+        }
     }
 
     private List<Double> getTableEntityEmbedding(String entity)
@@ -508,7 +514,7 @@ public class AnalogousSearch extends AbstractSearch
         else if (entityExists(ent1) && entityExists(ent2))
             return cosineSimilarity(ent2, ent2);
 
-        synchronized (this.lock)
+        synchronized (this.lockStats)
         {
             this.nonEmbeddingComparisons++;
         }
@@ -577,7 +583,7 @@ public class AnalogousSearch extends AbstractSearch
         else if (this.embeddingSimFunction == CosineSimilarityFunction.ANG_COS)
             simScore = 1 - Math.acos(cosineSim) / Math.PI;
 
-        synchronized (this.lock)
+        synchronized (this.lockStats)
         {
             this.embeddingComparisons++;
         }
