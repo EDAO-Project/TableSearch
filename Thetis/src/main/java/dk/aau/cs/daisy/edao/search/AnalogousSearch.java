@@ -63,11 +63,11 @@ public class AnalogousSearch extends AbstractSearch
     private SimilarityMeasure measure;
     private DBDriverBatch<List<Double>, String> embeddings;
     private Map<String, Stats> tableStats = new TreeMap<>();
-    private final Object lockStats = new Object(), lockEmbeddings = new Object();
+    private final Object lockStats = new Object();
     private Set<String> corpus;
     private Prefilter prefilter;
     private Map<String, List<Double>> queryEntityEmbeddings = null;
-    private Map<String, Map<String, List<Double>>> tablesToEntityMappings = new HashMap<>();
+    private Map<String, Map<String, List<Double>>> tablesToEntityMappings = Collections.synchronizedMap(new HashMap<>());
 
     public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK,
                            int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
@@ -119,10 +119,10 @@ public class AnalogousSearch extends AbstractSearch
             }
         }
 
-        this.queryEntityEmbeddings = this.embeddings.batchSelect(entities);
+        this.queryEntityEmbeddings = Collections.synchronizedMap(this.embeddings.batchSelect(entities));
     }
 
-    private synchronized void insertTableEntityEmbeddings(JsonTable table, String tableId)
+    private void insertTableEntityEmbeddings(JsonTable table, String tableId)
     {
         List<String> entities = new ArrayList<>();
 
@@ -145,18 +145,12 @@ public class AnalogousSearch extends AbstractSearch
             }
         }
 
-        synchronized (this.lockEmbeddings)
-        {
-            this.tablesToEntityMappings.put(tableId, this.embeddings.batchSelect(entities));
-        }
+        this.tablesToEntityMappings.put(tableId, this.embeddings.batchSelect(entities));
     }
 
     private void removeTableEmbeddings(String tableId)
     {
-        synchronized (this.lockEmbeddings)
-        {
-            this.tablesToEntityMappings.remove(tableId);
-        }
+        this.tablesToEntityMappings.remove(tableId);
     }
 
     private List<Double> getTableEntityEmbedding(String entity)
