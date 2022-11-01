@@ -33,6 +33,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
     private transient final Object lock = new Object();
     private transient EntityLinking linker = null;
     private final Map<Id, Integer> entityToSigIndex = new HashMap<>();
+    private boolean aggregateColumns;
     private Set<String> unimportantTypes;
     private static final double UNIMPORTANT_PERCENTILE = 0.9;
 
@@ -45,7 +46,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
      */
     public TypesLSHIndex(File neo4jConfigFile, int permutationVectors, int bandSize, int shingleSize,
                          Set<PairNonComparable<String, Table<String>>> tables, HashFunction hash, int bucketGroups,
-                         int bucketCount, int threads, EntityLinking linker, EntityTable entityTable)
+                         int bucketCount, int threads, EntityLinking linker, EntityTable entityTable, boolean aggregateColumns)
     {
         super(bucketGroups, bucketCount);
 
@@ -67,6 +68,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         this.hash = hash;
         this.threads = threads;
         this.linker = linker;
+        this.aggregateColumns = aggregateColumns;
 
         loadTypes(entityTable);
 
@@ -156,6 +158,12 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         Table<String> t = table.getSecond();
         int rows = t.rowCount();
 
+        if (this.aggregateColumns)
+        {
+            loadByColumns(tableName, t, neo4j);
+            return;
+        }
+
         for (int row = 0; row < rows; row++)
         {
             int columns = t.getRow(row).size();
@@ -178,6 +186,53 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
             extendSignature(this.signature, matrix, this.permutations, this.entityToSigIndex);
         }
 
+        insertIntoBuckets(matrix, tableName);
+    }
+
+    private void loadByColumns(String tableName, Table<String> table, Neo4jEndpoint neo4j)
+    {
+        if (table.rowCount() == 0)
+        {
+            return;
+        }
+
+        List<PairNonComparable<Id, Set<Integer>>> matrix = new ArrayList<>();
+        int rows = table.rowCount(), columns = table.getRow(0).size();
+
+        for (int column = 0; column < columns; column++)
+        {
+            Set<String> columnTypes = new HashSet<>(rows);
+
+            for (int row = 0; row < rows; row++)
+            {
+                if (column < table.getRow(row).size())
+                {
+                    Set<String> types = types(table.getRow(row).get(column), neo4j);
+                    columnTypes.addAll(types);
+                }
+            }
+
+            if (!columnTypes.isEmpty())
+            {
+                Set<Integer> bitVector = bitVector(columnTypes);
+
+                if (!bitVector.isEmpty())
+                {
+                    matrix.add(new PairNonComparable<>(Id.alloc(), bitVector));
+                }
+            }
+        }
+
+        synchronized (this.lock)
+        {
+            extendSignature(this.signature, matrix, this.permutations, this.entityToSigIndex);
+        }
+
+        insertIntoBuckets(matrix, tableName);
+    }
+
+    private void insertIntoBuckets(List<PairNonComparable<Id, Set<Integer>>> matrix, String tableName)
+    {
         Set<Integer> newSignatures = matrix.stream().map(e -> this.entityToSigIndex.get(e.getFirst())).collect(Collectors.toSet());
 
         for (int entityIdx : newSignatures)
@@ -199,8 +254,14 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 
     private Set<Integer> bitVector(String entity, Neo4jEndpoint neo4j)
     {
-        Set<String> types = types(entity, neo4j).stream().filter(t -> !this.unimportantTypes.contains(t) &&
-                this.universeTypes.containsKey(t)).collect(Collectors.toSet());
+        Set<String> types = types(entity, neo4j);
+        return bitVector(types);
+    }
+
+    private Set<Integer> bitVector(Set<String> types)
+    {
+        types = types.stream().filter(t -> !this.unimportantTypes.contains(t) &&
+                    this.universeTypes.containsKey(t)).collect(Collectors.toSet());
         Set<List<String>> shingles = TypeShingles.shingles(types, this.shingles);
         Set<Integer> indices = new HashSet<>();
 
@@ -411,7 +472,6 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         {
             List<Integer> keys = createKeys(this.permutations.size(), this.bandSize,
                     this.signature.get(entitySignatureIdx).getSecond(), groupSize(), this.hash);
-
             return super.search(keys, vote);
         }
 
