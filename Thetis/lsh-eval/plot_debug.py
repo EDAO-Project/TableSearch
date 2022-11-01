@@ -194,10 +194,10 @@ def gen_boxplots(ndcg_dict, votes):
 def plot_ndcg():
     query_dir = 'queries/'
     ground_truth_dir = '../../data/cikm/SemanticTableSearchDataset/ground_truth/wikipedia_categories'
-    corpus = 'tables'
+    corpus = '/data/cikm/SemanticTableSearchDataset/table_corpus/tables'
     mapping_file = '../../data/cikm/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
     query_files = os.listdir(query_dir)
-    table_files = full_corpus(corpus + '/redirect')
+    table_files = full_corpus(corpus + '/../corpus')
     top_k = [10, 100]
     votes = [1, 2, 3, 4]
     ndcg = dict()

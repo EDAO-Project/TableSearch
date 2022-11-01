@@ -1,15 +1,10 @@
 #!/bin/bash
 
-INDEX_DIR="lsh-eval/indexes/aggregation/"
-TABLES="lsh-eval/tables/redirect/"
+INDEX_DIR="lsh-eval/indexes/"
+TABLES="/data/cikm/SemanticTableSearchDataset/table_corpus/corpus/"
 
-mkdir -p ${INDEX_DIR}vectors_32_bandsize_8
-mkdir ${INDEX_DIR}vectors_30_bandsize_6
-mkdir ${INDEX_DIR}vectors_30_bandsize_10
-mkdir ${INDEX_DIR}vectors_32_bandsize_4
-mkdir ${INDEX_DIR}vectors_32_bandsize_16
+mkdir -p ${INDEX_DIR}vectors_30_bandsize_10
 mkdir ${INDEX_DIR}vectors_128_bandsize_8
-mkdir ${INDEX_DIR}vectors_64_bandsize_8
 
 for INDEX_PATH in ${INDEX_DIR}* ;\
 do
