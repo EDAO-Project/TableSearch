@@ -47,47 +47,47 @@ do
     done
 done
 
-#for I in "/src/lsh-eval/aggregation/types/"* ; \
-#do
-#    SPLIT=(${I//_/ })
-#    VECTORS=${SPLIT[-3]}
-#    BAND_SIZE=${SPLIT[-1]}
-#    OUT=/src/lsh-eval/results/agregation/vectors_${VECTORS}/bandsize_${BAND_SIZE}
-#    mkdir -p ${OUT}
+for I in "/src/lsh-eval/aggregation/"* ; \
+do
+    SPLIT=(${I//_/ })
+    VECTORS=${SPLIT[-3]}
+    BAND_SIZE=${SPLIT[-1]}
+    OUT=/src/lsh-eval/results/agregation/types/vectors_${VECTORS}/bandsize_${BAND_SIZE}
+    mkdir -p ${OUT}
 
-#    echo "PROJECTION VECTORS (COLUMN AGGREGATION): "${VECTORS}
-#    echo
+    echo "PROJECTION VECTORS (COLUMN AGGREGATION): "${VECTORS}
+    echo
 
-#    for TOP_K in {10,100} ; \
-#    do
-#        OUT_K=${OUT}/${TOP_K}
-#        mkdir -p ${OUT_K}
+    for TOP_K in {10,100} ; \
+    do
+        OUT_K=${OUT}/${TOP_K}
+        mkdir -p ${OUT_K}
 
-#        java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${I} \
-#            -q ${QUERIES_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_TYPES --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
-#    done
-#done
+        java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${I} \
+            -q ${QUERIES_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_TYPES --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
+    done
+done
 
-#for I in "/src/lsh-eval/aggregation/embeddings/"* ; \
-#do
-#    SPLIT=(${I//_/ })
-#    VECTORS=${SPLIT[-3]}
-#    BAND_SIZE=${SPLIT[-1]}
-#    OUT=/src/lsh-eval/results/agregation/vectors_${VECTORS}/bandsize_${BAND_SIZE}
-#    mkdir -p ${OUT}
+for I in "/src/lsh-eval/aggregation/"* ; \
+do
+    SPLIT=(${I//_/ })
+    VECTORS=${SPLIT[-3]}
+    BAND_SIZE=${SPLIT[-1]}
+    OUT=/src/lsh-eval/results/agregation/embeddings/vectors_${VECTORS}/bandsize_${BAND_SIZE}
+    mkdir -p ${OUT}
 
-#    echo "PROJECTION VECTORS (COLUMN AGGREGATION): "${VECTORS}
-#    echo
+    echo "PROJECTION VECTORS (COLUMN AGGREGATION): "${VECTORS}
+    echo
 
-#    for TOP_K in {10,100} ; \
-#    do
-#        OUT_K=${OUT}/${TOP_K}
-#        mkdir -p ${OUT_K}
+    for TOP_K in {10,100} ; \
+    do
+        OUT_K=${OUT}/${TOP_K}
+        mkdir -p ${OUT_K}
 
-#        java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${I} \
-#            -q ${QUERIES_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_EMBEDDINGS --singleColumnPerQueryEntity --usePretrainedEmbeddings --useMaxSimilarityPerColumn --embeddingSimilarityFunction norm_cos
-#    done
-#done
+        java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${I} \
+            -q ${QUERIES_DIR} -td ${TABLES} -od ${OUT_K} -t 4 -pf LSH_EMBEDDINGS --singleColumnPerQueryEntity --usePretrainedEmbeddings --useMaxSimilarityPerColumn --embeddingSimilarityFunction norm_cos
+    done
+done
 
 #OUTPUT_DIR='/src/lsh-eval/results/baseline/'
 
