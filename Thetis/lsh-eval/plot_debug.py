@@ -99,35 +99,28 @@ def gen_boxplots(ndcg_dict, votes):
     data10 = list()
     data100 = list()
 
-    data10.append(ndcg_dict[str(votes)]['types']['30']['10']['10'])
-    data10.append(ndcg_dict[str(votes)]['types']['128']['8']['10'])
-    data10.append(ndcg_dict[str(votes)]['embeddings']['30']['10']['10'])
-    data10.append(ndcg_dict[str(votes)]['embeddings']['128']['8']['10'])
-    data10.append(ndcg_dict['1']['types_column']['30']['10']['10'])
-    data10.append(ndcg_dict['1']['types_column']['128']['8']['10'])
-    data10.append(ndcg_dict['1']['embeddings_column']['30']['10']['10'])
-    data10.append(ndcg_dict['1']['embeddings_column']['128']['8']['10'])
-    data10.append(ndcg_dict['baseline']['jaccard']['10'])
-    data10.append(ndcg_dict['baseline']['cosine']['10'])
+    data_types = list()
+    data_embeddings = list()
 
-    data100.append(ndcg_dict[str(votes)]['types']['30']['10']['100'])
-    data100.append(ndcg_dict[str(votes)]['types']['128']['8']['100'])
-    data100.append(ndcg_dict[str(votes)]['embeddings']['30']['10']['100'])
-    data100.append(ndcg_dict[str(votes)]['embeddings']['128']['8']['100'])
-    data100.append(ndcg_dict['1']['types_column']['30']['10']['100'])
-    data100.append(ndcg_dict['1']['types_column']['128']['8']['100'])
-    data100.append(ndcg_dict['1']['embeddings_column']['30']['10']['100'])
-    data100.append(ndcg_dict['1']['embeddings_column']['128']['8']['100'])
-    data100.append(ndcg_dict['baseline']['jaccard']['100'])
-    data100.append(ndcg_dict['baseline']['cosine']['100'])
+    data_types.append(ndcg_dict[str(votes)]['types']['128']['8']['100'])
+    data_types.append(ndcg_dict[str(votes)]['types']['30']['10']['100'])
+    data_types.append(ndcg_dict['1']['types_column']['128']['8']['100'])
+    data_types.append(ndcg_dict['1']['types_column']['30']['10']['100'])
+    data_types.append(ndcg_dict['baseline']['jaccard']['100'])
 
-    plot_k_10 = ax1.boxplot(data10, vert = True, patch_artist = True, labels = labels)
-    ax1.set_title('K = 10')
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['128']['8']['100'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['30']['10']['100'])
+    data_embeddings.append(ndcg_dict['1']['embeddings_column']['128']['8']['100'])
+    data_embeddings.append(ndcg_dict['1']['embeddings_column']['30']['10']['100'])
+    data_embeddings.append(ndcg_dict['baseline']['cosine']['100'])
 
-    plot_k_100 = ax2.boxplot(data100, vert = True, patch_artist = True, labels = labels)
-    ax2.set_title('K = 100')
+    plot_types = ax1.boxplot(data10, vert = True, patch_artist = True, labels = ['T(V=128, BS=8)', 'T(V=30, BS=10)', 'TC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - Jaccard'])
+    ax1.set_title('LSH Using Types')
 
-    for plot in (plot_k_10, plot_k_100):
+    plot_embeddings = ax2.boxplot(data100, vert = True, patch_artist = True, labels = ['E(V=128, BS=8)', 'E(V=30, BS=10)', 'EC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - cosine'])
+    ax2.set_title('LSH Using Embeddings')
+
+    for plot in (plot_types, plot_embeddings):
         for patch, color in zip(plot['boxes'], colors):
             patch.set_facecolor(color)
 
