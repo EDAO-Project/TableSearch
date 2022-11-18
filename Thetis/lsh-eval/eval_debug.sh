@@ -60,7 +60,7 @@ do
     SPLIT=(${I//_/ })
     VECTORS=${SPLIT[-3]}
     BAND_SIZE=${SPLIT[-1]}
-    OUT=/src/lsh-eval/results/agregation/types/vectors_${VECTORS}/bandsize_${BAND_SIZE}
+    OUT=${OUTPUT_DIR}aggregation/types/vectors_${VECTORS}/bandsize_${BAND_SIZE}
     mkdir -p ${OUT}
 
     echo "PROJECTION VECTORS (COLUMN AGGREGATION): "${VECTORS}
@@ -85,7 +85,7 @@ do
     SPLIT=(${I//_/ })
     VECTORS=${SPLIT[-3]}
     BAND_SIZE=${SPLIT[-1]}
-    OUT=/src/lsh-eval/results/agregation/embeddings/vectors_${VECTORS}/bandsize_${BAND_SIZE}
+    OUT=${OUTPUT_DIR}aggregation/embeddings/vectors_${VECTORS}/bandsize_${BAND_SIZE}
     mkdir -p ${OUT}
 
     echo "PROJECTION VECTORS (COLUMN AGGREGATION): "${VECTORS}

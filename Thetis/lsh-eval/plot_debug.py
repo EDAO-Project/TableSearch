@@ -60,11 +60,11 @@ def ground_truth(query_filename, ground_truth_folder, table_corpus_folder, pickl
 def predicted_scores(query_id, votes, mode, vectors, band_size, k, gt_tables, is_baseline = False, is_column_aggregation = False):
     path = 'results/vote_' + str(votes) + '/' + mode + '/vectors_' + str(vectors) + '/bandsize_' + str(band_size) + '/' + str(k) + '/search_output/' + query_id + '/filenameToScore.json'
 
-    if is_baseline:
+    if (is_baseline):
         path = 'results/baseline/baseline_' + mode + '/' + str(k) + '/search_output/' + query_id + '/filenameToScore.json'
 
     elif (is_column_aggregation):
-        path = 'results/aggregation/' + mode + '/vectors_' + str(vectors) + '/bandsize_' + str(band_size) + '/' + str(k) + '/search_output/' + query_id + '/filenameToScore.json'
+        path = 'results/vote_' + str(votes) + '/aggregation/' + mode + '/vectors_' + str(vectors) + '/bandsize_' + str(band_size) + '/' + str(k) + '/search_output/' + query_id + '/filenameToScore.json'
 
     if not os.path.exists(path):
         return None
@@ -93,31 +93,27 @@ def full_corpus(base_dir):
     return tables
 
 def gen_boxplots(ndcg_dict, votes):
-    labels = ['T(V=30, BS=10)', 'T(V=128, BS=8)', 'E(V=30, BS=10)', 'E(V=128, BS=8)', 'TC(V=30, BS=10)', 'TC(V=128, BS=8)', 'EC(V=30, BS=10)', 'EC(V=128, BS=8)', 'B - Jaccard', 'B - cosine']
     colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
-    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (85, 10))
-    data10 = list()
-    data100 = list()
-
+    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (25, 10))
     data_types = list()
     data_embeddings = list()
 
-    data_types.append(ndcg_dict[str(votes)]['types']['128']['8']['100'])
-    data_types.append(ndcg_dict[str(votes)]['types']['30']['10']['100'])
-    data_types.append(ndcg_dict['1']['types_column']['128']['8']['100'])
-    data_types.append(ndcg_dict['1']['types_column']['30']['10']['100'])
-    data_types.append(ndcg_dict['baseline']['jaccard']['100'])
+    data_types.append(ndcg_dict[str(votes)]['types']['128']['8']['10'])
+    data_types.append(ndcg_dict[str(votes)]['types']['30']['10']['10'])
+    data_types.append(ndcg_dict['1']['types_column']['128']['8']['10'])
+    data_types.append(ndcg_dict['1']['types_column']['30']['10']['10'])
+    data_types.append(ndcg_dict['baseline']['jaccard']['10'])
 
-    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['128']['8']['100'])
-    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['30']['10']['100'])
-    data_embeddings.append(ndcg_dict['1']['embeddings_column']['128']['8']['100'])
-    data_embeddings.append(ndcg_dict['1']['embeddings_column']['30']['10']['100'])
-    data_embeddings.append(ndcg_dict['baseline']['cosine']['100'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['128']['8']['10'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['30']['10']['10'])
+    data_embeddings.append(ndcg_dict['1']['embeddings_column']['128']['8']['10'])
+    data_embeddings.append(ndcg_dict['1']['embeddings_column']['30']['10']['10'])
+    data_embeddings.append(ndcg_dict['baseline']['cosine']['10'])
 
-    plot_types = ax1.boxplot(data10, vert = True, patch_artist = True, labels = ['T(V=128, BS=8)', 'T(V=30, BS=10)', 'TC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - Jaccard'])
+    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, labels = ['T(V=128, BS=8)', 'T(V=30, BS=10)', 'TC(V=128, BS=8)', 'TC(V=30, BS=10)', 'B - Jaccard'])
     ax1.set_title('LSH Using Types')
 
-    plot_embeddings = ax2.boxplot(data100, vert = True, patch_artist = True, labels = ['E(V=128, BS=8)', 'E(V=30, BS=10)', 'EC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - cosine'])
+    plot_embeddings = ax2.boxplot(data_embeddings, vert = True, patch_artist = True, labels = ['E(V=128, BS=8)', 'E(V=30, BS=10)', 'EC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - cosine'])
     ax2.set_title('LSH Using Embeddings')
 
     for plot in (plot_types, plot_embeddings):
@@ -215,13 +211,13 @@ def plot_ndcg():
 
                 if not predicted_relevance is None:
                     ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                    ndcg['1']['embeddings_column']['30']['10'][str(k)].append(ndcg_embeddings)
+                    ndcg['1']['types_column']['30']['10'][str(k)].append(ndcg_embeddings)
 
                 predicted_relevance = predicted_scores(query_id, vote, 'types', 128, 8, k, gt_rels, False, True)
 
                 if not predicted_relevance is None:
                     ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                    ndcg['1']['embeddings_column']['128']['8'][str(k)].append(ndcg_embeddings)
+                    ndcg['1']['types_column']['128']['8'][str(k)].append(ndcg_embeddings)
 
                 # Embeddings
                 predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 30, 10, k, gt_rels)
