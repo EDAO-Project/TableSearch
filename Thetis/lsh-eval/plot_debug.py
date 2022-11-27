@@ -93,6 +93,11 @@ def full_corpus(base_dir):
     return tables
 
 def gen_boxplots(ndcg_dict, votes):
+    plt.rc('xtick', labelsize = 20)
+    plt.rc('ytick', labelsize = 20)
+    plt.rc('axes', labelsize = 15)
+    plt.rc('axes', titlesize = 25)
+
     colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
     fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (25, 10))
     data_types = list()
@@ -125,13 +130,14 @@ def gen_boxplots(ndcg_dict, votes):
     for ax in [ax1, ax2]:
         ax.yaxis.grid(True)
         ax.set_ylabel('NDCG')
+        ax.vlines(5, 0, 1.0)
 
     plt.savefig('debug_plot_' + str(votes) + '_votes.pdf', format = 'pdf')
     plt.clf()
 
 # Returns map: ['types'|'embeddings'|'baseline']->[<# BUCKETS: [150|300]>]->[<TOP-K: [10|100]>]->[NDCG SCORES]
-def plot_ndcg():
-    query_dir = 'queries/'
+def plot_ndcg(tuples):
+    query_dir = 'queries/' + str(tuples) + '-tuple/'
     ground_truth_dir = '../../data/cikm/SemanticTableSearchDataset/ground_truth/wikipedia_categories'
     corpus = '/data/cikm/SemanticTableSearchDataset/table_corpus/tables'
     mapping_file = '../../data/cikm/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
@@ -260,4 +266,8 @@ def plot_ndcg():
 
         gen_boxplots(ndcg, vote)
 
-plot_ndcg()
+print('1-TUPLE QUERIES')
+plot_ndcg(1)
+
+print('2-TUPLE QUERIES')
+plot_ndcg(2)
