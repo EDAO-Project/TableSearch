@@ -120,10 +120,10 @@ def gen_boxplots(ndcg_dict, votes, tuples):
     data_embeddings.append(ndcg_dict[str(votes)]['embeddings_column']['30']['10']['10'])
     data_embeddings.append(ndcg_dict['baseline']['cosine']['10'])
 
-    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'TC(V=128, BS=8)', 'TC(V=30, BS=10)', 'B - Jaccard'])
+    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'TC(V=32, BS=8)', 'TC(V=128, BS=8)', 'TC(V=30, BS=10)', 'B - Jaccard'])
     ax1.set_title('LSH Using Types')
 
-    plot_embeddings = ax2.boxplot(data_embeddings, vert = True, patch_artist = True, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'EC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - cosine'])
+    plot_embeddings = ax2.boxplot(data_embeddings, vert = True, patch_artist = True, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'EC(V=32, BS=8)', 'EC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - cosine'])
     ax2.set_title('LSH Using Embeddings')
 
     for plot in (plot_types, plot_embeddings):
@@ -135,7 +135,7 @@ def gen_boxplots(ndcg_dict, votes, tuples):
     for ax in [ax1, ax2]:
         ax.yaxis.grid(True)
         ax.set_ylabel('NDCG')
-        ax.vlines(5.5, 0, 1.0)
+        ax.vlines(6.5, 0, 1.0)
 
     plt.savefig(str(tuples) + '-tuple_plot_' + str(votes) + '_votes.pdf', format = 'pdf')
     plt.clf()
@@ -171,7 +171,7 @@ def plot_ndcg(tuples):
         ndcg[str(vote)]['embeddings_column']['32'] = dict()
         ndcg[str(vote)]['embeddings_column']['128'] = dict()
         ndcg[str(vote)]['types']['30']['10'] = dict()
-        ndcg[str(vote)]['types']['32']['10'] = dict()
+        ndcg[str(vote)]['types']['32']['8'] = dict()
         ndcg[str(vote)]['types']['128']['8'] = dict()
         ndcg[str(vote)]['types_column']['30']['10'] = dict()
         ndcg[str(vote)]['types_column']['32']['8'] = dict()
