@@ -104,21 +104,21 @@ def gen_boxplots(ndcg_dict, votes, tuples):
     data_types = list()
     data_embeddings = list()
 
-    data_types.append(ndcg_dict[str(votes)]['types']['32']['8']['100'])
-    data_types.append(ndcg_dict[str(votes)]['types']['128']['8']['100'])
-    data_types.append(ndcg_dict[str(votes)]['types']['30']['10']['100'])
-    data_types.append(ndcg_dict[str(votes)]['types_column']['32']['8']['100'])
-    data_types.append(ndcg_dict[str(votes)]['types_column']['128']['8']['100'])
-    data_types.append(ndcg_dict[str(votes)]['types_column']['30']['10']['100'])
-    data_types.append(ndcg_dict['baseline']['jaccard']['100'])
+    data_types.append(ndcg_dict[str(votes)]['types']['32']['8'])
+    data_types.append(ndcg_dict[str(votes)]['types']['128']['8'])
+    data_types.append(ndcg_dict[str(votes)]['types']['30']['10'])
+    data_types.append(ndcg_dict[str(votes)]['types_column']['32']['8'])
+    data_types.append(ndcg_dict[str(votes)]['types_column']['128']['8'])
+    data_types.append(ndcg_dict[str(votes)]['types_column']['30']['10'])
+    data_types.append(ndcg_dict['baseline']['jaccard'])
 
-    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['32']['8']['100'])
-    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['128']['8']['100'])
-    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['30']['10']['100'])
-    data_embeddings.append(ndcg_dict[str(votes)]['embeddings_column']['32']['8']['100'])
-    data_embeddings.append(ndcg_dict[str(votes)]['embeddings_column']['128']['8']['100'])
-    data_embeddings.append(ndcg_dict[str(votes)]['embeddings_column']['30']['10']['100'])
-    data_embeddings.append(ndcg_dict['baseline']['cosine']['100'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['32']['8'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['128']['8'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['30']['10'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings_column']['32']['8'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings_column']['128']['8'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings_column']['30']['10'])
+    data_embeddings.append(ndcg_dict['baseline']['cosine'])
 
     plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'TC(V=32, BS=8)', 'TC(V=128, BS=8)', 'TC(V=30, BS=10)', 'B - Jaccard'])
     ax1.set_title('LSH Using Types')
@@ -142,14 +142,14 @@ def gen_boxplots(ndcg_dict, votes, tuples):
 
 # Returns map: ['types'|'embeddings'|'baseline']->[<# BUCKETS: [150|300]>]->[<TOP-K: [10|100]>]->[NDCG SCORES]
 def plot_ndcg(tuples):
-    query_dir = 'queries/' + str(tuples) + '-tuple/'
+    query_dir = 'queries/' + str(tuples) + '-tuple_old/'	# CHANGE THIS BACK WHEN PLOTTING NEXT TIME!
     ground_truth_dir = '../../data/cikm/SemanticTableSearchDataset/ground_truth/wikipedia_categories'
     corpus = '/data/cikm/SemanticTableSearchDataset/table_corpus/tables'
     mapping_file = '../../data/cikm/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
     query_files = os.listdir(query_dir)
     table_files = full_corpus(corpus + '/../corpus')
-    top_k = [10, 100]
-    votes = [1, 2, 3, 4]
+    k = 100
+    votes = [1, 2, 3]
     ndcg = dict()
 
     for vote in votes:
@@ -187,7 +187,7 @@ def plot_ndcg(tuples):
         ndcg['baseline']['cosine'] = list()
 
         count = 0
-        print('K = ' + str(k) + ', Vote = ' + str(vote))
+        print('Vote = ' + str(vote))
 
         for query_file in query_files:
             count += 1
@@ -289,7 +289,7 @@ def plot_ndcg(tuples):
                 ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
                 ndcg['baseline']['cosine'].append(ndcg_baseline)
 
-    gen_boxplots(ndcg, vote, tuples)
+        gen_boxplots(ndcg, vote, tuples)
 
 print('1-TUPLE QUERIES')
 plot_ndcg(1)

@@ -6,7 +6,7 @@ OUTPUT_DIR='/src/lsh-eval/results/vote_1/'
 QUERIES_DIR="/src/lsh-eval/queries/"
 TOP_K=100
 
-for I in ${INDEX_DIR}vectors_32* ; \
+for I in ${INDEX_DIR}* ; \
 do
     SPLIT=(${I//_/ })
     VECTORS=${SPLIT[-3]}
@@ -28,7 +28,7 @@ do
     done
 done
 
-for I in ${INDEX_DIR}vectors_32* ; \
+for I in ${INDEX_DIR}* ; \
 do
     SPLIT=(${I//_/ })
     VECTORS=${SPLIT[-3]}
@@ -50,7 +50,7 @@ do
     done
 done
 
-for I in "/src/lsh-eval/indexes_aggregation/vectors_32"* ; \
+for I in "/src/lsh-eval/indexes_aggregation/"* ; \
 do
     SPLIT=(${I//_/ })
     VECTORS=${SPLIT[-3]}
@@ -72,7 +72,7 @@ do
     done
 done
 
-for I in "/src/lsh-eval/indexes_aggregation/vectors_32"* ; \
+for I in "/src/lsh-eval/indexes_aggregation/"* ; \
 do
     SPLIT=(${I//_/ })
     VECTORS=${SPLIT[-3]}
@@ -130,13 +130,13 @@ done
 
 #for TOP_K in {10,100} ; \
 #do
-#    for TUPLES in {1,2} ; \
+#    for TUPLES in {1,2,5} ; \
 #    do
 #        OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
 #        mkdir -p ${OUT_K}
 
-#        QUERIES=${QUERIES_DIR}bm25_${TUPLES}-tuple/
-#        python bm25/pool_ranker.py --output_dir ${OUT_K} \
+#        QUERIES=${QUERIES_DIR}bm25_${TUPLES}-tuple/queries.txt
+#        python3 bm25/pool_ranker.py --output_dir ${OUT_K} \
 #            --input_dir ${QUERIES} --index_name ${INDEX_NAME} --topn ${TOP_K}
 #    done
 #done
