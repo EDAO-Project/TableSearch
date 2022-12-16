@@ -142,10 +142,10 @@ def gen_boxplots(ndcg_dict, votes, tuples):
 
 # Returns map: ['types'|'embeddings'|'baseline']->[<# BUCKETS: [150|300]>]->[<TOP-K: [10|100]>]->[NDCG SCORES]
 def plot_ndcg(tuples):
-    query_dir = 'queries/' + str(tuples) + '-tuple_old/'	# CHANGE THIS BACK WHEN PLOTTING NEXT TIME!
-    ground_truth_dir = '../../data/cikm/SemanticTableSearchDataset/ground_truth/wikipedia_categories'
-    corpus = '/data/cikm/SemanticTableSearchDataset/table_corpus/tables'
-    mapping_file = '../../data/cikm/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
+    query_dir = 'queries/' + str(tuples) + '-tuple/'
+    ground_truth_dir = '../../data/tables/SemanticTableSearchDataset/ground_truth/wikipedia_categories'
+    corpus = '/data/tables/SemanticTableSearchDataset/table_corpus/tables'
+    mapping_file = '../../data/tables/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
     query_files = os.listdir(query_dir)
     table_files = full_corpus(corpus + '/../corpus')
     k = 100
