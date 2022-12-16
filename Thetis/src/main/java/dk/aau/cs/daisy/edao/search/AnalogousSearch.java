@@ -6,6 +6,7 @@ import dk.aau.cs.daisy.edao.commands.parser.TableParser;
 import dk.aau.cs.daisy.edao.connector.DBDriverBatch;
 import dk.aau.cs.daisy.edao.loader.Stats;
 import dk.aau.cs.daisy.edao.similarity.JaccardSimilarity;
+import dk.aau.cs.daisy.edao.store.EmbeddingsIndex;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
@@ -22,6 +23,7 @@ import dk.aau.cs.daisy.edao.utilities.Utils;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -69,8 +71,7 @@ public class AnalogousSearch extends AbstractSearch
     private Set<String> corpus;
     private Prefilter prefilter;
     private Map<String, List<Double>> queryEntityEmbeddings = null;
-    private Map<String, Map<String, List<Double>>> tablesToEntityMappings = new ConcurrentHashMap<>();
-    private final Map<String, Double> embeddingsMap = new HashMap<>();
+    private final EmbeddingsIndex<String> embeddingsIndex = new EmbeddingsIndex();
 
     public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK,
                            int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
@@ -128,43 +129,36 @@ public class AnalogousSearch extends AbstractSearch
     private void insertTableEntityEmbeddings(JsonTable table, String tableId)
     {
         List<String> entities = new ArrayList<>();
-
-        for (List<JsonTable.TableCell> row : table.rows)
-        {
-            int columns = row.size();
-
-            for (int column = 0; column < columns; column++)
+        table.forEach(cell -> {
+            for (String link : cell.links)
             {
-                for (String link : row.get(column).links)
-                {
-                    String uri = getLinker().mapTo(link);
+                String uri = getLinker().mapTo(link);
 
-                    if (uri != null)
-                    {
-                        entities.add(uri);
-                        break;
-                    }
+                if (uri != null)
+                {
+                    entities.add(uri);
+                    break;
                 }
             }
-        }
+        });
 
         Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);
-        this.tablesToEntityMappings.put(tableId, embeddings);
+        embeddings.forEach((entity, embedding) -> this.embeddingsIndex.clusterInsert(tableId, entity, embedding));
     }
 
     private void removeTableEmbeddings(String tableId)
     {
-        this.tablesToEntityMappings.remove(tableId);
+        this.embeddingsIndex.clusterRemove(tableId);
     }
 
     private List<Double> getTableEntityEmbedding(String table, String entity)
     {
-        if (this.tablesToEntityMappings.containsKey(table))
+        if (this.prefilter != null)
         {
-            return this.tablesToEntityMappings.get(table).get(entity);
+            return this.embeddingsIndex.find(entity);
         }
 
-        return null;
+        return this.embeddingsIndex.clusterGet(table, entity);
     }
 
     public void setCorpus(Set<String> tableFiles)
@@ -189,10 +183,50 @@ public class AnalogousSearch extends AbstractSearch
         {
             this.corpus.add(res.next().getFirst());
         }
+
+        if (this.useEmbeddings)
+        {
+            collectEmbeddings();
+        }
+    }
+
+    private void collectEmbeddings()
+    {
+        final int batchSize = 100;
+        List<String> entities = new ArrayList<>();
+
+        for (String table : this.corpus)
+        {
+            if (entities.size() == batchSize)
+            {
+                Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);
+                embeddings.forEach(this.embeddingsIndex::insert);
+                entities.clear();
+            }
+
+            JsonTable jTable = TableParser.parse(new File(this.getEntityTableLink().getDirectory() + table));
+
+            if (jTable == null || jTable.numDataRows == 0)
+            {
+                continue;
+            }
+
+            jTable.forEach(cell -> {
+                for (String tableEntity : cell.links)
+                {
+                    String uri = getLinker().mapTo(tableEntity);
+
+                    if (uri != null)
+                    {
+                        entities.add(uri);
+                    }
+                }
+            });
+        }
     }
 
     /**
-     * Entrpy point for analogous search
+     * Entry point for analogous search
      * @param query Input table query
      * @return Top-K ranked result container
      */
@@ -295,7 +329,7 @@ public class AnalogousSearch extends AbstractSearch
         if (jTable == null || jTable.numDataRows == 0)
             return null;
 
-        if (this.useEmbeddings)
+        if (this.useEmbeddings && this.prefilter == null)
         {
             insertTableEntityEmbeddings(jTable, table);
         }
@@ -401,7 +435,7 @@ public class AnalogousSearch extends AbstractSearch
         Double score = aggregateTableSimilarities(query, scores, statBuilder);
         this.tableStats.put(table, statBuilder.finish());
 
-        if (this.useEmbeddings)
+        if (this.useEmbeddings && this.prefilter == null)
         {
             removeTableEmbeddings(table);
         }
