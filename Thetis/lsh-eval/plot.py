@@ -15,30 +15,6 @@ from tqdm import tqdm
 
 import utils
 
-def plot_runtime():
-    labels = ['1', '2', '5']
-    types = [0, 0, 0]
-    embeddings = [24, 54, 141]
-    baseline = [49, 82, 167]
-
-    x = np.arange(len(labels))
-    width = 0.75
-
-    fig, ax = plt.subplots()
-    rects_types = ax.bar(x - width / 3, types, width / 3, label = 'LSH of types')
-    rects_embeddings = ax.bar(x, embeddings, width / 3, label = 'LSH of embeddings')
-    rescts_baseline = ax.bar(x + width / 3, baseline, width / 3, label = 'Pure brute-force')
-
-    ax.set_title('Top-K = 100')
-    ax.set_xlabel('# query tuples')
-    ax.set_ylabel('Runtime (s)')
-    ax.set_xticks(x, labels)
-    ax.legend()
-
-    fig.tight_layout()
-    fig.savefig('runtime.pdf')
-    fig.clf()
-
 # Returns: query, [relevance score, table ID]
 def ground_truth(query_filename, ground_truth_folder, table_corpus_folder, pickle_mapping_file):
     query = None
@@ -81,8 +57,14 @@ def ground_truth(query_filename, ground_truth_folder, table_corpus_folder, pickl
     return query, relevances
 
 # Returns None if results for given query ID do not exist
-def predicted_scores(query_id, mode, vectors, tuples, k, gt_tables):
-    path = 'results/' + mode + '/vectors_' + str(vectors) + '/' + str(k) + '/search_output/' + query_id + '/filenameToScore.json'
+def predicted_scores(query_id, votes, mode, vectors, band_size, tuples, k, gt_tables, is_baseline = False, is_column_aggregation = False):
+    path = 'results/vote_' + str(votes) + '/' + mode + '/vectors_' + str(vectors) + '/bandsize_' + str(band_size) + '/' + str(k) + '/' + str(tuples) + '-tuple/search_output/' + query_id + '/filenameToScore.json'
+
+    if (is_baseline):
+        path = 'results/baseline/baseline_' + mode + '/' + str(k) + '/' + str(tuples) + '-tuple/search_output/' + query_id + '/filenameToScore.json'
+
+    elif (is_column_aggregation):
+        path = 'results/vote_' + str(votes) + '/aggregation/' + mode + '/vectors_' + str(vectors) + '/bandsize_' + str(band_size) + '/' + str(k) + '/' + str(tuples) + '-tuple/search_output/' + query_id + '/filenameToScore.json'
 
     if not os.path.exists(path):
         return None
@@ -102,142 +84,215 @@ def predicted_scores(query_id, mode, vectors, tuples, k, gt_tables):
         return list(scores.values())
 
 def full_corpus(base_dir):
-    folders = os.listdir(base_dir)
+    files = os.listdir(base_dir)
     tables = list()
 
-    for folder in folders:
-        files = os.listdir(base_dir + '/' + folder)
-
-        for file in files:
-            tables.append(file)
+    for file in files:
+        tables.append(file)
 
     return tables
 
-def gen_boxplots(ndcg_dict, query_tuples):
-    labels = ['T@10', 'T@100', 'E@10', 'E@100', 'B@10', 'B@100']
+def gen_boxplots(ndcg_dict, votes, tuples):
+    plt.rc('xtick', labelsize = 25)
+    plt.rc('ytick', labelsize = 35)
+    plt.rc('axes', labelsize = 20)
+    plt.rc('axes', titlesize = 20)
+    plt.rc('legend', fontsize = 25)
+
     colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
-    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (9, 4))
-    scores_32_vectors = list()
-    scores_64_vectors = list()
+    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (75, 10))
+    data_types = list()
+    data_embeddings = list()
 
-    scores_32_vectors.append(ndcg_dict['types']['32']['10'])
-    scores_32_vectors.append(ndcg_dict['types']['32']['100'])
-    scores_32_vectors.append(ndcg_dict['embeddings']['32']['10'])
-    scores_32_vectors.append(ndcg_dict['embeddings']['32']['100'])
-    scores_32_vectors.append(ndcg_dict['baseline_jaccard']['32']['10'])
-    scores_32_vectors.append(ndcg_dict['baseline_jaccard']['32']['100'])
-    scores_32_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
-    scores_32_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
+    data_types.append(ndcg_dict[str(votes)]['types']['32']['8'])
+    data_types.append(ndcg_dict[str(votes)]['types']['128']['8'])
+    data_types.append(ndcg_dict[str(votes)]['types']['30']['10'])
+    data_types.append(ndcg_dict[str(votes)]['types_column']['32']['8'])
+    data_types.append(ndcg_dict[str(votes)]['types_column']['128']['8'])
+    data_types.append(ndcg_dict[str(votes)]['types_column']['30']['10'])
+    data_types.append(ndcg_dict['baseline']['jaccard'])
 
-    scores_64_vectors.append(ndcg_dict['types']['64']['10'])
-    scores_64_vectors.append(ndcg_dict['types']['64']['100'])
-    scores_64_vectors.append(ndcg_dict['embeddings']['64']['10'])
-    scores_64_vectors.append(ndcg_dict['embeddings']['64']['100'])
-    scores_64_vectors.append(ndcg_dict['baseline_jaccard']['32']['10'])
-    scores_64_vectors.append(ndcg_dict['baseline_jaccard']['32']['100'])
-    scores_64_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
-    scores_64_vectors.append(ndcg_dict['baseline_cosine']['32']['100'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['32']['8'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['128']['8'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['30']['10'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings_column']['32']['8'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings_column']['128']['8'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings_column']['30']['10'])
+    data_embeddings.append(ndcg_dict['baseline']['cosine'])
 
-    plot_32_vectors = ax1.boxplot(scores_32_vectors, vert = True, patch_artist = True, labels = labels)
-    ax1.set_title('32 permutation/projection')
+    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'TC(V=32, BS=8)', 'TC(V=128, BS=8)', 'TC(V=30, BS=10)', 'B - Jaccard'])
+    ax1.set_title('LSH Using Types')
 
-    plot_64_vectors = ax2.boxplot(scores_64_vectors, vert = True, patch_artist = True, labels = labels)
-    ax2.set_title('64 permutation/projection')
+    plot_embeddings = ax2.boxplot(data_embeddings, vert = True, patch_artist = True, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'EC(V=32, BS=8)', 'EC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - cosine'])
+    ax2.set_title('LSH Using Embeddings')
 
-    for plot in (plot_32_vectors, plot_64_vectors):
+    for plot in (plot_types, plot_embeddings):
         for patch, color in zip(plot['boxes'], colors):
             patch.set_facecolor(color)
 
-    ax1.set_xlabel('Approach@K (T = LSH of types, E = LSH of embeddings, B = Brute-Force')
+    ax1.set_xlabel('T = LSH of types, E = LSH of embeddings, TC = Column-based LSH of types, EC = Column-based LSH of embeddings, B = Brute-Force V = # permutation/projection vectors, BS = band size')
 
     for ax in [ax1, ax2]:
         ax.yaxis.grid(True)
         ax.set_ylabel('NDCG')
+        ax.vlines(6.5, 0, 1.0)
 
-    plt.savefig(str(query_tuples) + '-tuple-queries.pdf', format = 'pdf')
+    plt.savefig(str(tuples) + '-tuple_plot_' + str(votes) + '_votes.pdf', format = 'pdf')
     plt.clf()
 
 # Returns map: ['types'|'embeddings'|'baseline']->[<# BUCKETS: [150|300]>]->[<TOP-K: [10|100]>]->[NDCG SCORES]
-def plot_ndcg(query_tuples):
-    #query_dir = '../../data/cikm/SemanticTableSearchDataset/queries/' + str(query_tuples) + '_tuples_per_query/'
-    query_dir = '../../data/cikm/SemanticTableSearchDataset/queries/copy/' + str(query_tuples) + '_tuples_per_query/'
+def plot_ndcg(tuples):
+    query_dir = 'queries/' + str(tuples) + '-tuple_old/'	# CHANGE THIS BACK WHEN PLOTTING NEXT TIME!
     ground_truth_dir = '../../data/cikm/SemanticTableSearchDataset/ground_truth/wikipedia_categories'
-    corpus = '../../data/cikm/SemanticTableSearchDataset/table_corpus/tables'
+    corpus = '/data/cikm/SemanticTableSearchDataset/table_corpus/tables'
     mapping_file = '../../data/cikm/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
     query_files = os.listdir(query_dir)
-    table_files = full_corpus(corpus + '/redirect')
-    top_k = [10, 100]
-    vectors = [32, 64]
+    table_files = full_corpus(corpus + '/../corpus')
+    k = 100
+    votes = [1, 2, 3]
     ndcg = dict()
-    ndcg['types'] = dict()
-    ndcg['embeddings'] = dict()
-    ndcg['baseline_jaccard'] = dict()
-    ndcg['baseline_cosine'] = dict()
 
-    for v in vectors:
-        ndcg['types'][str(v)] = dict()
-        ndcg['embeddings'][str(v)] = dict()
-        ndcg['baseline_jaccard']['32'] = dict()
-        ndcg['baseline_cosine']['32'] = dict()
+    for vote in votes:
+        ndcg[str(vote)] = dict()
+        ndcg[str(vote)]['types'] = dict()
+        ndcg[str(vote)]['types_column'] = dict()
+        ndcg[str(vote)]['embeddings'] = dict()
+        ndcg[str(vote)]['embeddings_column'] = dict()
+        ndcg[str(vote)]['types']['30'] = dict()
+        ndcg[str(vote)]['types']['32'] = dict()
+        ndcg[str(vote)]['types']['128'] = dict()
+        ndcg[str(vote)]['types_column']['30'] = dict()
+        ndcg[str(vote)]['types_column']['32'] = dict()
+        ndcg[str(vote)]['types_column']['128'] = dict()
+        ndcg[str(vote)]['embeddings']['30'] = dict()
+        ndcg[str(vote)]['embeddings']['32'] = dict()
+        ndcg[str(vote)]['embeddings']['128'] = dict()
+        ndcg[str(vote)]['embeddings_column']['30'] = dict()
+        ndcg[str(vote)]['embeddings_column']['32'] = dict()
+        ndcg[str(vote)]['embeddings_column']['128'] = dict()
+        ndcg[str(vote)]['types']['30']['10'] = list()
+        ndcg[str(vote)]['types']['32']['8'] = list()
+        ndcg[str(vote)]['types']['128']['8'] = list()
+        ndcg[str(vote)]['types_column']['30']['10'] = list()
+        ndcg[str(vote)]['types_column']['32']['8'] = list()
+        ndcg[str(vote)]['types_column']['128']['8'] = list()
+        ndcg[str(vote)]['embeddings']['30']['10'] = list()
+        ndcg[str(vote)]['embeddings']['32']['8'] = list()
+        ndcg[str(vote)]['embeddings']['128']['8'] = list()
+        ndcg[str(vote)]['embeddings_column']['30']['10'] = list()
+        ndcg[str(vote)]['embeddings_column']['32']['8'] = list()
+        ndcg[str(vote)]['embeddings_column']['128']['8'] = list()
+        ndcg['baseline'] = dict()
+        ndcg['baseline']['jaccard'] = list()
+        ndcg['baseline']['cosine'] = list()
 
-        for k in top_k:
-            ndcg['types'][str(v)][str(k)] = list()
-            ndcg['embeddings'][str(v)][str(k)] = list()
-            ndcg['baseline_jaccard']['32'][str(k)] = list()
-            ndcg['baseline_cosine']['32'][str(k)] = list()
+        count = 0
+        print('Vote = ' + str(vote))
 
-            count = 0
-            print('K = ' + str(k) + ', vectors = ' + str(v))
+        for query_file in query_files:
+            count += 1
 
-            for query_file in query_files:
-                count += 1
+            query_id = query_file.split('.')[0]
+            query_path = query_dir + query_file
+            truth = ground_truth(query_path, ground_truth_dir, corpus, mapping_file)
+            gt_rels = {table:0 for table in table_files}
 
-                query_id = query_file.split('.')[0]
-                query_path = query_dir + query_file
-                truth = ground_truth(query_path, ground_truth_dir, corpus, mapping_file)
-                gt_rels = {table:0 for table in table_files}
+            for relevance in truth[1]:
+                gt_rels[relevance[1]] = relevance[0]
 
-                for relevance in truth[1]:
-                    gt_rels[relevance[1]] = relevance[0]
+            # Types
+            predicted_relevance = predicted_scores(query_id, vote, 'types', 30, 10, tuples, k, gt_rels)
 
-                # Types
-                predicted_relevance = predicted_scores(query_id, 'types', v, query_tuples, k, gt_rels)
+            if not predicted_relevance is None:
+                ndcg_types = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg[str(vote)]['types']['30']['10'].append(ndcg_types)
 
-                if not predicted_relevance is None:
-                    ndcg_types = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                    ndcg['types'][str(v)][str(k)].append(ndcg_types)
+            predicted_relevance = predicted_scores(query_id, vote, 'types', 32, 8, tuples, k, gt_rels)
 
-                # Embeddings
-                predicted_relevance = predicted_scores(query_id, 'embeddings', v, query_tuples, k, gt_rels)
+            if not predicted_relevance is None:
+                ndcg_types = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg[str(vote)]['types']['32']['8'].append(ndcg_types)
 
-                if not predicted_relevance is None:
-                    ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                    ndcg['embeddings'][str(v)][str(k)].append(ndcg_embeddings)
+            predicted_relevance = predicted_scores(query_id, vote, 'types', 128, 8, tuples, k, gt_rels)
 
-                # Baseline (Jaccard) - get only for 32 permutation/projection vectors
-                predicted_relevance = predicted_scores(query_id, 'baseline_jaccard', 32, query_tuples, k, gt_rels)
+            if not predicted_relevance is None:
+                ndcg_types = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg[str(vote)]['types']['128']['8'].append(ndcg_types)
 
-                if not predicted_relevance is None:
-                    ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                    ndcg['baseline_jaccard']['32'][str(k)].append(ndcg_baseline)
+            # Types - column aggregation
+            predicted_relevance = predicted_scores(query_id, vote, 'types', 30, 10, tuples, k, gt_rels, False, True)
 
-                if count == 50:
-                    break
+            if not predicted_relevance is None:
+                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg[str(vote)]['types_column']['30']['10'].append(ndcg_embeddings)
 
-                # Baseline (Cosine) - get only for 32 permutation/projection vectors
-                predicted_relevance = predicted_scores(query_id, 'baseline_cosine', 32, query_tuples, k, gt_rels)
+            predicted_relevance = predicted_scores(query_id, vote, 'types', 32, 8, tuples, k, gt_rels, False, True)
 
-                if not predicted_relevance is None:
-                    ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                    ndcg['baseline_cosine']['32'][str(k)].append(ndcg_baseline)
+            if not predicted_relevance is None:
+                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg[str(vote)]['types_column']['32']['8'].append(ndcg_embeddings)
 
-                if count == 50:
-                    break
+            predicted_relevance = predicted_scores(query_id, vote, 'types', 128, 8, tuples, k, gt_rels, False, True)
 
-    gen_boxplots(ndcg, query_tuples)
+            if not predicted_relevance is None:
+                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg[str(vote)]['types_column']['128']['8'].append(ndcg_embeddings)
 
-#plot_runtime()
+            # Embeddings
+            predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 30, 10, tuples, k, gt_rels)
+
+            if not predicted_relevance is None:
+                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg[str(vote)]['embeddings']['30']['10'].append(ndcg_embeddings)
+
+            predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 32, 8, tuples, k, gt_rels)
+
+            if not predicted_relevance is None:
+                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg[str(vote)]['embeddings']['32']['8'].append(ndcg_embeddings)
+
+            predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 128, 8, tuples, k, gt_rels)
+
+            if not predicted_relevance is None:
+                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg[str(vote)]['embeddings']['128']['8'].append(ndcg_embeddings)
+
+            # Embeddings - Column aggregation
+            predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 30, 10, tuples, k, gt_rels, False, True)
+
+            if not predicted_relevance is None:
+                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg[str(vote)]['embeddings_column']['30']['10'].append(ndcg_embeddings)
+
+            predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 32, 8, tuples, k, gt_rels, False, True)
+
+            if not predicted_relevance is None:
+                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg[str(vote)]['embeddings_column']['32']['8'].append(ndcg_embeddings)
+
+            predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 128, 8, tuples, k, gt_rels, False, True)
+
+            if not predicted_relevance is None:
+                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg[str(vote)]['embeddings_column']['128']['8'].append(ndcg_embeddings)
+
+            # Baseline
+            predicted_relevance = predicted_scores(query_id, vote, 'jaccard', 32, 8, tuples, k, gt_rels, True, False)
+
+            if not predicted_relevance is None:
+                ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg['baseline']['jaccard'].append(ndcg_baseline)
+
+            predicted_relevance = predicted_scores(query_id, vote, 'cosine', 32, 8, tuples, k, gt_rels, True, False)
+
+            if not predicted_relevance is None:
+                ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg['baseline']['cosine'].append(ndcg_baseline)
+
+        gen_boxplots(ndcg, vote, tuples)
+
+print('1-TUPLE QUERIES')
 plot_ndcg(1)
-#plot_ndcg(2)
-#plot_ndcg(5)
-#plot(10)
+
+print('2-TUPLE QUERIES')
+plot_ndcg(2)
