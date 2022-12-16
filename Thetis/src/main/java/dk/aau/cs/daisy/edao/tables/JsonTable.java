@@ -2,6 +2,7 @@ package dk.aau.cs.daisy.edao.tables;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public class JsonTable {
 
@@ -74,8 +75,15 @@ public class JsonTable {
         this.rows = rows;
     }
 
+    public void forEach(Consumer<TableCell> consumer) {
+        for (List<JsonTable.TableCell> tableRow : this.rows) {
+            int columnSize = tableRow.size();
 
-
+            for (int tableColumn = 0; tableColumn < columnSize; tableColumn++) {
+                consumer.accept(tableRow.get(tableColumn));
+            }
+        }
+    }
 
     public static class TableCell {
 
@@ -106,6 +114,4 @@ public class JsonTable {
             return Objects.hash(text, isNumeric, links);
         }
     }
-
-
 }
