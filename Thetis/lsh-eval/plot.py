@@ -95,8 +95,8 @@ def full_corpus(base_dir):
 def gen_boxplots(ndcg_dict, votes, tuples):
     plt.rc('xtick', labelsize = 25)
     plt.rc('ytick', labelsize = 35)
-    plt.rc('axes', labelsize = 20)
-    plt.rc('axes', titlesize = 20)
+    plt.rc('axes', labelsize = 27)
+    plt.rc('axes', titlesize = 30)
     plt.rc('legend', fontsize = 25)
 
     colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
