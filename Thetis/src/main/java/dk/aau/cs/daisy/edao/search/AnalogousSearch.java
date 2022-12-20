@@ -156,7 +156,7 @@ public class AnalogousSearch extends AbstractSearch
         this.embeddingsIndex.clusterRemove(tableId);
     }
 
-    private List<Double> getTableEntityEmbedding(String table, String entity)
+    private List<Double> getTableEntityEmbedding(String entity, String table)
     {
         Id id = getLinker().kgUriLookup(entity);
 
