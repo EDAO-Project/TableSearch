@@ -1,7 +1,5 @@
 package dk.aau.cs.daisy.edao.search;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import dk.aau.cs.daisy.edao.commands.parser.TableParser;
 import dk.aau.cs.daisy.edao.connector.DBDriverBatch;
 import dk.aau.cs.daisy.edao.loader.Stats;
@@ -23,7 +21,6 @@ import dk.aau.cs.daisy.edao.utilities.Utils;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -193,6 +190,7 @@ public class AnalogousSearch extends AbstractSearch
     private void collectEmbeddings()
     {
         List<String> entities = new ArrayList<>();
+        int batchSize = 500;
 
         for (String table : this.corpus)
         {
@@ -214,6 +212,13 @@ public class AnalogousSearch extends AbstractSearch
                     }
                 }
             });
+
+            if (entities.size() >= batchSize)
+            {
+                Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);
+                embeddings.forEach(this.embeddingsIndex::insert);
+                entities.clear();
+            }
         }
 
         Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);

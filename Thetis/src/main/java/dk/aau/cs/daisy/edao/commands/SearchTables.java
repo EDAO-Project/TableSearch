@@ -538,7 +538,7 @@ public class SearchTables extends Command {
             tmp.addProperty("tableURL", tableURL);
 
             // Add Statistics for current filename
-            if (!this.searchMode.getMode().equals("ppr")) {
+            if (!this.searchMode.getMode().equals("ppr") && tableStats.containsKey(score.getFirst())) {
                 tmp.addProperty("numEntityMappedRows", String.valueOf(tableStats.get(score.getFirst()).entityMappedRows()));
                 tmp.addProperty("fractionOfEntityMappedRows", String.valueOf(tableStats.get(score.getFirst()).fractionOfEntityMappedRows()));
                 tmp.addProperty("tupleScores", String.valueOf(tableStats.get(score.getFirst()).queryRowScores()));
