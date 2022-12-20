@@ -95,12 +95,13 @@ def full_corpus(base_dir):
 def gen_boxplots(ndcg_dict, votes, tuples):
     plt.rc('xtick', labelsize = 25)
     plt.rc('ytick', labelsize = 35)
-    plt.rc('axes', labelsize = 20)
-    plt.rc('axes', titlesize = 20)
+    plt.rc('axes', labelsize = 27)
+    plt.rc('axes', titlesize = 30)
     plt.rc('legend', fontsize = 25)
 
     colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
     fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (75, 10))
+    median_color = dict(color = 'white')
     data_types = list()
     data_embeddings = list()
 
@@ -120,10 +121,10 @@ def gen_boxplots(ndcg_dict, votes, tuples):
     data_embeddings.append(ndcg_dict[str(votes)]['embeddings_column']['30']['10'])
     data_embeddings.append(ndcg_dict['baseline']['cosine'])
 
-    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'TC(V=32, BS=8)', 'TC(V=128, BS=8)', 'TC(V=30, BS=10)', 'B - Jaccard'])
+    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'TC(V=32, BS=8)', 'TC(V=128, BS=8)', 'TC(V=30, BS=10)', 'B - Jaccard'])
     ax1.set_title('LSH Using Types')
 
-    plot_embeddings = ax2.boxplot(data_embeddings, vert = True, patch_artist = True, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'EC(V=32, BS=8)', 'EC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - cosine'])
+    plot_embeddings = ax2.boxplot(data_embeddings, vert = True, patch_artist = True, medianprops = median_color, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'EC(V=32, BS=8)', 'EC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - cosine'])
     ax2.set_title('LSH Using Embeddings')
 
     for plot in (plot_types, plot_embeddings):
@@ -142,10 +143,10 @@ def gen_boxplots(ndcg_dict, votes, tuples):
 
 # Returns map: ['types'|'embeddings'|'baseline']->[<# BUCKETS: [150|300]>]->[<TOP-K: [10|100]>]->[NDCG SCORES]
 def plot_ndcg(tuples):
-    query_dir = 'queries/' + str(tuples) + '-tuple_old/'	# CHANGE THIS BACK WHEN PLOTTING NEXT TIME!
-    ground_truth_dir = '../../data/cikm/SemanticTableSearchDataset/ground_truth/wikipedia_categories'
-    corpus = '/data/cikm/SemanticTableSearchDataset/table_corpus/tables'
-    mapping_file = '../../data/cikm/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
+    query_dir = 'queries/' + str(tuples) + '-tuple/'
+    ground_truth_dir = '../../data/tables/SemanticTableSearchDataset/ground_truth/wikipedia_categories'
+    corpus = '/data/tables/SemanticTableSearchDataset/table_corpus/tables'
+    mapping_file = '../../data/tables/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
     query_files = os.listdir(query_dir)
     table_files = full_corpus(corpus + '/../corpus')
     k = 100

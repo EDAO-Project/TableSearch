@@ -1,7 +1,9 @@
 #!/bin/bash
 
+set -e
+
 INDEX_DIR="/src/lsh-eval/indexes/"
-TABLES="/data/cikm/SemanticTableSearchDataset/table_corpus/corpus/"
+TABLES="/data/tables/SemanticTableSearchDataset/table_corpus/corpus/"
 OUTPUT_DIR='/src/lsh-eval/results/vote_1/'
 QUERIES_DIR="/src/lsh-eval/queries/"
 TOP_K=100
@@ -17,7 +19,7 @@ do
     echo "PERMUTATION VECTORS: "${VECTORS}
     echo
 
-    for TUPLES in {1,2,5} ; \
+    for TUPLES in {1,2} ; \
     do
         OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
         mkdir -p ${OUT_K}
@@ -39,7 +41,7 @@ do
     echo "PROJECTION VECTORS: "${VECTORS}
     echo
 
-    for TUPLES in {1,2,5} ; \
+    for TUPLES in {1,2} ; \
     do
         OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
         mkdir -p ${OUT_K}
@@ -61,7 +63,7 @@ do
     echo "PROJECTION VECTORS (COLUMN AGGREGATION): "${VECTORS}
     echo
 
-    for TUPLES in {1,2,5} ; \
+    for TUPLES in {1,2} ; \
     do
         OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
         mkdir -p ${OUT_K}
@@ -83,7 +85,7 @@ do
     echo "PROJECTION VECTORS (COLUMN AGGREGATION): "${VECTORS}
     echo
 
-    for TUPLES in {1,2,5} ; \
+    for TUPLES in {1,2} ; \
     do
         OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
         mkdir -p ${OUT_K}
@@ -100,7 +102,7 @@ echo "BASELINE - PURE BRUTE FORCE"
 OUT=${OUTPUT_DIR}baseline_jaccard
 mkdir -p ${OUT}
 
-for TUPLES in {1,2,5} ; \
+for TUPLES in {1,2} ; \
 do
     OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
     mkdir -p ${OUT_K}
@@ -113,7 +115,7 @@ done
 OUT=${OUTPUT_DIR}baseline_cosine
 mkdir -p ${OUT}
 
-for TUPLES in {1,2,5} ; \
+for TUPLES in {1,2} ; \
 do
     OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
     mkdir -p ${OUT_K}
@@ -130,7 +132,7 @@ done
 
 #for TOP_K in {10,100} ; \
 #do
-#    for TUPLES in {1,2,5} ; \
+#    for TUPLES in {1,2} ; \
 #    do
 #        OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
 #        mkdir -p ${OUT_K}
