@@ -1,7 +1,5 @@
 package dk.aau.cs.daisy.edao.search;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import dk.aau.cs.daisy.edao.commands.parser.TableParser;
 import dk.aau.cs.daisy.edao.connector.DBDriverBatch;
 import dk.aau.cs.daisy.edao.loader.Stats;
@@ -71,7 +69,6 @@ public class AnalogousSearch extends AbstractSearch
     private Prefilter prefilter;
     private Map<String, List<Double>> queryEntityEmbeddings = null;
     private final EmbeddingsIndex<String> embeddingsIndex = new EmbeddingsIndex();
-    private final Cache<String, List<Double>> embeddingsCache = CacheBuilder.newBuilder().maximumSize(10000).build();
 
     public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK,
                            int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
@@ -137,14 +134,6 @@ public class AnalogousSearch extends AbstractSearch
 
                 if (uri != null)
                 {
-                    List<Double> embedding = this.embeddingsCache.getIfPresent(uri);
-
-                    if (embedding != null)
-                    {
-                        this.embeddingsIndex.clusterInsert(tableId, uri, embedding);
-                        break;
-                    }
-
                     entities.add(uri);
                     break;
                 }
@@ -152,10 +141,7 @@ public class AnalogousSearch extends AbstractSearch
         });
 
         Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);
-        embeddings.forEach((entity, embedding) -> {
-            this.embeddingsIndex.clusterInsert(tableId, entity, embedding);
-            this.embeddingsCache.put(entity, embedding);
-        });
+        embeddings.forEach((entity, embedding) -> this.embeddingsIndex.clusterInsert(tableId, entity, embedding));
     }
 
     private void removeTableEmbeddings(String tableId)
