@@ -141,7 +141,14 @@ public class AnalogousSearch extends AbstractSearch
         });
 
         Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);
-        embeddings.forEach((entity, embedding) -> this.embeddingsIndex.clusterInsert(tableId, entity, embedding));
+        embeddings.forEach((entity, embedding) -> {
+            Id id = getLinker().kgUriLookup(entity);
+
+            if (id != null)
+            {
+                this.embeddingsIndex.clusterInsert(tableId, id, embedding);
+            }
+        });
     }
 
     private void removeTableEmbeddings(String tableId)
@@ -151,12 +158,19 @@ public class AnalogousSearch extends AbstractSearch
 
     private List<Double> getTableEntityEmbedding(String table, String entity)
     {
-        if (this.prefilter != null)
+        Id id = getLinker().kgUriLookup(entity);
+
+        if (id == null)
         {
-            return this.embeddingsIndex.find(entity);
+            return null;
         }
 
-        return this.embeddingsIndex.clusterGet(table, entity);
+        else if (this.prefilter != null)
+        {
+            return this.embeddingsIndex.find(id);
+        }
+
+        return this.embeddingsIndex.clusterGet(table, id);
     }
 
     public void setCorpus(Set<String> tableFiles)
@@ -217,13 +231,27 @@ public class AnalogousSearch extends AbstractSearch
             if (entities.size() >= batchSize)
             {
                 Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);
-                embeddings.forEach(this.embeddingsIndex::insert);
+                embeddings.forEach((entity, embedding) -> {
+                    Id id = getLinker().kgUriLookup(entity);
+
+                    if (id != null)
+                    {
+                        this.embeddingsIndex.insert(id, embedding);
+                    }
+                });
                 entities.clear();
             }
         }
 
         Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);
-        embeddings.forEach(this.embeddingsIndex::insert);
+        embeddings.forEach((entity, embedding) -> {
+            Id id = getLinker().kgUriLookup(entity);
+
+            if (id != null)
+            {
+                this.embeddingsIndex.insert(id, embedding);
+            }
+        });
     }
 
     /**
