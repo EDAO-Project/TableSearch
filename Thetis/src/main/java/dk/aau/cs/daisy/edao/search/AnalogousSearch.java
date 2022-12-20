@@ -192,19 +192,10 @@ public class AnalogousSearch extends AbstractSearch
 
     private void collectEmbeddings()
     {
-        final int batchSize = 100;
-        List<String> entities = new ArrayList<>();
-
         for (String table : this.corpus)
         {
-            if (entities.size() == batchSize)
-            {
-                Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);
-                embeddings.forEach(this.embeddingsIndex::insert);
-                entities.clear();
-            }
-
             JsonTable jTable = TableParser.parse(new File(this.getEntityTableLink().getDirectory() + table));
+            List<String> entities = new ArrayList<>();
 
             if (jTable == null || jTable.numDataRows == 0)
             {
@@ -222,6 +213,9 @@ public class AnalogousSearch extends AbstractSearch
                     }
                 }
             });
+
+            Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);
+            embeddings.forEach(this.embeddingsIndex::insert);
         }
     }
 
