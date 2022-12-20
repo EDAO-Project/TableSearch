@@ -129,13 +129,22 @@ public class AnalogousSearch extends AbstractSearch
     private void insertTableEntityEmbeddings(JsonTable table, String tableId)
     {
         List<String> entities = new ArrayList<>();
+
         table.forEach(cell -> {
             for (String link : cell.links)
             {
                 String uri = getLinker().mapTo(link);
 
-                if (uri != null && this.embeddingsCache.getIfPresent(uri) != null)
+                if (uri != null)
                 {
+                    List<Double> embedding = this.embeddingsCache.getIfPresent(uri);
+
+                    if (embedding != null)
+                    {
+                        this.embeddingsIndex.clusterInsert(tableId, uri, embedding);
+                        break;
+                    }
+
                     entities.add(uri);
                     break;
                 }
@@ -161,8 +170,7 @@ public class AnalogousSearch extends AbstractSearch
             return this.embeddingsIndex.find(entity);
         }
 
-        List<Double> cachedEmbeddings = this.embeddingsCache.getIfPresent(entity);
-        return cachedEmbeddings == null ? this.embeddingsIndex.clusterGet(table, entity) : cachedEmbeddings;
+        return this.embeddingsIndex.clusterGet(table, entity);
     }
 
     public void setCorpus(Set<String> tableFiles)
