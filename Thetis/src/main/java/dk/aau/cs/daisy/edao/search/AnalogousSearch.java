@@ -1,5 +1,7 @@
 package dk.aau.cs.daisy.edao.search;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import dk.aau.cs.daisy.edao.commands.parser.TableParser;
 import dk.aau.cs.daisy.edao.connector.DBDriverBatch;
 import dk.aau.cs.daisy.edao.loader.Stats;
@@ -69,6 +71,7 @@ public class AnalogousSearch extends AbstractSearch
     private Prefilter prefilter;
     private Map<String, List<Double>> queryEntityEmbeddings = null;
     private final EmbeddingsIndex<String> embeddingsIndex = new EmbeddingsIndex();
+    private final Cache<String, List<Double>> embeddingsCache = CacheBuilder.newBuilder().maximumSize(10000).build();
 
     public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK,
                            int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
@@ -131,7 +134,7 @@ public class AnalogousSearch extends AbstractSearch
             {
                 String uri = getLinker().mapTo(link);
 
-                if (uri != null)
+                if (uri != null && this.embeddingsCache.getIfPresent(uri) != null)
                 {
                     entities.add(uri);
                     break;
@@ -140,7 +143,10 @@ public class AnalogousSearch extends AbstractSearch
         });
 
         Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);
-        embeddings.forEach((entity, embedding) -> this.embeddingsIndex.clusterInsert(tableId, entity, embedding));
+        embeddings.forEach((entity, embedding) -> {
+            this.embeddingsIndex.clusterInsert(tableId, entity, embedding);
+            this.embeddingsCache.put(entity, embedding);
+        });
     }
 
     private void removeTableEmbeddings(String tableId)
@@ -155,7 +161,8 @@ public class AnalogousSearch extends AbstractSearch
             return this.embeddingsIndex.find(entity);
         }
 
-        return this.embeddingsIndex.clusterGet(table, entity);
+        List<Double> cachedEmbeddings = this.embeddingsCache.getIfPresent(entity);
+        return cachedEmbeddings == null ? this.embeddingsIndex.clusterGet(table, entity) : cachedEmbeddings;
     }
 
     public void setCorpus(Set<String> tableFiles)
