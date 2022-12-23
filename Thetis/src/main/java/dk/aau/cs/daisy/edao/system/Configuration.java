@@ -84,6 +84,9 @@ public class Configuration
         if (!props.contains("EntityToTables"))
             props.setProperty("EntityToTables", "entity_to_tables.ser");
 
+        if (!props.contains("EmbeddingsIndex"))
+            props.setProperty("EmbeddingsIndex", "embeddings_idx.ser");
+
         if (!props.contains("TypesLSH"))
             props.setProperty("TypesLSH", "types_lsh.ser");
 
@@ -244,6 +247,11 @@ public class Configuration
     public static String getEntityToTablesFile()
     {
         return readProperties().getProperty("EntityToTables");
+    }
+
+    public static String getEmbeddingsIndexFile()
+    {
+        return readProperties().getProperty("EmbeddingsIndex");
     }
 
     public static String getTypesLSHIndexFile()

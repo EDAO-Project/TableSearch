@@ -1,5 +1,6 @@
 package dk.aau.cs.daisy.edao.search;
 
+import dk.aau.cs.daisy.edao.store.EmbeddingsIndex;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
@@ -10,12 +11,15 @@ public abstract class AbstractSearch implements TableSearch
     private EntityLinking linker;
     private EntityTable entityTable;
     private EntityTableLink entityTableLink;
+    private EmbeddingsIndex<String> embeddingsIndex;
 
-    protected AbstractSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink)
+    protected AbstractSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
+                             EmbeddingsIndex<String> embeddingIdx)
     {
         this.linker = linker;
         this.entityTable = entityTable;
         this.entityTableLink = entityTableLink;
+        this.embeddingsIndex = embeddingIdx;
     }
 
     @Override
@@ -43,6 +47,11 @@ public abstract class AbstractSearch implements TableSearch
     public EntityTableLink getEntityTableLink()
     {
         return this.entityTableLink;
+    }
+
+    public EmbeddingsIndex<String> getEmbeddingsIndex()
+    {
+        return this.embeddingsIndex;
     }
 
     protected abstract Result abstractSearch(Table<String> query);

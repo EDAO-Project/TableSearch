@@ -1,7 +1,6 @@
 package dk.aau.cs.daisy.edao.search;
 
 import dk.aau.cs.daisy.edao.commands.parser.TableParser;
-import dk.aau.cs.daisy.edao.connector.DBDriverBatch;
 import dk.aau.cs.daisy.edao.loader.Stats;
 import dk.aau.cs.daisy.edao.similarity.JaccardSimilarity;
 import dk.aau.cs.daisy.edao.store.EmbeddingsIndex;
@@ -62,21 +61,18 @@ public class AnalogousSearch extends AbstractSearch
             useMaxSimilarityPerColumn, hungarianAlgorithmSameAlignmentAcrossTuples;
     private CosineSimilarityFunction embeddingSimFunction;
     private SimilarityMeasure measure;
-    private DBDriverBatch<List<Double>, String> embeddingsDB;
     private Map<String, Stats> tableStats = new TreeMap<>();
     private final Object lockStats = new Object();
     private Set<String> corpus;
     private Prefilter prefilter;
-    private Map<String, List<Double>> queryEntityEmbeddings = null;
-    private final EmbeddingsIndex<String> embeddingsIndex = new EmbeddingsIndex();
 
-    public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK,
-                           int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
+    public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<String> embeddingIdx,
+                           int topK, int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
                            boolean singleColumnPerQueryEntity, boolean weightedJaccard, boolean adjustedJaccard,
                            boolean useMaxSimilarityPerColumn, boolean hungarianAlgorithmSameAlignmentAcrossTuples,
-                           SimilarityMeasure similarityMeasure, DBDriverBatch<List<Double>, String> embeddingStore)
+                           SimilarityMeasure similarityMeasure)
     {
-        super(linker, entityTable, entityTableLink);
+        super(linker, entityTable, entityTableLink, embeddingIdx);
         this.topK = topK;
         this.threads = threads;
         this.useEmbeddings = useEmbeddings;
@@ -87,90 +83,20 @@ public class AnalogousSearch extends AbstractSearch
         this.hungarianAlgorithmSameAlignmentAcrossTuples = hungarianAlgorithmSameAlignmentAcrossTuples;
         this.useMaxSimilarityPerColumn = useMaxSimilarityPerColumn;
         this.measure = similarityMeasure;
-        this.embeddingsDB = embeddingStore;
         this.corpus = distinctTables();
         this.prefilter = null;
     }
 
-    public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, int topK,
-                           int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
+    public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<String> embeddingIdx,
+                           int topK, int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
                            boolean singleColumnPerQueryEntity, boolean weightedJaccard, boolean adjustedJaccard,
                            boolean useMaxSimilarityPerColumn, boolean hungarianAlgorithmSameAlignmentAcrossTuples,
-                           SimilarityMeasure similarityMeasure, DBDriverBatch<List<Double>, String> embeddingStore,
-                           Prefilter prefilter)
+                           SimilarityMeasure similarityMeasure, Prefilter prefilter)
     {
-        this(linker, entityTable, entityTableLink, topK, threads, useEmbeddings, cosineFunction, singleColumnPerQueryEntity,
+        this(linker, entityTable, entityTableLink, embeddingIdx, topK, threads, useEmbeddings, cosineFunction, singleColumnPerQueryEntity,
                 weightedJaccard, adjustedJaccard, useMaxSimilarityPerColumn, hungarianAlgorithmSameAlignmentAcrossTuples,
-                similarityMeasure, embeddingStore);
+                similarityMeasure);
         this.prefilter = prefilter;
-    }
-
-    private void setQueryEntityEmbeddings(Table<String> query)
-    {
-        List<String> entities = new ArrayList<>();
-        int queryRows = query.rowCount();
-
-        for (int row = 0; row < queryRows; row++)
-        {
-            int columns = query.getRow(row).size();
-
-            for (int column = 0; column < columns; column++)
-            {
-                entities.add(query.getRow(row).get(column));
-            }
-        }
-
-        this.queryEntityEmbeddings = new ConcurrentHashMap<>(this.embeddingsDB.batchSelect(entities));
-    }
-
-    private void insertTableEntityEmbeddings(JsonTable table, String tableId)
-    {
-        List<String> entities = new ArrayList<>();
-
-        table.forEach(cell -> {
-            for (String link : cell.links)
-            {
-                String uri = getLinker().mapTo(link);
-
-                if (uri != null)
-                {
-                    entities.add(uri);
-                    break;
-                }
-            }
-        });
-
-        Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);
-        embeddings.forEach((entity, embedding) -> {
-            Id id = getLinker().kgUriLookup(entity);
-
-            if (id != null)
-            {
-                this.embeddingsIndex.clusterInsert(tableId, id, embedding);
-            }
-        });
-    }
-
-    private void removeTableEmbeddings(String tableId)
-    {
-        this.embeddingsIndex.clusterRemove(tableId);
-    }
-
-    private List<Double> getTableEntityEmbedding(String entity, String table)
-    {
-        Id id = getLinker().kgUriLookup(entity);
-
-        if (id == null)
-        {
-            return null;
-        }
-
-        else if (this.prefilter != null)
-        {
-            return this.embeddingsIndex.find(id);
-        }
-
-        return this.embeddingsIndex.clusterGet(table, id);
     }
 
     public void setCorpus(Set<String> tableFiles)
@@ -195,63 +121,6 @@ public class AnalogousSearch extends AbstractSearch
         {
             this.corpus.add(res.next().getFirst());
         }
-
-        if (this.useEmbeddings)
-        {
-            collectEmbeddings();
-        }
-    }
-
-    private void collectEmbeddings()
-    {
-        List<String> entities = new ArrayList<>();
-        int batchSize = 500;
-
-        for (String table : this.corpus)
-        {
-            JsonTable jTable = TableParser.parse(new File(this.getEntityTableLink().getDirectory() + table));
-
-            if (jTable == null || jTable.numDataRows == 0)
-            {
-                continue;
-            }
-
-            jTable.forEach(cell -> {
-                for (String tableEntity : cell.links)
-                {
-                    String uri = getLinker().mapTo(tableEntity);
-
-                    if (uri != null)
-                    {
-                        entities.add(uri);
-                    }
-                }
-            });
-
-            if (entities.size() >= batchSize)
-            {
-                Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);
-                embeddings.forEach((entity, embedding) -> {
-                    Id id = getLinker().kgUriLookup(entity);
-
-                    if (id != null)
-                    {
-                        this.embeddingsIndex.insert(id, embedding);
-                    }
-                });
-                entities.clear();
-            }
-        }
-
-        Map<String, List<Double>> embeddings = this.embeddingsDB.batchSelect(entities);
-        embeddings.forEach((entity, embedding) -> {
-            Id id = getLinker().kgUriLookup(entity);
-
-            if (id != null)
-            {
-                this.embeddingsIndex.insert(id, embedding);
-            }
-        });
     }
 
     /**
@@ -268,11 +137,6 @@ public class AnalogousSearch extends AbstractSearch
         {
             prefilterSearchSpace(query);
             Logger.logNewLine(Logger.Level.INFO, "Pre-filtered corpus in " + this.prefilter.elapsedNanoSeconds() + "ns");
-        }
-
-        if (this.useEmbeddings)
-        {
-            setQueryEntityEmbeddings(query);
         }
 
         try
@@ -358,11 +222,6 @@ public class AnalogousSearch extends AbstractSearch
         if (jTable == null || jTable.numDataRows == 0)
             return null;
 
-        if (this.useEmbeddings && this.prefilter == null)
-        {
-            insertTableEntityEmbeddings(jTable, table);
-        }
-
         List<List<Integer>> queryRowToColumnMappings = new ArrayList<>();  // If each query entity needs to map to only one column find the best mapping
 
         if (this.singleColumnPerQueryEntity)
@@ -424,7 +283,7 @@ public class AnalogousSearch extends AbstractSearch
                 numEntityMappedRows++;
 
                 if (!this.useEmbeddings ||
-                        hasEmbeddingCoverage(query.getRow(queryRowCounter), table, columnToEntity, queryRowToColumnMappings, queryRowCounter))
+                        hasEmbeddingCoverage(query.getRow(queryRowCounter), columnToEntity, queryRowToColumnMappings, queryRowCounter))
                 {
                     for (int queryColumn = 0; queryColumn < queryRowSize; queryColumn++)
                     {
@@ -463,11 +322,6 @@ public class AnalogousSearch extends AbstractSearch
         statBuilder.fractionOfEntityMappedRows((double) numEntityMappedRows / jTable.numDataRows);
         Double score = aggregateTableSimilarities(query, scores, statBuilder);
         this.tableStats.put(table, statBuilder.finish());
-
-        if (this.useEmbeddings && this.prefilter == null)
-        {
-            removeTableEmbeddings(table);
-        }
 
         return new Pair<>(table, score);
     }
@@ -564,8 +418,8 @@ public class AnalogousSearch extends AbstractSearch
         if (!this.useEmbeddings)
             return jaccardSimilarity(ent1, ent2);
 
-        else if (entityExists(ent1, table) && entityExists(ent2, table))
-            return cosineSimilarity(ent1, ent2, table);
+        else if (entityExists(ent1) && entityExists(ent2))
+            return cosineSimilarity(ent1, ent2);
 
         synchronized (this.lockStats)
         {
@@ -606,20 +460,15 @@ public class AnalogousSearch extends AbstractSearch
         return jaccardScore;
     }
 
-    private double cosineSimilarity(String ent1, String ent2, String table)
+    private double cosineSimilarity(String ent1, String ent2)
     {
-        List<Double> ent1Embeddings = this.queryEntityEmbeddings.get(ent1),
-                ent2Embeddings = this.queryEntityEmbeddings.get(ent2);
+        Id id1 = getLinker().kgUriLookup(ent1), id2 = getLinker().kgUriLookup(ent2);
 
-        if (ent1Embeddings == null)
-        {
-            ent1Embeddings = getTableEntityEmbedding(ent1, table);
-        }
+        if (id1 == null || id2 == null)
+            return 0.0;
 
-        if (ent2Embeddings == null)
-        {
-            ent2Embeddings = getTableEntityEmbedding(ent2, table);
-        }
+        List<Double> ent1Embeddings = getEmbeddingsIndex().find(id1),
+                ent2Embeddings = getEmbeddingsIndex().find(id2);
 
         if (ent1Embeddings == null || ent2Embeddings == null)
             return 0.0;
@@ -649,11 +498,12 @@ public class AnalogousSearch extends AbstractSearch
      * @param entity Entity to check
      * @return true if the entity exists in the embeddings database
      */
-    private boolean entityExists(String entity, String table)
+    private boolean entityExists(String entity)
     {
         try
         {
-            return this.queryEntityEmbeddings.containsKey(entity) || getTableEntityEmbedding(entity, table) != null;
+            Id id = getLinker().kgUriLookup(entity);
+            return id != null && getEmbeddingsIndex().contains(id);
         }
 
         catch (IllegalArgumentException exc)
@@ -696,13 +546,12 @@ public class AnalogousSearch extends AbstractSearch
      * of the table columns to the query entities if any and the id of the query tuple; identify
      * if there exist pre-trained embeddings for each query entity and each matching row entity
      */
-    private boolean hasEmbeddingCoverage(Table.Row<String> queryRow, String tableName,
-                                         Map<Integer, String> columnToEntity, List<List<Integer>> tupleToColumnMappings,
-                                         Integer queryRowIndex)
+    private boolean hasEmbeddingCoverage(Table.Row<String> queryRow, Map<Integer, String> columnToEntity,
+                                         List<List<Integer>> tupleToColumnMappings, Integer queryRowIndex)
     {
         for (int i = 0; i < queryRow.size(); i++)   // Ensure that all query entities have an embedding
         {
-            if (!entityExists(queryRow.get(i), tableName))
+            if (!entityExists(queryRow.get(i)))
             {
                 this.embeddingCoverageFails++;
                 this.queryEntitiesMissingCoverage.add(queryRow.get(i));
@@ -728,7 +577,7 @@ public class AnalogousSearch extends AbstractSearch
 
         for (String rowEnt : relevantRowEntities)   // Loop over all relevant row entities and ensure there is a pre-trained embedding mapping for each one
         {
-            if (!entityExists(rowEnt, tableName))
+            if (!entityExists(rowEnt))
             {
                 this.embeddingCoverageFails++;
                 return false;

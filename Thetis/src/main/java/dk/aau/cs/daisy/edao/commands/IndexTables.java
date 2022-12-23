@@ -168,6 +168,7 @@ public class IndexTables extends Command {
         Logger.logNewLine(Logger.Level.INFO, "Output Directory: " + this.outputDir.getAbsolutePath());
 
         try {
+            DBDriverBatch<List<Double>, String> embeddingStore = Factory.fromConfig(false);
             Neo4jEndpoint connector = new Neo4jEndpoint(this.configFile);
             connector.testConnection();
 
@@ -177,10 +178,12 @@ public class IndexTables extends Command {
                     break;
                 case WIKI:
                     Logger.logNewLine(Logger.Level.INFO, "Starting indexing of '" + TableType.WIKI.getName() + "'");
-                    parsedTables = indexWikiTables(this.tableDir.toPath(), this.outputDir, connector, this.threads);
+                    parsedTables = indexWikiTables(this.tableDir.toPath(), this.outputDir, connector, embeddingStore, this.threads);
                     Logger.logNewLine(Logger.Level.INFO, "Indexed " + parsedTables + " tables\n");
                     break;
             }
+
+            embeddingStore.close();
         } catch(AuthenticationException ex){
             Logger.logNewLine(Logger.Level.ERROR, "Could not Login to Neo4j Server (user or password do not match)");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
@@ -226,7 +229,8 @@ public class IndexTables extends Command {
      * @param connector Neo4J connector instance
      * @return Number of successfully loaded tables
      */
-    public long indexWikiTables(Path tableDir, File outputDir, Neo4jEndpoint connector, int threads){
+    private long indexWikiTables(Path tableDir, File outputDir, Neo4jEndpoint connector,
+                                DBDriverBatch<List<Double>, String> embeddingStore, int threads){
 
         // Open table directory
         // Iterate each table (each table is a JSON file)
@@ -244,7 +248,8 @@ public class IndexTables extends Command {
             Logger.logNewLine(Logger.Level.INFO, "There are " + filePaths.size() + " files to be processed.");
 
             long startTime = System.nanoTime();
-            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads, true, WIKI_PREFIX, URI_PREFIX, this.disallowedEntityTypes);
+            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads, true,
+                    embeddingStore, WIKI_PREFIX, URI_PREFIX, this.disallowedEntityTypes);
             indexWriter.performIO();
 
             long elapsedTime = System.nanoTime() - startTime;

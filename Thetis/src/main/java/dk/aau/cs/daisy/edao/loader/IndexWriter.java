@@ -5,6 +5,7 @@ import com.google.common.hash.Funnels;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dk.aau.cs.daisy.edao.commands.parser.TableParser;
+import dk.aau.cs.daisy.edao.connector.DBDriverBatch;
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 import dk.aau.cs.daisy.edao.store.*;
 import dk.aau.cs.daisy.edao.store.lsh.HashFunction;
@@ -49,8 +50,10 @@ public class IndexWriter implements IndexIO
     private SynchronizedLinker<String, String> linker;
     private SynchronizedIndex<Id, Entity> entityTable;
     private SynchronizedIndex<Id, List<String>> entityTableLink;
+    private SynchronizedIndex<Id, List<Double>> embeddingsIdx;
     private TypesLSHIndex typesLSH;
     private VectorLSHIndex embeddingsLSH;
+    private DBDriverBatch<List<Double>, String> embeddingsDB;
     private BloomFilter<String> filter = BloomFilter.create(
             Funnels.stringFunnel(Charset.defaultCharset()),
             5_000_000,
@@ -83,7 +86,7 @@ public class IndexWriter implements IndexIO
     };
 
     public IndexWriter(List<Path> files, File outputDir, Neo4jEndpoint neo4j, int threads, boolean logProgress,
-                       String wikiPrefix, String uriPrefix, String ... disallowedEntityTypes)
+                       DBDriverBatch<List<Double>, String> embeddingStore, String wikiPrefix, String uriPrefix, String ... disallowedEntityTypes)
     {
         if (!outputDir.exists())
         {
@@ -105,9 +108,11 @@ public class IndexWriter implements IndexIO
         this.outputPath = outputDir;
         this.neo4j = neo4j;
         this.threads = threads;
+        this.embeddingsDB = embeddingStore;
         this.linker = SynchronizedLinker.wrap(new EntityLinking(wikiPrefix, uriPrefix));
         this.disallowedEntityTypes = Arrays.asList(disallowedEntityTypes);
         this.entityTable = SynchronizedIndex.wrap(new EntityTable());
+        this.embeddingsIdx = SynchronizedIndex.wrap(new EmbeddingsIndex<>());
         this.entityTableLink = SynchronizedIndex.wrap(new EntityTableLink());
         ((EntityTableLink) this.entityTableLink.getIndex()).setDirectory(files.get(0).toFile().getParent() + "/");
     }
@@ -230,8 +235,14 @@ public class IndexWriter implements IndexIO
                                 }
 
                                 Id entityId = ((EntityLinking) this.linker.getLinker()).kgUriLookup(entity);
+                                List<Double> embeddings = this.embeddingsDB.select(entity.replace("'", "''"));
                                 this.entityTable.insert(entityId,
                                         new Entity(entity, entityTypes.stream().map(Type::new).collect(Collectors.toList())));
+
+                                if (embeddings != null)
+                                {
+                                    this.embeddingsIdx.insert(entityId, embeddings);
+                                }
                             }
                         }
 
@@ -469,6 +480,12 @@ public class IndexWriter implements IndexIO
         outputStream.flush();
         outputStream.close();
 
+        // Embeddings index
+        outputStream = new ObjectOutputStream(new FileOutputStream(this.outputPath + "/" + Configuration.getEmbeddingsIndexFile()));
+        outputStream.writeObject(this.embeddingsIdx.getIndex());
+        outputStream.flush();
+        outputStream.close();
+
         // LSH of entity types
         outputStream = new ObjectOutputStream(new FileOutputStream(this.outputPath + "/" + Configuration.getTypesLSHIndexFile()));
         outputStream.writeObject(this.typesLSH);
@@ -570,6 +587,15 @@ public class IndexWriter implements IndexIO
     public EntityTable getEntityTable()
     {
         return (EntityTable) this.entityTable.getIndex();
+    }
+
+    /**
+     * Getter to embeddings index
+     * @return Loaded embeddings index
+     */
+    public EmbeddingsIndex<String> getEmbeddingsIndex()
+    {
+        return (EmbeddingsIndex<String>) this.embeddingsIdx.getIndex();
     }
 
     /**
