@@ -1,36 +1,38 @@
 package dk.aau.cs.daisy.edao.store;
 
+import dk.aau.cs.daisy.edao.structures.Id;
+
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class EmbeddingsIndex<C> implements ClusteredIndex<C, String, List<Double>>, Serializable
+public class EmbeddingsIndex<C> implements ClusteredIndex<C, Id, List<Double>>, Serializable
 {
-    private final Map<String, List<Double>> embeddingsMap = new ConcurrentHashMap<>();
-    private Map<C, Map<String, List<Double>>> clusteredEmbeddings = new ConcurrentHashMap<>();
+    private final Map<Id, List<Double>> embeddingsMap = new ConcurrentHashMap<>();
+    private Map<C, Map<Id, List<Double>>> clusteredEmbeddings = new ConcurrentHashMap<>();
 
     @Override
-    public void insert(String key, List<Double> value)
+    public void insert(Id key, List<Double> value)
     {
         this.embeddingsMap.put(key, value);
     }
 
     @Override
-    public boolean remove(String key)
+    public boolean remove(Id key)
     {
         return this.embeddingsMap.remove(key) != null;
     }
 
     @Override
-    public List<Double> find(String key)
+    public List<Double> find(Id key)
     {
         return this.embeddingsMap.get(key);
     }
 
     @Override
-    public boolean contains(String key)
+    public boolean contains(Id key)
     {
         return this.embeddingsMap.containsKey(key);
     }
@@ -48,7 +50,7 @@ public class EmbeddingsIndex<C> implements ClusteredIndex<C, String, List<Double
     }
 
     @Override
-    public void clusterInsert(C cluster, String key, List<Double> value)
+    public void clusterInsert(C cluster, Id key, List<Double> value)
     {
         if (!this.clusteredEmbeddings.containsKey(cluster))
         {
@@ -83,7 +85,7 @@ public class EmbeddingsIndex<C> implements ClusteredIndex<C, String, List<Double
     }
 
     @Override
-    public List<Double> clusterGet(C cluster, String key)
+    public List<Double> clusterGet(C cluster, Id key)
     {
         if (this.clusteredEmbeddings.containsKey(cluster))
         {
