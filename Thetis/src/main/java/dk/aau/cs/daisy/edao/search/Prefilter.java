@@ -1,5 +1,6 @@
 package dk.aau.cs.daisy.edao.search;
 
+import dk.aau.cs.daisy.edao.store.EmbeddingsIndex;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
@@ -24,21 +25,23 @@ public class Prefilter extends AbstractSearch
     private static final int SPLITS_SIZE = 3;
     private static final int MIN_EXISTS_IN = 2;
 
-    private Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink)
+    private Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<String> embeddingsIndex)
     {
-        super(linker, entityTable, entityTableLink);
+        super(linker, entityTable, entityTableLink, embeddingsIndex);
     }
 
-    public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, TypesLSHIndex typesLSHIndex)
+    public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
+                     EmbeddingsIndex<String> embeddingsIndex, TypesLSHIndex typesLSHIndex)
     {
-        this(linker, entityTable, entityTableLink);
+        this(linker, entityTable, entityTableLink, embeddingsIndex);
         this.typesLSH = typesLSHIndex;
         this.vectorsLSH = null;
     }
 
-    public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, VectorLSHIndex vectorLSHIndex)
+    public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
+            EmbeddingsIndex<String> embeddingsIndex, VectorLSHIndex vectorLSHIndex)
     {
-        this(linker, entityTable, entityTableLink);
+        this(linker, entityTable, entityTableLink, embeddingsIndex);
         this.vectorsLSH = vectorLSHIndex;
         this.typesLSH = null;
     }

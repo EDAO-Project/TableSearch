@@ -1,8 +1,11 @@
 package dk.aau.cs.daisy.edao.search;
 
 import dk.aau.cs.daisy.edao.commands.parser.TableParser;
+import dk.aau.cs.daisy.edao.connector.DBDriverBatch;
+import dk.aau.cs.daisy.edao.connector.Factory;
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 import dk.aau.cs.daisy.edao.loader.IndexWriter;
+import dk.aau.cs.daisy.edao.store.EmbeddingsIndex;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
@@ -35,19 +38,21 @@ public class PrefilterTest
     public void setup() throws IOException
     {
         Configuration.reloadConfiguration();
+        DBDriverBatch<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
         List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
                 Path.of("table-0782-820.json"), Path.of("table-1019-555.json"),
                 Path.of("table-1260-258.json"), Path.of("table-0001-1.json"), Path.of("table-0001-2.json"));
         paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
         IndexWriter indexWriter = new IndexWriter(paths, this.outDir, new Neo4jEndpoint("config.properties"), 1,
-                true, "http://www.wikipedia.org/", "http://dbpedia.org/");
+                true, embeddingsDB, "http://www.wikipedia.org/", "http://dbpedia.org/");
         indexWriter.performIO();
 
         EntityLinking linker = indexWriter.getEntityLinker();
         EntityTable entityTable = indexWriter.getEntityTable();
         EntityTableLink tableLink = indexWriter.getEntityTableLinker();
-        this.typesPrefilter = new Prefilter(linker, entityTable, tableLink, indexWriter.getTypesLSH());
-        this.embeddingsPrefilter = new Prefilter(linker, entityTable, tableLink, indexWriter.getEmbeddingsLSH());
+        EmbeddingsIndex<String> embeddingsIdx = indexWriter.getEmbeddingsIndex();
+        this.typesPrefilter = new Prefilter(linker, entityTable, tableLink, embeddingsIdx, indexWriter.getTypesLSH());
+        this.embeddingsPrefilter = new Prefilter(linker, entityTable, tableLink, embeddingsIdx, indexWriter.getEmbeddingsLSH());
 
         String singleUri = linker.mapTo("http://www.wikipedia.org/wiki/WebOS");
         this.singleQuery = new PairNonComparable<>(new DynamicTable<>(List.of(List.of(singleUri))), "table-0001-2.json");

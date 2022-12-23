@@ -257,8 +257,8 @@ public class SearchTables extends Command {
             if (this.prefilterTechnique != null)
             {
                 prefilter = switch (this.prefilterTechnique) {    // TODO: PPR pre-filtering must be implemented
-                    case LSH_TYPES -> new Prefilter(linker, entityTable, entityTableLink, typesLSH);
-                    case LSH_EMBEDDINGS -> new Prefilter(linker, entityTable, entityTableLink, embeddingsLSH);
+                    case LSH_TYPES -> new Prefilter(linker, entityTable, entityTableLink, embeddingsIdx, typesLSH);
+                    case LSH_EMBEDDINGS -> new Prefilter(linker, entityTable, entityTableLink, embeddingsIdx, embeddingsLSH);
                     default -> null;
                 };
             }
@@ -291,7 +291,7 @@ public class SearchTables extends Command {
                 switch (this.searchMode)
                 {
                     case EXACT:
-                        exactSearch(queryTable, linker, entityTable, entityTableLink);
+                        exactSearch(queryTable, linker, entityTable, entityTableLink, embeddingsIdx);
                         break;
 
                     case ANALOGOUS:
@@ -299,7 +299,7 @@ public class SearchTables extends Command {
                         break;
 
                     case PPR:
-                        ppr(queryTable, queryName, linker, entityTable, entityTableLink);
+                        ppr(queryTable, queryName, linker, entityTable, entityTableLink, embeddingsIdx);
                         break;
                 }
             }
@@ -343,7 +343,8 @@ public class SearchTables extends Command {
         return true;
     }
 
-    public void exactSearch(Table<String> query, EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink)
+    public void exactSearch(Table<String> query, EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
+                            EmbeddingsIndex<String> embeddingsIndex)
     {
         Iterator<Id> entityIter = linker.kgUriIds();
 
@@ -364,7 +365,7 @@ public class SearchTables extends Command {
             }
         }
 
-        TableSearch search = new ExactSearch(linker, entityTable, entityTableLink);
+        TableSearch search = new ExactSearch(linker, entityTable, entityTableLink, embeddingsIndex);
         Iterator<Pair<String, Double>> resIter = search.search(query).getResults();
 
         while (resIter.hasNext())
@@ -456,7 +457,7 @@ public class SearchTables extends Command {
                 search.getNonEmbeddingComparisons(), search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails());
     }
 
-    public int ppr(Table<String> query, String queryName, EntityLinking linker, EntityTable table, EntityTableLink tableLink) {
+    public int ppr(Table<String> query, String queryName, EntityLinking linker, EntityTable table, EntityTableLink tableLink, EmbeddingsIndex<String> embeddingsIdx) {
         // Initialize the connector
         try {
             Neo4jEndpoint neo4j = new Neo4jEndpoint(this.configFile);
@@ -468,7 +469,7 @@ public class SearchTables extends Command {
                 query = Ppr.combineQueryTuplesInSingleTuple(query);
             }
 
-            PPRSearch search = new PPRSearch(linker, table, tableLink, neo4j, this.weightedPPR, this.minThreshold,
+            PPRSearch search = new PPRSearch(linker, table, tableLink, embeddingsIdx, neo4j, this.weightedPPR, this.minThreshold,
                     this.numParticles, this.topK);
             Result result = search.search(query);
             Iterator<Pair<String, Double>> resultIter = result.getResults();

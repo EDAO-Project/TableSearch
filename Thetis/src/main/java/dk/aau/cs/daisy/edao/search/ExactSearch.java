@@ -1,5 +1,6 @@
 package dk.aau.cs.daisy.edao.search;
 
+import dk.aau.cs.daisy.edao.store.EmbeddingsIndex;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
@@ -19,9 +20,9 @@ public class ExactSearch extends AbstractSearch
 {
     private long elapsed = -1;
 
-    public ExactSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink)
+    public ExactSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<String> embeddingsIndex)
     {
-        super(linker, entityTable, entityTableLink);
+        super(linker, entityTable, entityTableLink, embeddingsIndex);
     }
 
     /**
