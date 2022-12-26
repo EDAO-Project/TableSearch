@@ -64,7 +64,7 @@ public class IndexReader implements IndexIO
         Future<?> f5 = threadPoolService.submit(this::loadEmbeddingsIndex);
         int completed = -1;
 
-        while (!f1.isDone() || !f2.isDone() || !f3.isDone() || !f4.isDone())
+        while (!f1.isDone() || !f2.isDone() || !f3.isDone() || !f4.isDone() || !f5.isDone())
         {
             int tmpCompleted = (f1.isDone() ? 1 : 0) + (f2.isDone() ? 1 : 0) + (f3.isDone() ? 1 : 0) +
                     (f4.isDone() ? 1 : 0) + (f5.isDone() ? 1 : 0);
