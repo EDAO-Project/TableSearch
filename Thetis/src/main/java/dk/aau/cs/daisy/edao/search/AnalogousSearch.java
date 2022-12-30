@@ -57,6 +57,7 @@ public class AnalogousSearch extends AbstractSearch
             embeddingCoverageSuccesses, embeddingCoverageFails;
     Set<String> queryEntitiesMissingCoverage = new HashSet<>();
     private long elapsed = -1, parsedTables;
+    private double reduction = 0.0;
     private boolean useEmbeddings, singleColumnPerQueryEntity, weightedJaccard, adjustedJaccard,
             useMaxSimilarityPerColumn, hungarianAlgorithmSameAlignmentAcrossTuples;
     private CosineSimilarityFunction embeddingSimFunction;
@@ -114,6 +115,7 @@ public class AnalogousSearch extends AbstractSearch
 
     private void prefilterSearchSpace(Table<String> query)
     {
+        int initialSize = this.corpus.size();
         Iterator<Pair<String, Double>> res = this.prefilter.search(query).getResults();
         this.corpus.clear();
 
@@ -121,6 +123,8 @@ public class AnalogousSearch extends AbstractSearch
         {
             this.corpus.add(res.next().getFirst());
         }
+
+        this.reduction = initialSize > 0 ? (1 - ((double) this.corpus.size() / initialSize)) : 0;
     }
 
     /**
@@ -732,5 +736,10 @@ public class AnalogousSearch extends AbstractSearch
     public long getParsedTables()
     {
         return this.parsedTables;
+    }
+
+    public double getReduction()
+    {
+        return this.reduction;
     }
 }

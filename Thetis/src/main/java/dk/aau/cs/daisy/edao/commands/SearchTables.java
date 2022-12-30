@@ -454,7 +454,8 @@ public class SearchTables extends Command {
 
         saveFilenameScores(this.outputDir, tableLink.getDirectory(), queryName, scores, search.getTableStats(),
                 search.getQueryEntitiesMissingCoverage(), search.elapsedNanoSeconds(), search.getEmbeddingComparisons(),
-                search.getNonEmbeddingComparisons(), search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails());
+                search.getNonEmbeddingComparisons(), search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails(),
+                search.getReduction());
     }
 
     public int ppr(Table<String> query, String queryName, EntityLinking linker, EntityTable table, EntityTableLink tableLink, EmbeddingsIndex<String> embeddingsIdx) {
@@ -482,7 +483,8 @@ public class SearchTables extends Command {
                 Logger.logNewLine(Logger.Level.RESULT, "Filename = " + next.getFirst() + ", score = " + next.getSecond());
             }
 
-            saveFilenameScores(this.outputDir, tableLink.getDirectory(), queryName, scores, new HashMap<>(), Set.of(), search.elapsedNanoSeconds(), -1, -1, -1, -1);
+            saveFilenameScores(this.outputDir, tableLink.getDirectory(), queryName, scores, new HashMap<>(), Set.of(), search.elapsedNanoSeconds(),
+                    -1, -1, -1, -1, 0.0);
         } catch(AuthenticationException ex){
             Logger.logNewLine(Logger.Level.ERROR, "Could not Login to Neo4j Server (user or password do not match)");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
@@ -507,7 +509,7 @@ public class SearchTables extends Command {
     public synchronized void saveFilenameScores(File outputDir, String tableDir, String queryName, List<Pair<String, Double>> scores,
                                                 Map<String, Stats> tableStats, Set<String> queryEntitiesMissingCoverage,
                                                 long runtime, int embeddingComparisons, int nonEmbeddingComparisons,
-                                                int embeddingCoverageSuccesses, int embeddingCoverageFails)
+                                                int embeddingCoverageSuccesses, int embeddingCoverageFails, double reduction)
     {
         File saveDir = new File(outputDir, "/search_output/" + queryName);
 
@@ -556,6 +558,7 @@ public class SearchTables extends Command {
                 " (" + (this.usePretrainedEmbeddings ? "embeddings - " + this.embeddingSimFunction.name() : "types - " +
                 (this.adjustedJaccardSimilarity ? "with" : "without") + " adjusted Jaccard") + ")";
         jsonObj.addProperty("runtime", runtime);
+        jsonObj.addProperty("reduction", reduction);
         jsonObj.addProperty("threads", this.threads);
         jsonObj.addProperty("algorithm", algorithm);
 
