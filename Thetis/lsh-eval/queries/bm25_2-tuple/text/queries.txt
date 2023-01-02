@@ -1,31 +1,100 @@
-11028 1999 Houston Comets 2–1 New York Liberty Cynthia Cooper 2000 Houston Comets 2–0 New York Liberty Cynthia Cooper 
-110010 8 Steve Young 2005 Quarterback 1987 14 Y. A. Tittle 1971 Quarterback 1951 
-110036 Assateague State Park Worcester County 859 acres (3.48km²)  Barrier island Calvert Cliffs State Park Calvert County 1,313 acres (5.31km²)  Chesapeake Bay 
-110052 Battle of Britain Memorial Flight Visitor Centre  Coningsby East Lindsey Aviation World War II Belton House  Belton South Kesteven Historic house National Trust 
-110059 1 Error: This is not a valid number. Please refer to the documentation at for correct input. 148 Allan Steel England Error: This is not a valid number. Please refer to the documentation at for correct input. NR 2 Australia Error: 1884 July 21 This is not an acceptable date format. Please check the spelling, check the numbers and/or read the documentation at template for correct date input. || Won  2 Error: This is not a valid number. Please refer to the documentation at for correct input. 164 Arthur Shrewsbury England Error: This is not a valid number. Please refer to the documentation at for correct input. NR 1 Australia Error: 1886 July 19 This is not an acceptable date format. Please check the spelling, check the numbers and/or read the documentation at template for correct date input. || Won  
-110118 1 Nathan MacKinnon Canada Colorado Avalanche Halifax Mooseheads 7 Darnell Nurse Canada Edmonton Oilers Sault Ste. Marie Greyhounds 
-110143 SV Babelsberg 03 Potsdam Karl-Liebknecht-Stadion 10,499 FC Carl Zeiss Jena Jena Ernst-Abbe-Sportfeld 12,990 
-110176 Adaikalanathan, Selvam VAN 17,366 2010-04-22   TELO   TNA   TELO   TNA   Jayaratne, D. M. NAT  2010-04-22   SLFP   UPFA   SLFP   UPFA  Prime Minister 
-110259 August 3, 2010 Dmitri Bulykin Anderlecht Den Haag Loan August 3, 2010 Anthony Van Loo Roeselare Mechelen Free 
-110282 EF0 Laura Peoria  1911 miles (km) Gustnado EF0 Towner Kiowa  2131 unknown landspout 
-110373 Holy Trinity  1822–23 2,037 Robert Roper Gothic Revival II Manchester — 1822–25 16,733 Sir Charles Barry Gothic Revival — 
-110376 Barnsley  1821–22 5,963 Thomas Rickman Gothic Revival II Leeds  1823–25 10,555 R. D. Chantrell Gothic Revival — 
-110406 Ed Abbaticchio 1897–1898 Third baseman batting average  Fred Abbott 1905 Catcher batting average  
-110428 Anaheim Ducks Ryan Getzlaf Saku Koivu  Buffalo Sabres Steve Ott Christian Ehrhoff  
-110458 100th Bomber Group Memorial Museum  Thorpe Abbotts South Norfolk Military 100th Bomb Group Blickling Hall, Gardens and Park  Blickling Broadland Historic house National Trust 
-110505 1998 January 4, 1999 Tennessee 23 Florida State 16 1999 Fiesta Bowl Sun Devil Stadium Peerless Price 1999 January 4, 2000 Florida State 46 Virginia Tech 29 2000 Sugar Bowl Louisiana Superdome Peter Warrick 
-110554 Bromont July 21, 2010 – July 25, 2010 CSI**-W Yann Candele Bridgehampton August 29, 2010 – September 5, 2010 CSI****-W McLain Ward 
-110578 1950 Kaoru Betto Mainichi Orions Outfielder batting average  1951 Yuko Minamimura Yomiuri Giants Outfielder batting average  
-110633 Finsbury  1822–23 14,200 Thomas Hardwick Neoclassical II Camberwell  1822–24 5,000 Francis Octavius Bedford Neoclassical II 
-110640 M1x New Zealand 6:39.65 Switzerland 6:41.55 Czech Republic 6:43.89 M2x Germany 6:13.20 Norway 6:14.49 Poland 6:15.50 
-110695 1 Error: This is not a valid number. Please refer to the documentation at for correct input. 140 Archie MacLaren England Error: This is not a valid number. Please refer to the documentation at for correct input. NR 3 Australia Error: 1905 May 29 This is not an acceptable date format. Please check the spelling, check the numbers and/or read the documentation at template for correct date input. || Won  2 Error: This is not a valid number. Please refer to the documentation at for correct input. 131 Donald Bradman Australia Error: This is not a valid number. Please refer to the documentation at for correct input. 287 4 England Error: 1930 June 13 This is not an acceptable date format. Please check the spelling, check the numbers and/or read the documentation at template for correct date input. || Lost  
-112347 19–22Jan Dubai Desert Classic United Arab Emirates Fred Couples  26–29Jan Johnnie Walker Classic Philippines Fred Couples  
-112376 23–26Jan Johnnie Walker Classic Australia Ernie Els  13–16Feb Dimension Data Pro-Am South Africa Nick Price  
-112449 1 United States Dublin Lansdowne Road Rugby World Cup Error: 1999 October 2 This is not an acceptable date format. Please check the spelling, check the numbers and/or read the documentation at template for correct date input. || Won  3 Italy Dublin Lansdowne Road Six Nations Error: 2000 March 4 This is not an acceptable date format. Please check the spelling, check the numbers and/or read the documentation at template for correct date input. || Won  
-112462 P. J. Alexander OG Syracuse Florida Willie Andrews S Baylor Florida 
-112628 Worcester Barre 0.0 Route 32 Western end of Route 62. Worcester Hubbardston 6.6 Route 68  
-112849 13–16Jan Alfred Dunhill Championship South Africa Anthony Wall New tournament 27–30Jan Heineken Classic Australia Michael Campbell  
-112984 Putsy Caballero 1944–1945 1947–1952 Second baseman batting average  Hick Cady 1919 Catcher batting average  
-112993 Solly Salisbury 1902 Pitcher earned run average  Manny Salvo 1943 Pitcher earned run average  
-113003 Section Two - Preliminary Stage Northern Territory 19.20 (134) Tasmania 10.8 (68) Football Park - 2 March 1988 Section Two - Preliminary Stage Australian Amateurs 14.12 (96) ACT 12.11 (83) Football Park - 2 March 1988 
-115041 Allerdale website 96,400 Borough Cumbria Amber Valley website 122,500 Borough Derbyshire 
+5046 3/3/00 Super League V 1 Saints A Knowsley Road W 32-10 Lowes H.Paul 10,128 19/3/00 Super League V 2 Wolves H Odsal Stadium W 58-4 Brooker H.Paul 17,127 
+6136 1997 Tina Thompson Forward USC Houston Comets 1998 Margo Dydek Center Poland Utah Starzz 
+8992 23rd 1961-1962  Russell Paulley New Democratic Party 24th 1962-1966  Russell Paulley New Democratic Party 
+9605 July 7, 2007 Zell am Ziller WSG Wattens 1-0 F Meier eintracht-archiv.de July 20, 2007 Stadion_am_Zoo Wuppertaler SV Borussia 1-0 F Amanatidis eintracht-archiv.de 
+9832 1985 Niki Lauda McLaren Report 1984 Alain Prost McLaren Report 
+12318 Brose Baskets Bamberg Jako Arena Basketball Bundesliga CSKA Moscow Russia CSKA Universal Sports Hall Russian Super League 
+13042 60 March 2 Portland Trail Blazers L 104–110 Golden State Warriors Jackson Oracle Arena 31–29 L1 61 March 4 Phoenix Suns L 97–92 Portland Trail Blazers Roy Rose Garden 31–30 L2 
+13436 1984 24 October 1984 South Melbourne 2–1 Sydney Olympic Olympic Park 10,000 - 1984 28 October 1984 South Melbourne 1–2 Sydney Olympic St. George Stadium 11,221 - 
+16307 1 Mount McKinley Alaska Alaska Range  2 Mount Saint Elias Alaska Saint Elias Mountains  
+22588 1951 Walt Faulkner 14 Ret  Engine Report 1952 Troy Ruttman 7 1 8  Report 
+25066 Afghanistan Persian Afghanistan Asian Algeria Sephardi Jews Algeria Arab World 
+26958 1 Thanjavur Medical College Thanjavur Thanjavur district Tamil Nadu Dr. M.G.R. Medical University 1958 http://www.tnhealth.org/metmc.htm 2 Madras Medical College Park Town Chennai district Tamil Nadu Dr. M.G.R. Medical University 1835 http://www.mmc.tn.gov.in/ 
+29851 Jan 15 Phoenix Open Arizona Miller Barber 272 (–12) 40,000 Jan 29 Andy Williams-San Diego Open Invitational California Jay Haas 278 (–10) 40,000 
+32580 Annmary Brown Memorial Providence Providence Art Brown University The Breakers Newport Newport Historic house Vanderbilt family 
+38845 — Harry C. Beasley Navy Seaman USS Florida Error: 1914 April 21 This is not an acceptable date format. Please check the spelling, check the numbers and/or read the documentation at template for correct date input. For “extraordinary heroism in the line of his profession”. Later killed in the line of duty as a police officer — Charles Francis Bishop Navy Quartermaster USS Florida Error: 1914 April 21 This is not an acceptable date format. Please check the spelling, check the numbers and/or read the documentation at template for correct date input. For “extraordinary heroism in the line of his profession” 
+39327 1966 Bart Starr Alabama Len Dawson Purdue 1967 Bart Starr Alabama Daryle Lamonica Notre Dame 
+40224 North Carolina Willis Smith Died June 25, 1953 Alton Lennon July 10, 1953 New Hampshire Charles W. Tobey Died July 24, 1953 Robert W. Upton August 14, 1953 
+52309 1979 1 20 Michel Goulet Canada F 1089 92 1980 2 24 Normand Rochefort Canada D 598 69 
+55152 Bulldogs Sydney ANZ Stadium 1935 Cronulla-Sutherland Sharks Sydney Toyota Stadium 1967 
+55590 1 Mount Caubvick Newfoundland and Labrador Torngat Mountains    2 Barbeau Peak Nunavut Ellesmere Island    
+59320 1901 Win Kellum L Baltimore Orioles Oriole Park  1902 Bill Dinneen W Baltimore Orioles Huntington Avenue Grounds  
+60385 1966 Dortmund Natalia Kutchinskaya Keiko Ikeda Taniko Mitsukuri 1974 Varna Annelore Zinke Olga Korbut Ludmila Turicheva 
+61055 76 July 1 Diamondbacks 1–0 Cueto Garland Cordero 20,374 38–38 79 July 4 Cardinals 5–2 Owings Thompson Cordero 37,371 40–39 
+64184 1 December 2012 Millennium Stadium 12 – 14 Australia 2012 Autumn International 23 June 2012 Sydney Football Stadium 20 – 19 Australia Welsh Tour of Australia 
+65456 1970 Carabobo Bella La Rosa 1950 Caracas 1971 Monagas Jeannette Donzella 1950 Caracas 
+65969 06.12.2008 Trondheim HS131 / 10km Magnus Moan Jason Lamy-Chappuis Anssi Koivuranta 27.12.2008 Oberhof HS140 / 10km Magnus Moan Todd Lodwick Anssi Koivuranta 
+73797 4 Arnold Trail to Quebec  1969-10-01 Kennebec River Augusta Franklin 14 Brown Memorial Library  1975-04-28 Downtown Clinton Clinton John Calvin Stevens 
+73799 1996 Metz [A Olympique Lyonnais Parc des Princes 45,368 1997 Strasbourg [B Bordeaux Parc des Princes 39,878 
+77894 2 El Hijo del Gladiador 1 Unknown  The exact date Hijo del Gladiador won the Championship is not known placing the title reign between 1 and 342 days. Naucalpan, Mexico IWRG live event 3 Magnum Tokyo 1 Cannot handle non-empty timestamp argument! 5, 1998 91 Naucalpan, Mexico IWRG live event  
+78540 1936 Berlin United States Canada Mexico 1948 London United States France Brazil 
+85621 Clinton Hennessy Waterford 1 2008  Eoin Murphy Waterford 1 2008  
+88423 Michele Allasia Italy Corpo Aeronautico Militare 5 Antonio Amantea Italy Corpo Aeronautico Militare 5 
+90773 details Kelly-Ann Baptiste 11.05 Shalonda Solomon 11.09 Blessing Okagbare 11.14 details Aleksandra Fedoriva 22.86 Yelizaveta Bryzhina 23.37 Cydonie Mothersille 23.41 
+92576 Southern Pacific $42,000 1865–1996 Rio Grande Industries Union Pacific Atchison, Topeka, and Santa Fe $40,000 1859–1996 Burlington Northern BNSF 
+92646 50m freestyle S8 27.51   Benjamin James Austin  Australia Sydney  50m freestyle S9 25.52  Matthew John Cowdrey Australia Melbourne  
+92865 Women's 400 m Individual Medley Kaitlin Sandeno 5 4:41.89 Jennifer Reilly 3 4:42.94 Maggie Bowen 2 4:44.75 Maddy Crippen 1 4:50.37 Men's 400 m Individual Medley Michael Phelps 5 4:10.73 WR Tom Wilkens 3 4:16.75 Erik Vendt 2 4:17.48 Justin Norris 1 4:19.05 
+98448 1965 Bo Schembechler Miami 3rd 7–3 (5–1) 1966 Bill Doolittle Western Michigan 3rd 7–3 (5–1) 
+99836 Australia Adelaide Thunderbirds ETSA Park 2nd → Champions Australia Melbourne Vixens State Netball and Hockey Centre 7th 
+100533 Benjamin Peary Pal Science & Engineering Punjab India Brahm Prakash Science & Engineering Punjab India 
+101358 8–11May Paco Rabanne Open de France France Greg Norman  15–18May Martini International England Seve Ballesteros  
+101433 Cretaceous Early Berriasian younger Jurassic Late Tithonian 145.0–152.1 
+101510 50 m freestyle Karen van Wirdum 25.90 Andrea Nugent 26.24 Shannon Shakespeare 26.27 100 m freestyle Karen Pickering 56.20 Karen van Wirdum 56.42 Marianne Limpert 56.44 
+103921 Merriweather Post Pavilion Columbia Maryland 1974   Sleep Train Pavilion Concord California 1975   
+107092 11 Kumar Sangakkara 27 October 1977 (aged 32) 20 Left-handed wicket-keeper Kandurata 17 Dinesh Chandimal 18 November 1989 (aged 20) 0 Right-handed wicket-keeper Ruhuna 
+108736 100 m 10.87 Merlene Ottey Jamaica 1987  200 m 22.07 Evelyn Ashford United States April 1983  
+110831 1923 Forest Hills United States 7–0 1924 Wimbledon United Kingdom 6–1 
+111726 Bawdsey Manor  Bawdsey Suffolk Coastal Military RAF Bawdsey Centre for Computing History  Haverhill St Edmundsbury Technology Information Age 
+112398 100 m 9.58 (+0.9m/s) Usain Bolt Jamaica 16 August 2009 World Championships Berlin  200 m 19.19 (-0.3m/s) Usain Bolt Jamaica 20 August 2009 World Championships Berlin  
+114449 1 1 Vitaphone Racing Team Michael Bartels Maserati 27  2 24 Reiter Peter Kox Lamborghini 27 −5.569 
+122949 Cretaceous Early Berriasian younger Jurassic Late Tithonian 145.0–152.1 
+124245 100 m freestyle 48.70  Tae-hwan Park South Korea 2010 Asian Games  200 m freestyle 1:44.80 AS Tae-hwan Park South Korea 2010 Asian Games  
+127586 11 Cerberus Capital Management LP Private Equity $4,768,901,697.89 11 McKesson Health_care $6,566,776,579.50 11 SAIC Inc. Technology $5,932,121,220.23 14 URS Corporation Engineering $3,947,003,912.81 14 Computer Sciences Corporation IT Services $4,638,238,836.90 14 McKesson Health_care $4,630,016,458.67 
+128140 83rd Academy Awards Best Costume Design Jenny Beavan Nominated 83rd Academy Awards Best Sound Mixing Paul Hamblin Nominated 
+130319 2010 Michael Henry Heim Wonder Dutch 2009 Natasha Wimmer 2666 Spanish 
+131532 Apr 11-14 Louisiana Open Louisiana Steven Alker Apr 18-21 Arkansas Classic Arkansas Jace Bugg 
+133400 1993 Germany Portugal Australia Austria Netherlands Canada United Kingdom France Finland United States 1994 Germany Italy Australia Austria Netherlands Canada United Kingdom France Finland United States 
+134153  Nasser Ebrahimi Iran 1 December 1984 16 February 1985 Error: This is not a valid number. Please refer to the documentation at for correct input. Error: This is not a valid number. Please refer to the documentation at for correct input. 1984 Asian Cup  Parviz Dehdari Iran March 1986 22 January 1989 Error: This is not a valid number. Please refer to the documentation at for correct input. Error: This is not a valid number. Please refer to the documentation at for correct input. 1988 Asian Cup 
+135951 Infante Duarte son 22 December 1400 brother died 14 August 1433 became king Infante Peter, Duke of Coimbra João I Afonso, Prince of Portugal son 14 August 1433 father became king (elder brother died same day) 9 September 1438 became king Infante Fernando Duarte 
+141011 Algoma East  Lester B. Pearson Liberal Algoma West  George Ewart Nixon Liberal 
+145550 feet (m) Alma Colorado Breckenridge feet (m) Albany Wyoming Encampment 
+148518 1953 Clarence Munn Big Ten T-1st 1954 Rose Bowl       1965 Duffy Daugherty Big Ten 1st 1966 Rose Bowl       
+150477 A-10PCAS Elbit Systems Israel Eitan Israel Aerospace Industries Israel 
+150971 Amazing Lives of the Fast Food Grifters  Mamoru Oshii Production I.G. Traditional  Bambi II  Brian Pimental Walt Disney Studios Home Entertainment Traditional  
+153581 29 March 2012 Folkestone England Leas Cliff Hall 30 March 2012 Norwich England University of East Anglia 
+154873 1 29 February 3 - 4 Bhopal Badshahs Chandigarh Match 1 2 3 March 3 - 5 Chennai Cheetahs Chandigarh Match 7 
+155524 WR West Lafayette, Indiana Lafayette Central Catholic H.S. ft0in (m) lb (kg) -- September 23, 2011 LB Hialeah, Florida Hialeah H.S. ft11in (m) lb (kg) -- July 29, 2011 
+165091 7 MF <span style="display: none"> ENG</span>  Sidwell 7  2 1    8 MF <span style="display: none"> SUI</span>  Kasami    1    
+165144 22-26 Feb WGC-Accenture Match Play Championship World Golf Championships Geoff Ogilvy 23-26 Mar The Players Championship PGA Tour Stephen Ames 
+168404 Ardrossan Historical Museum Ardrossan Yorke Peninsula Local history National Trust of Australia Bon Accord Mining Museum Burra Mid North Mining National Trust of Australia 
+168612 1896 Athens United States 11 Greece 10 Germany 6 1896 Athens United States 7 Greece 17 Germany 5 
+168678 2 Aaron Davey Alan Didak Josh Fraser 3 Danyle Pearce Daniel Motlop Warren Tredrea 
+169068 42 Juan Pablo Montoya Earnhardt Ganassi Racing Chevrolet 69.438 127.020 1 18 Kyle Busch Joe Gibbs Racing Toyota 69.488 126.928 2 
+169138  Assiniboia-Gravelbourg Allen Willard Engel New Democratic Party  Bengough-Milestone Robert Hugh Pickering Progressive Conservative 
+176701 July 1 Cooper Challenger Julia Glushko Gabriela Dabrowski Ons Jabeur Sharon Fichman July 1 Cooper Challenger Gabriela Dabrowski Misa Eguchi Ons Jabeur Sharon Fichman 
+180619 Arusha Tanzania ARK HTAR Arusha Airport Bukoba Tanzania BKZ HTBU Bukoba Airport 
+182284 688 Attack Sub Electronic Arts Sega NA EU 1991 1 A Ressha de Ikou MD Artdink Sega JP 1992/04/10 1 
+183155 1 11 Denny Hamlin Joe Gibbs Racing Toyota 38.410 187.451 2 16 Greg Biffle Roush Fenway Racing Ford 38.458 187.217 
+183190 Taukelina Finikaso Independent Vaitupu 541 Apisai Ielemia Independent Vaitupu 597 
+186678 (1st) Tracey Bregman Days of our Lives NBC  (1st) Genie Francis General Hospital ABC  
+186895 Battlefield 4 First-person shooter EA Digital Illusions CE Electronic Arts No Supported 2014 Cannot handle non-empty timestamp argument! 22, 2013 Cannot handle non-empty timestamp argument! 22, 2013   Call of Duty: Ghosts First-person shooter Infinity Ward Activision No Supported 2014 Cannot handle non-empty timestamp argument! 22, 2013 Cannot handle non-empty timestamp argument! 22, 2013   
+196978 14 William D. Wood Brazos 51 John Junior Bell Aransas 
+197585 World Series of Poker CBS 1978–1981, 1983; 1987 onwards 1 Lon McEachern United States Poker Championship ESPN 1997–2000; 2003-2006 Lon McEachern 
+199568  Afghanistan Dari Kabul 30,419,928 km2 (sqmi)  Armenia Armenian Yerevan 2,970,495 km2 (sqmi) 
+202473 May 27, 2006 Las Vegas United States MGM Grand Garden Arena May 28, 2006 Las Vegas United States MGM Grand Garden Arena 
+204419 FM 88.1 CBAF-FM-15 Charlottetown Prince Edward Island AM 680 CHFA Edmonton Alberta 
+205648 1964 Bruce McLaren Cooper 3 5 (7) 39 6 1965 Jim Clark Lotus 32B 3 (4) 4 (5) 35 11 
+217245 Pierce Milton 1.62 Porter Way SR 514 King  8.83 Saltwater State Park SR 509 
+217313 2  Sergio Osmeña November 15, 1935 August 1, 1944 Nacionalista Manuel L. Quezon Commonwealth 5  Carlos P. Garcia December 30, 1953 March 18, 1957 Nacionalista Ramon Magsaysay Third Republic 
+219120 Arrowhead Towne Center Glendale, Arizona Phoenix, Arizona Capitola Mall Capitola, California Santa Cruz, California 
+220228 Barrackville Covered Bridge  Barracksville 1853 Burr Arch Carrollton Covered Bridge  Carrollton 1856 Burr Arch 
+221392 2004 P. James E. Peebles Canada cosmology  2005 Geoffrey Marcy United States planetary system  
+224962 Cachapoal Rancagua Codegua Cachapoal Rancagua Coltauco 
+226427 Edward Bell Royal Welch Fusiliers 1854-09-20 20 September 1854 Alma George Dowell Royal Marine Artillery 1855-07-13 13 July 1855 Fort of Viborg 
+239585 1983 Open Billy Ray Bates Crispa 1985 Open Norman Black San Miguel 
+240230 details Valeriy Borzov 20.00 Larry Black 20.19 Pietro Mennea 20.30 details Dave Wottle 1:45.86 Yevgeni Arzhanov 1:45.89 Mike Boit 1:46.01 
+241817 1952-08-30 1952 Detroit F-89 Scorpion design 2 flypast 1952-09-06 1952 Farnborough Airshow DH.110 crash Farnborough, Hampshire de Havilland DH.110 design fault 31 aeroelastic flutter 
+243199 Jason Harris-Wright Hooker Ireland Dave Heffernan Hooker Ireland 
+243237 Belgium New Flemish Alliance Flanders 2010 1 Croatia List for Fiume Rijeka 2009/2010 0 
+243787 Bowman, Qld  Labor Len Keogh 1.3 8.4 7.1 David Jull Liberal  Canberra, ACT  Labor Kep Enderby 7.1 10.4 3.3 John Haslem Liberal  
+244174 East 1&2 Old Dominion University Old Dominion University Fieldhouse Norfolk Virginia East 1&2 North Carolina State University Reynolds Coliseum  Raleigh,_North_Carolina North Carolina 

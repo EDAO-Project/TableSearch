@@ -1,31 +1,100 @@
-110010 season Quarterback 1951 1987 Steve 49ers A. Francisco Y. Tittle San Young 
-110036 State County, Park island Calvert Maryland Barrier Worcester Chesapeake Cliffs Bay Assateague 
-110052 Places Coningsby Britain Historic Natural Lincolnshire Lindsey Trust Beauty Belton Memorial or National East II Flight Interest of Kesteven Battle House Belton, World South for War 
-110059 Shrewsbury England G. Arthur Australia A. Steel cricket national team 
-110118 Darnell Nurse Halifax Avalanche Oilers Sault Mooseheads Edmonton Colorado Greyhounds Nathan MacKinnon Marie Ste. 
-110143 Babelsberg Karl-Liebknecht-Stadion Jena Potsdam Carl 03 SV Zeiss Ernst-Abbe-Sportfeld FC 
-110176 M. Jayaratne Freedom Sri Parliament Party Adaikalanathan Eelam Minister D. Tamil Prime National District Vanni of List Member Liberation Organization Lanka Selvam Electoral Alliance 
-110259 Van Roeselare ADO Mechelen Den KV Haag Dmitri R.S.C. Anthony Bulykin Loo K.S.V. Anderlecht 
-11028 Cynthia Championship 2000 New 1999 Houston Cooper-Dyke Liberty Comets York WNBA 
-110282 County, Peoria Laura, Kiowa Gustnado Landspout Illinois Colorado Towner, 
-110373 Holy Manchester Gothic Revival architecture Robert Roper Barry Charles Church, Hoghton Trinity 
-110376 Dennis Leeds Chantrell Gothic Rickman architecture Robert Thomas Barnsley Revival 
-110406 baseman Third Ed Catcher Batting average Abbott Fred Abbaticchio 
-110428 Ducks Getzlaf Buffalo Koivu Steve Ott Sabres Ehrhoff Anaheim Ryan Christian Saku 
-110458 Places Broadland Blickling Historic Natural Abbotts Thorpe Wing Hall Trust Refueling Beauty Norfolk or National Air Interest of 100th RAF South for 
-110505 Virginia 1999 Warrick Florida Peerless Bowl Tech team Fiesta Volunteers Stadium football Price 1998 Superdome Devil season I-A Hokies Sun NCAA Sugar Division State Seminoles 2000 Mercedes-Benz Peter Tennessee 
-110554 Yann Bridgehampton, McLain International Quebec Candele New Saut Ward Concours York de Bromont, 
-110578 Minamimura Series Outfielder Yuko 1951 Batting Kaoru average Japan Giants Betto Lotte 1950 Marines Yomiuri Chiba 
-110633 Francis Octavius Bedford Neoclassical architecture Camberwell Hardwick Thomas Finsbury 
-110640 Germany Norway Czech New Switzerland Zealand Poland Republic 
-110695 MacLaren England Bradman Archie Australia cricket Don national team 
-112347 Philippines Couples Johnnie Classic Arab Emirates United Fred Walker Dubai Desert 
-112376 Pro-Am South Price Johnnie Nick Classic Africa Australia Dimension Walker Ernie Els Data 
-112449 Nations 2000 union Italy Championship Cup Dublin 1999 Rugby United Six States national rugby World Road team Lansdowne 
-112462 Syracuse Virginia P. Willie Andrews Baylor Orange football Bears Destroyers J. Alexander 
-112628 County, England Route New 68 Worcester Massachusetts 32 Interstate Barre, Hubbardston, 
-112849 Dunhill Championship Wall Africa Classic Australia Heineken Anthony Campbell Michael Alfred South 
-112984 Second baseman Cady Catcher Batting average Hick Putsy Caballero 
-112993 run Pitcher Earned Salisbury average Solly Salvo Manny 
-113003 Football Council Park football Australian Territory Tasmania Amateur in rules the Northern Capital 
-115041 status Allerdale Cumbria Derbyshire Borough Kingdom in United Valley the Amber 
+101288 Wales Jack Television Queen Associated Acker Bruce Bilk The Max Theatre Elizabeth Prince of Victoria Hylton Bygraves Forsyth Mother Palace II 
+107301 Lars Tammela Exhibition game Stadion olympique Nordic Stade national Football Pontaise Switzerland de Finland Championship la Lauridsen football team John Bastrup 
+107375 Makau Athletics Musyoki Stefano Majors Marathon Italy Baldini World Patrick Kenya European Championships 
+110010 San Y. 1987 Francisco Quarterback Young Steve 1951 season Tittle A. 49ers 
+110036 Barrier State Calvert Assateague Worcester Chesapeake County, Bay island Park Cliffs Maryland 
+110052 Coningsby Places South for Flight Britain Trust Kesteven Belton Beauty Battle Lincolnshire House Memorial National of World Interest Lindsey Natural East Historic War Belton, or II 
+110059 Australia team England Steel Arthur Shrewsbury national cricket A. G. 
+110118 Nathan Mooseheads Darnell Oilers Marie Ste. Edmonton Sault MacKinnon Greyhounds Halifax Avalanche Nurse Colorado 
+110143 Ernst-Abbe-Sportfeld SV Carl Jena 03 Karl-Liebknecht-Stadion Potsdam Babelsberg Zeiss FC 
+110176 Jayaratne Eelam Lanka Alliance M. Prime Freedom Parliament National of District D. Party Electoral Organization Liberation Sri Minister Vanni List Member Adaikalanathan Selvam Tamil 
+110259 Van Roeselare Mechelen Haag Anthony Bulykin Den Loo K.S.V. Anderlecht R.S.C. Dmitri ADO KV 
+11028 2000 New WNBA Houston Cynthia Comets York 1999 Championship Cooper-Dyke Liberty 
+110282 Laura, Towner, Kiowa Peoria Illinois County, Gustnado Landspout Colorado 
+110373 Gothic Holy Barry Trinity Robert Hoghton Revival Manchester Church, architecture Roper Charles 
+110376 Gothic Barnsley Robert Thomas Revival Chantrell architecture Dennis Rickman Leeds 
+110406 Catcher Third average baseman Abbaticchio Abbott Batting Fred Ed 
+110428 Ott Sabres Koivu Saku Buffalo Christian Ducks Steve Ehrhoff Ryan Anaheim Getzlaf 
+110458 Places South for Thorpe RAF Air Trust Beauty 100th Refueling National of Interest Wing Hall Abbotts Natural Norfolk Historic or Blickling Broadland 
+110505 Tennessee Mercedes-Benz 1998 season Sun Volunteers Division Florida Stadium Fiesta Peerless I-A State Bowl 2000 Virginia Sugar Hokies Seminoles football Tech Superdome team Peter 1999 NCAA Warrick Price Devil 
+110554 New de Quebec Bromont, International York Saut McLain Bridgehampton, Yann Concours Candele Ward 
+110578 Kaoru Minamimura Giants average 1950 Yuko Yomiuri Japan Chiba Series Lotte 1951 Outfielder Batting Marines Betto 
+110633 Bedford Neoclassical Francis Finsbury Hardwick Thomas Camberwell architecture Octavius 
+110640 New Poland Zealand Switzerland Republic Germany Czech Norway 
+110695 Australia team MacLaren England Don Bradman national Archie cricket 
+112095 W. Australia team England Murdoch Grace national Billy cricket G. 
+112347 Philippines Classic Arab Emirates Johnnie Walker Desert Dubai United Fred Couples 
+112376 Ernie Africa Pro-Am Classic Australia South Johnnie Walker Data Price Els Dimension Nick 
+112449 2000 Six United rugby team Lansdowne Road Cup 1999 union Italy World Championship Dublin national Rugby Nations States 
+112462 football Virginia Syracuse J. Alexander P. Destroyers Orange Andrews Bears Baylor Willie 
+112628 Massachusetts Hubbardston, Worcester New 68 England 32 County, Route Interstate Barre, 
+112849 Alfred Africa Classic Australia South Heineken Michael Anthony Wall Championship Campbell Dunhill 
+112984 Catcher Putsy average Cady Caballero baseman Hick Batting Second 
+112993 run Salisbury average Manny Salvo Pitcher Solly Earned 
+112994 Taguchi Third Tabor average baseman Left So fielder Batting Jim 
+113003 Australian in football Territory Amateur Council Northern the Capital rules Park Tasmania Football 
+113369 Harris Matthews LaMarcus Milwaukee Camby Miller Bucks Wesley Chicago Center BMO Aldridge Marcus United Andre Bulls Bradley 
+115041 in Kingdom Cumbria Derbyshire Amber the Allerdale United status Borough Valley 
+121318 Jays Blue Luke Jon Romero Drabek Hochevar Ricky Mazzaro Joakim Soria Rauch Vin Kyle Toronto 
+121818 Francisco Sports 2011 season Jordan Cordero Houston Lyles Fox Mark Marshall Ohio Melancon Astros Chicago Sean Masset Nick Cubs 
+122136 Kokslien Felix Lamy-Chappuis Mikko Kuusamo Eric Jason Mario Stecher Frenzel Gottwald 
+125734 Later Awards Mullan Peter The Sisters Danny Film Magdalene 2003 British Days 28 Independent Boyle 
+134700 Andhra Anantapur, Pradesh Anantapur Adilabad district 
+136361 Argentina Buenos Aires Luna Park Estadio 
+142300 Massachusetts University Angeles of Los Southern Boston California 
+146297 Bennecourt Aubergenville Auffreville-Brasseuil Aulnay-sur-Mauldre Bazainville Bazemont 
+146317 Boult-sur-Suippe Breuil, Brimont Bouilly, Branscourt Bouleuse Bouvancourt Bourgogne, Marne 
+146467 Ban-de-Laveline Barbey-Seroux Ban-de-Sapt Aumontzey Ban-sur-Meurthe-Clefcy Belmont-sur-Buttant 
+155649 Catcher Black Memphis Birmingham Dan Bailey Otha Barons Sox Pitcher Bankhead Red 
+155880 Group Robert Huff Cruze RML Menu Alain Chevrolet 
+156705 Fotboll Ullevi Landskrona BoIS IP AIK Degerfors IF 
+156722 Ben-Gurion Mapai Prime Frumkin of Minister David Jenia Heshel Israel Tversky 
+161211 Lakes Orleans Stadium New 1950 Bowl Tulane Wildcats 1947 Sooners Sugar Great Villanova Kentucky football Cleveland team Bear Bryant 1951 Oklahoma 
+175579 Sevenoaks Ash, Graham Thomas England of Bessels Green Church Manse Baptists Jackson 
+177358 Shikharji Rishabha Mount Ayodhya Ajitanatha Kailash 
+179967 Range Menderes Mersin the Erdemli Adnan at 2013 Mediterranean Shooting Boulevard Cycling Games 
+181890 Stadium Robin West Brian team Brabourne The England Oval Luckhurst Indies cricket Bynoe 
+182470 Alps Nordend Rosa Valais Pennine Monte 
+184146 Awards Abbey episodes Dockery of Festival Academy Coyle British Downton Monte-Carlo Brendan List Michelle Television 
+186893 Club Bandy SKA-Sverdlovsk Moscow SKA-Neftyanik Dynamo 
+187622 Daimler Volkswagen Automotive Germany AG industry 
+191099 Sargsyan Hamid President Karzai of Serzh Afghanistan Armenia 
+191682 Alaska defendere Latin English nostra of Audemus Alabama History jura language 
+193222 Company 281 Anne Whole Otto Schreiber HBO in Story Orson Broadcasting Welles The 2000 Liev American RKO Ben Frank 2001 Kingsley Frank: television 
+197075 PFC Slavia Stadium Lokomotiv Cup National Sofia 1996 Botev Levski 1995 Bulgarian Vasil Final Plovdiv 
+199982 Gothic Brewster, House New Cold Cemetery Walter Revival York architecture Brewster Greek Nelsonville, Spring Gatehouse 
+202882 House Baynard Hall Bannister Kenton, 42 300 Smyrna, Delaware Route and Arnold George 
+207079 Luka RK Valur VfL HC Fredericia Prague HK Borac Gummersbach Dukla Banja TV Grosswallstadt 
+207751 Hestrin Levitzki Hestrin-Lerner Hard science Shlomo Alexander Medicine Sara and Jacob soft 
+210107 Mills State Highway Sayre, routes 40 of Business County, Roger 30 Interstate Sweetwater, Beckham Oklahoma 
+213693 Healthcare Alta Hospital American Intermountain Sandy, Fork, Fork View Utah 
+216351 Rose Plymouth Cattewater English Mary Wreck Heritage Portsmouth 
+216636 Major Johnson 2000 Diamondbacks League Baseball 1999 Randy season Arizona 
+219491 Darius Slater Justin league Geyer Boyd positions Rugby Matt Billy Hodges 
+225206 Self-Defence Poland Justice Andzel Jan Republic the of Koszalin Bednarek Law and Waldemar Sosnowiec 
+228102 Villeneuve 32nd Vinterberg Denis Thomas August Denmark Earth on Festen Canada 
+230806 Danai Lee Go Udomchoke Hyung-taik Cecil Mamiit Soeda 
+231873 Aircraft Station Group Iwakuni Corps Aviation 12 11 Squadron Miramar Marine Air Logistics 
+241495 Armor Out Japan Love Death in Guyver: Booster Azumi 1986 of 2: action Animation Control Live 2005 or Bio film Guyver 
+243407 Scarponi Sagan Peter Valverde Cavendish Bauke Mark Mollema Alejandro Michele 
+26953 Redmen Gee-Gees Concordia Stingers Carleton Ravens McGill Ottawa 
+32308 Major Falcons football Atlanta American League National Baseball Football Braves 
+3256 in sports 2002 University basketball of Taurasi College 2003 Bird Connecticut Diana Sue 
+3620 Stadium Association Spain Nou Wembley Barcelona London The England Football FC Camp 
+37313 Pleasant, 1 Senate, Nixon Ratliff Mount District Bill Drew 3 Texas Carthage, 
+48323 Music New Studio B York Festival City United Siren States 
+51668 Twickenham Stadium Six rugby team Scotland Italy union Championship 2007 national Nations 
+54764 Coast New Ohio Louis Illinois Railroad and CSX Chesapeake, Central St. Clinchfield Transportation Southwestern Atlantic Line Orleans Chicago, 
+54848 Stadium Zamalek International Al Cairo Giza Ahly SC 
+62849 Division Fotboll Swedish 2 AIK Allsvenskan IF Sandvikens 3 Football Stattena 
+69167 in 1982 Like It Tootsie Sydney Some Pollack Wilder film Hot Billy 1959 
+71638 Wake football University Forest Clemson College Palmer Banks Golf Arnold McFadden 
+73799 Alsace Coupe Strasbourg Bordeaux FC 1997 Girondins RC Princes des de Lyonnais Parc la Olympique Ligue 1996 Metz Final 
+78357 Book Books Sapiential Twelve Hosea Prophets of Ketuvim Minor 
+81800 Yingwen Laure Zhu Manaudou Ai Marleen Libby Caitlin McClatchey Trickett Veldhuis Shibata 
+95173 Chen 2010 Millwood Floyd season Kevin Putz Bruce Royals Soria White City Jason Gavin Berken Joakim J. Chicago Sox Kansas 
+96066 Major run Lefty Grove percentage average League Winning Rube Baseball Waddell 1925 1902 season Earned 
+96359 Brescia Calcio Jadid Salernitana Capone Vicenza 1919 Abderrazzak U.S. Andrea 
+96973 Jovi 2000 Peppers Europe MTV Awards Hot Blink-182 2001 Crazy Bon Town Music Red Chili 
+98573 Paul Mifsud Francisco Doug Mountjoy Johannesburg Manuel Ray Edmonds Cardiff 
+99410 Andhra Krishna Pradesh Visakhapatnam district Vijayawada 
