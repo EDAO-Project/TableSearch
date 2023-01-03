@@ -96,7 +96,7 @@ public final class TypeStats
             }
         }
 
-        Map<String, Double> typePercentages = percentages(typeCountInTables);
+        Map<String, Double> typePercentages = percentages(typeCountInTables, tables.size());
         List<Map.Entry<String, Double>> sorted = new ArrayList<>(typePercentages.entrySet());
         sorted.sort(Comparator.comparingDouble(Map.Entry::getValue));
 
@@ -146,14 +146,13 @@ public final class TypeStats
         return false;
     }
 
-    private static <E> Map<E, Double> percentages(Map<E, Integer> map)
+    private static <E> Map<E, Double> percentages(Map<E, Integer> map, int corpusSize)
     {
-        int count = map.size();
         Map<E, Double> percentages = new HashMap<>(map.size());
 
         for (Map.Entry<E, Integer> entry : map.entrySet())
         {
-            double fraction = (double) entry.getValue() / count;
+            double fraction = (double) entry.getValue() / corpusSize;
             percentages.put(entry.getKey(), fraction);
         }
 
