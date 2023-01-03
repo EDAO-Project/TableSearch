@@ -74,7 +74,7 @@ public class EntityLinking implements Linker<String, String>, Serializable
     public String mapTo(String inputEntity)
     {
         if (!inputEntity.startsWith(this.inputPrefix))
-            throw new IllegalArgumentException("Input entity URI does not start with specified prefix");
+            throw new IllegalArgumentException("Input entity URI '" + inputEntity + "' does not start with specified prefix");
 
         Id inputId = this.t2Ids.get(inputEntity.substring(this.inputPrefix.length()));
 
