@@ -117,7 +117,7 @@ public final class TypeStats
 
             for (int column = 0; column < columns; column++)
             {
-                String entity = linker.mapTo(table.getRow(row).get(column));
+                String entity = table.getRow(row).get(column);
 
                 if (entity == null)
                 {

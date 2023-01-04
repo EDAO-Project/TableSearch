@@ -21,7 +21,6 @@ public class TypeStatsTest
 {
     private final EntityTable entTable = new EntityTable();
     private final EntityLinking linker = new EntityLinking("", "");
-    private final Id id1 = Id.alloc(), id2 = Id.alloc(), id3 = Id.alloc();
     private final String tableEnt1 = "ent1", tableEnt2 = "ent2", tableEnt3 = "ent3";
     private final Entity ent1 = new Entity("uri1", new Type("type1"), new Type("type2"), new Type("type3")),
             ent2 = new Entity("uri2", new Type("type2")),
@@ -40,10 +39,10 @@ public class TypeStatsTest
         this.entTable.insert(this.linker.kgUriLookup(this.ent2.getUri()), this.ent2);
         this.entTable.insert(this.linker.kgUriLookup(this.ent3.getUri()), this.ent3);
 
-        Table<String> t1 = new DynamicTable<>(List.of(List.of(this.tableEnt1, this.tableEnt2),
-                List.of(this.tableEnt2, this.tableEnt3))),
-                t2 = new DynamicTable<>(List.of(List.of(this.tableEnt1))),
-                t3 = new DynamicTable<>(List.of(List.of(this.tableEnt2, this.tableEnt3)));
+        Table<String> t1 = new DynamicTable<>(List.of(List.of(this.ent1.getUri(), this.ent2.getUri()),
+                List.of(this.ent2.getUri(), this.ent3.getUri()))),
+                t2 = new DynamicTable<>(List.of(List.of(this.ent1.getUri()))),
+                t3 = new DynamicTable<>(List.of(List.of(this.ent2.getUri(), this.ent3.getUri())));
         this.corpus.addAll(Set.of(t1, t2, t3));
     }
 
