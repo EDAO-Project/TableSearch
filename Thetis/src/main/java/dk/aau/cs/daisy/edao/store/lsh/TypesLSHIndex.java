@@ -35,7 +35,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
     private final Map<Id, Integer> entityToSigIndex = new HashMap<>();
     private boolean aggregateColumns;
     private Set<String> unimportantTypes;
-    private static final double UNIMPORTANT_PERCENTILE = 0.9;
+    private static final double UNIMPORTANT_TABLE_PERCENTAGE = 0.5;
 
     /**
      * @param neo4jConfigFile Neo4J connector configuration file
@@ -70,7 +70,8 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         this.linker = linker;
         this.aggregateColumns = aggregateColumns;
 
-        loadTypes(entityTable);
+        Set<Table<String>> linkedTables = tables.stream().map(PairNonComparable::getSecond).collect(Collectors.toSet());
+        loadTypes(entityTable, linkedTables, linker);
 
         try
         {
@@ -88,7 +89,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         this.linker = linker;
     }
 
-    private void loadTypes(EntityTable entityTable)
+    private void loadTypes(EntityTable entityTable, Set<Table<String>> linkedTables, EntityLinking linker)
     {
         int counter = 0;
         this.universeTypes = new HashMap<>();
@@ -104,7 +105,8 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
             }
         }
 
-        this.unimportantTypes = new TypeStats(entityTable).popularByPercentile(UNIMPORTANT_PERCENTILE);
+        this.unimportantTypes = new TypeStats(entityTable).popularByTable(UNIMPORTANT_TABLE_PERCENTAGE,
+                linkedTables, linker);
     }
 
     /**
