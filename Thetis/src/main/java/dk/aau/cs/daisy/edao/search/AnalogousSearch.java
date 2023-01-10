@@ -300,7 +300,7 @@ public class AnalogousSearch extends AbstractSearch
 
                             if (columnToEntity.containsKey(assignedColumn))
                             {
-                                bestSimScore = entitySimilarityScore(queryEntity, columnToEntity.get(assignedColumn), table);
+                                bestSimScore = entitySimilarityScore(queryEntity, columnToEntity.get(assignedColumn));
                             }
                         }
 
@@ -308,7 +308,7 @@ public class AnalogousSearch extends AbstractSearch
                         {
                             for (String rowEntity : columnToEntity.values()) // Loop over each entity in the table row
                             {
-                                double simScore = entitySimilarityScore(queryEntity, rowEntity, table);
+                                double simScore = entitySimilarityScore(queryEntity, rowEntity);
                                 bestSimScore = Math.max(bestSimScore, simScore);
                             }
                         }
@@ -376,7 +376,7 @@ public class AnalogousSearch extends AbstractSearch
                             for (int queryEntityCounter = 0; queryEntityCounter < query.getRow(queryRow).size(); queryEntityCounter++)
                             {
                                 String queryEntity = query.getRow(queryRow).get(queryEntityCounter);
-                                Double score = entitySimilarityScore(queryEntity, curEntity, tableName);
+                                Double score = entitySimilarityScore(queryEntity, curEntity);
                                 entityToColumnScore.get(queryRow).get(queryEntityCounter).set(colCounter, entityToColumnScore.get(queryRow).get(queryEntityCounter).get(colCounter) + score);
                             }
                         }
@@ -417,7 +417,7 @@ public class AnalogousSearch extends AbstractSearch
      * @param ent2 entity URI
      * @return A score within [0, 1]
      */
-    private double entitySimilarityScore(String ent1, String ent2, String table)
+    private double entitySimilarityScore(String ent1, String ent2)
     {
         if (!this.useEmbeddings)
             return jaccardSimilarity(ent1, ent2);
