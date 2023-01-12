@@ -7,6 +7,8 @@ import dk.aau.cs.daisy.edao.connector.Factory;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.PairNonComparable;
+import dk.aau.cs.daisy.edao.structures.table.Aggregator;
+import dk.aau.cs.daisy.edao.structures.table.ColumnAggregator;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 import dk.aau.cs.daisy.edao.utilities.Utils;
 
@@ -145,37 +147,16 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
 
     private void loadByColumns(String tableName, Table<String> table, DBDriver<List<Double>, String> embeddingsDB)
     {
-        if (table.rowCount() == 0)
+        Aggregator<String> aggregator = new ColumnAggregator<>(table);
+        List<List<Double>> aggregatedColumns =
+                aggregator.aggregate(embeddingsDB::select,
+                        coll -> Utils.averageVector(new ArrayList<>(coll)));
+
+        for (List<Double> averageEmbedding : aggregatedColumns)
         {
-            return;
-        }
-
-        int rows = table.rowCount(), columns = table.getRow(0).size();
-
-        for (int column = 0; column < columns; column++)
-        {
-            List<List<Double>> columnEmbeddings = new ArrayList<>(rows);
-
-            for (int row = 0; row < rows; row++)
-            {
-                if (column < table.getRow(row).size())
-                {
-                    List<Double> embeddings = embeddingsDB.select(table.getRow(row).get(column));
-
-                    if (embeddings != null && !embeddings.isEmpty())
-                    {
-                        columnEmbeddings.add(embeddings);
-                    }
-                }
-            }
-
-            if (!columnEmbeddings.isEmpty())
-            {
-                List<Double> averageEmbeddings = Utils.averageVector(columnEmbeddings);
-                List<Integer> bitVector = bitVector(averageEmbeddings);
-                List<Integer> keys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
-                insertEntity(Id.any(), keys, tableName);
-            }
+            List<Integer> bitVector = bitVector(averageEmbedding);
+            List<Integer> keys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
+            insertEntity(Id.any(), keys, tableName);
         }
     }
 

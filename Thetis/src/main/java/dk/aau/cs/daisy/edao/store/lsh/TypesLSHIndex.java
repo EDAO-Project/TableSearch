@@ -6,6 +6,8 @@ import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
+import dk.aau.cs.daisy.edao.structures.table.Aggregator;
+import dk.aau.cs.daisy.edao.structures.table.ColumnAggregator;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 
 import java.io.File;
@@ -193,30 +195,21 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
 
     private void loadByColumns(String tableName, Table<String> table, Neo4jEndpoint neo4j)
     {
-        if (table.rowCount() == 0)
-        {
-            return;
-        }
-
         List<PairNonComparable<Id, Set<Integer>>> matrix = new ArrayList<>();
-        int rows = table.rowCount(), columns = table.getRow(0).size();
+        Aggregator<String> aggregator = new ColumnAggregator<>(table);
+        List<Set<String>> aggregatedColumns =
+                aggregator.aggregate(cell -> new HashSet<>(neo4j.searchTypes(cell)),
+                        coll -> {
+                            Set<String> types = new HashSet<>();
+                            coll.forEach(types::addAll);
+                            return types;
+                        });
 
-        for (int column = 0; column < columns; column++)
+        for (Set<String> column : aggregatedColumns)
         {
-            Set<String> columnTypes = new HashSet<>(rows);
-
-            for (int row = 0; row < rows; row++)
+            if (!column.isEmpty())
             {
-                if (column < table.getRow(row).size())
-                {
-                    Set<String> types = types(table.getRow(row).get(column), neo4j);
-                    columnTypes.addAll(types);
-                }
-            }
-
-            if (!columnTypes.isEmpty())
-            {
-                Set<Integer> bitVector = bitVector(columnTypes);
+                Set<Integer> bitVector = bitVector(column);
 
                 if (!bitVector.isEmpty())
                 {
