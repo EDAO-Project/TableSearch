@@ -295,4 +295,32 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         List<Integer> keys = createKeys(this.projections.size(), this.bandSize, searchBitVector, groupSize(), this.hash);
         return super.search(keys, vote);
     }
+
+    @Override
+    public Set<String> agggregatedSearch(String ... keys)
+    {
+        return agggregatedSearch(1, keys);
+    }
+
+    @Override
+    public Set<String> agggregatedSearch(int vote, String ... keys)
+    {
+        DBDriver<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
+        List<List<Double>> keyEmbeddings = new ArrayList<>();
+
+        for (String key : keys)
+        {
+            List<Double> embedding = embeddingsDB.select(key);
+
+            if (embedding != null)
+            {
+                keyEmbeddings.add(embedding);
+            }
+        }
+
+        List<Double> averageEmbedding = Utils.averageVector(keyEmbeddings);
+        List<Integer> bitVector = bitVector(averageEmbedding);
+        List<Integer> bandKeys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
+        return super.search(bandKeys, vote);
+    }
 }

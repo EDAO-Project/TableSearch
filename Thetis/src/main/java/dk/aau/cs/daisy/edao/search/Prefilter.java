@@ -7,6 +7,8 @@ import dk.aau.cs.daisy.edao.store.EntityTableLink;
 import dk.aau.cs.daisy.edao.store.lsh.TypesLSHIndex;
 import dk.aau.cs.daisy.edao.store.lsh.VectorLSHIndex;
 import dk.aau.cs.daisy.edao.structures.Pair;
+import dk.aau.cs.daisy.edao.structures.table.Aggregator;
+import dk.aau.cs.daisy.edao.structures.table.ColumnAggregator;
 import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 
@@ -86,17 +88,28 @@ public class Prefilter extends AbstractSearch
 
     private Set<String> searchFromTable(Table<String> query)
     {
-        int rows = query.rowCount();
         Set<String> candidates = new HashSet<>();
 
-        for (int row = 0; row < rows; row++)
+        if (query.rowCount() == 0)
         {
-            int columns = query.getRow(row).size();
+            return candidates;
+        }
 
-            for (int column = 0; column < columns; column++)
+        int rows = query.rowCount(), columns = query.getRow(0).size();
+
+        for (int column = 0; column < columns; column++)
+        {
+            Set<String> entities = new HashSet<>(rows);
+
+            for (int row = 0; row < rows; row++)
             {
-                candidates.addAll(searchLSH(query.getRow(row).get(column)));
+                if (column < query.getRow(row).size())
+                {
+                    entities.add(query.getRow(row).get(column));
+                }
             }
+
+            candidates.addAll(searchLSH(entities));
         }
 
         return candidates;
@@ -122,14 +135,16 @@ public class Prefilter extends AbstractSearch
         return subTables;
     }
 
-    private Set<String> searchLSH(String entity)
+    private Set<String> searchLSH(Set<String> entities)
     {
+        String[] entityArr = (String[]) entities.toArray();
+
         if (this.typesLSH != null)
         {
-            return this.typesLSH.search(entity);
+            return this.typesLSH.agggregatedSearch(entityArr);
         }
 
-        return this.vectorsLSH.search(entity);
+        return this.vectorsLSH.agggregatedSearch(entityArr);
     }
 
     @Override

@@ -8,6 +8,7 @@ import dk.aau.cs.daisy.edao.structures.PairNonComparable;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
 import dk.aau.cs.daisy.edao.structures.table.Aggregator;
 import dk.aau.cs.daisy.edao.structures.table.ColumnAggregator;
+import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 
 import java.io.File;
@@ -397,6 +398,19 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         }
     }
 
+    private int createOrGetSignature(Set<Integer> bitVector)
+    {
+        if (bitVector.isEmpty())
+        {
+            return -1;
+        }
+
+        Id tmp = Id.alloc();
+        extendSignature(this.signature, List.of(new PairNonComparable<>(tmp, bitVector)),
+                this.permutations, this.entityToSigIndex);
+        return this.entityToSigIndex.get(tmp);
+    }
+
     /**
      * Insert single entity into LSH index
      * @param entity Entity to be inserted
@@ -456,6 +470,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
     /**
      * Finds buckets of similar entities and returns tables contained
      * @param entity Query entity
+     * @param vote Number of duplicated per table for the table to be included in the result set
      * @return Set of tables
      */
     @Override
@@ -468,6 +483,54 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
             List<Integer> keys = createKeys(this.permutations.size(), this.bandSize,
                     this.signature.get(entitySignatureIdx).getSecond(), groupSize(), this.hash);
             return super.search(keys, vote);
+        }
+
+        return new HashSet<>();
+    }
+
+    /**
+     * Aggregates all keys into one by merging all sets of types per key into one super-set
+     * @param keys Query entities to be aggregated
+     * @return Set of tables
+     */
+    @Override
+    public Set<String> agggregatedSearch(String ... keys)
+    {
+        return agggregatedSearch(1, keys);
+    }
+
+    /**
+     * Aggregates all keys into one by merging all sets of types per key into one super-set
+     * @param vote Number of duplicated per table for the table to be included in the result set
+     * @param keys Query entities to be aggregated
+     * @return Set of tables
+     */
+    @Override
+    public Set<String> agggregatedSearch(int vote, String ... keys)
+    {
+        Set<String> mergedTypes = new HashSet<>();
+
+        try (Neo4jEndpoint neo4j = new Neo4jEndpoint(this.neo4jConfFile))
+        {
+            for (String key : keys)
+            {
+                mergedTypes.addAll(neo4j.searchTypes(key));
+            }
+        }
+
+        catch (IOException e)
+        {
+            throw new RuntimeException("Failed initializing Neo4J connector");
+        }
+
+        Set<Integer> aggregatedBitVector = bitVector(mergedTypes);
+        int signatureIdx = createOrGetSignature(aggregatedBitVector);
+
+        if (signatureIdx != -1)
+        {
+            List<Integer> bandKeys = createKeys(this.permutations.size(), this.bandSize,
+                    this.signature.get(signatureIdx).getSecond(), groupSize(), this.hash);
+            return super.search(bandKeys, vote);
         }
 
         return new HashSet<>();
