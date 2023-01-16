@@ -7,8 +7,6 @@ import dk.aau.cs.daisy.edao.store.EntityTableLink;
 import dk.aau.cs.daisy.edao.store.lsh.TypesLSHIndex;
 import dk.aau.cs.daisy.edao.store.lsh.VectorLSHIndex;
 import dk.aau.cs.daisy.edao.structures.Pair;
-import dk.aau.cs.daisy.edao.structures.table.Aggregator;
-import dk.aau.cs.daisy.edao.structures.table.ColumnAggregator;
 import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 
@@ -137,7 +135,13 @@ public class Prefilter extends AbstractSearch
 
     private Set<String> searchLSH(Set<String> entities)
     {
-        String[] entityArr = (String[]) entities.toArray();
+        String[] entityArr = new String[entities.size()];
+        int i = 0;
+
+        for (String entity : entities)
+        {
+            entityArr[i++] = entity;
+        }
 
         if (this.typesLSH != null)
         {
