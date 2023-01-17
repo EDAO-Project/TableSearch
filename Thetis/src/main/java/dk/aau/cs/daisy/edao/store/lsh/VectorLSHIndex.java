@@ -321,6 +321,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         List<Double> averageEmbedding = Utils.averageVector(keyEmbeddings);
         List<Integer> bitVector = bitVector(averageEmbedding);
         List<Integer> bandKeys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
+        embeddingsDB.close();
         return super.search(bandKeys, vote);
     }
 }
