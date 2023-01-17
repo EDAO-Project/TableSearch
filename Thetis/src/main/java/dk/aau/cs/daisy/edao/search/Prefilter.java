@@ -145,10 +145,14 @@ public class Prefilter extends AbstractSearch
 
         if (this.typesLSH != null)
         {
-            return this.typesLSH.agggregatedSearch(entityArr);
+            return entityArr.length == 1 ?
+                    this.typesLSH.search(entityArr[0]) :
+                    this.typesLSH.agggregatedSearch(entityArr);
         }
 
-        return this.vectorsLSH.agggregatedSearch(entityArr);
+        return entityArr.length == 1 ?
+                this.vectorsLSH.search(entityArr[0]) :
+                this.vectorsLSH.agggregatedSearch(entityArr);
     }
 
     @Override
