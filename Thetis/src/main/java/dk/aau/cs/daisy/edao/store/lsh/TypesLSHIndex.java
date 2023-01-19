@@ -380,16 +380,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         try (Neo4jEndpoint neo4j = new Neo4jEndpoint(this.neo4jConfFile))
         {
             Set<Integer> entityBitVector = bitVector(entity, neo4j);
-
-            if (entityBitVector.isEmpty())
-            {
-                return -1;
-            }
-
-            extendSignature(this.signature, List.of(new PairNonComparable<>(entityId, entityBitVector)),
-                    this.permutations, this.entityToSigIndex);
-
-            return this.entityToSigIndex.get(entityId);
+            return createOrGetSignature(entityId, entityBitVector);
         }
 
         catch (IOException e)
@@ -398,17 +389,16 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         }
     }
 
-    private int createOrGetSignature(Set<Integer> bitVector)
+    private int createOrGetSignature(Id entityId, Set<Integer> bitVector)
     {
         if (bitVector.isEmpty())
         {
             return -1;
         }
 
-        Id tmp = Id.alloc();
-        extendSignature(this.signature, List.of(new PairNonComparable<>(tmp, bitVector)),
+        extendSignature(this.signature, List.of(new PairNonComparable<>(entityId, bitVector)),
                 this.permutations, this.entityToSigIndex);
-        return this.entityToSigIndex.get(tmp);
+        return this.entityToSigIndex.get(entityId);
     }
 
     /**
@@ -524,7 +514,7 @@ public class TypesLSHIndex extends BucketIndex<Id, String> implements LSHIndex<S
         }
 
         Set<Integer> aggregatedBitVector = bitVector(mergedTypes);
-        int signatureIdx = createOrGetSignature(aggregatedBitVector);
+        int signatureIdx = createOrGetSignature(Id.alloc(), aggregatedBitVector);
 
         if (signatureIdx != -1)
         {

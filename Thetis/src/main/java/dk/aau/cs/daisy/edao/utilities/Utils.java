@@ -102,7 +102,12 @@ public class Utils {
             }
         }
 
-        return avgVec.stream().map(val -> val % vec.size()).collect(Collectors.toList());
+        for (int i = 0; i < avgVec.size(); i++)
+        {
+            avgVec.set(i, avgVec.get(i) / vec.size());
+        }
+
+        return avgVec.stream().map(val -> val / vec.size()).collect(Collectors.toList());
     }
 
     /**
