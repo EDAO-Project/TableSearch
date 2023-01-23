@@ -3,6 +3,8 @@ package dk.aau.cs.daisy.edao.search;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.json.JsonpMapper;
+import co.elastic.clients.json.JsonpMapperFeatures;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
@@ -37,7 +39,9 @@ public class BM25 extends AbstractSearch
 
         try (RestClient client = RestClient.builder(new HttpHost("localhost", 9200)).build())
         {
-            ElasticsearchTransport transport = new RestClientTransport(client, new JacksonJsonpMapper());
+            JsonpMapper jsonMapper = new JacksonJsonpMapper();
+            jsonMapper.withAttribute(JsonpMapperFeatures.SERIALIZE_TYPED_KEYS, false);
+            ElasticsearchTransport transport = new RestClientTransport(client, jsonMapper);
             ElasticsearchClient searchClient = new ElasticsearchClient(transport);
             List<Pair<String, Double>> results = new ArrayList<>();
 
@@ -51,9 +55,9 @@ public class BM25 extends AbstractSearch
                     SearchResponse<String> search = searchClient.search(s -> s
                             .index("bm25")
                             .query(q -> q
-                                    .term(t -> t
+                                    .match(t -> t
                                             .field("content")
-                                            .value(entity))), String.class);
+                                            .query(entity))), String.class);
 
                     for (Hit<String> hit : search.hits().hits())
                     {
