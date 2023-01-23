@@ -57,7 +57,7 @@ def ground_truth(query_filename, ground_truth_folder, table_corpus_folder, pickl
     return query, relevances
 
 # Returns None if results for given query ID do not exist
-def predicted_scores(query_id, votes, mode, vectors, band_size, tuples, k, gt_tables, is_baseline = False, is_column_aggregation = False):
+def predicted_scores(query_id, votes, mode, vectors, band_size, tuples, k, gt_tables, is_baseline = False, is_column_aggregation = False, is_bm25 = False):
     path = 'results/vote_' + str(votes) + '/' + mode + '/vectors_' + str(vectors) + '/bandsize_' + str(band_size) + '/' + str(k) + '/' + str(tuples) + '-tuple/search_output/' + query_id + '/filenameToScore.json'
 
     if (is_baseline):
@@ -66,15 +66,30 @@ def predicted_scores(query_id, votes, mode, vectors, band_size, tuples, k, gt_ta
     elif (is_column_aggregation):
         path = 'results/vote_' + str(votes) + '/aggregation/' + mode + '/vectors_' + str(vectors) + '/bandsize_' + str(band_size) + '/' + str(k) + '/' + str(tuples) + '-tuple/search_output/' + query_id + '/filenameToScore.json'
 
+    if (is_bm25):
+        path = 'results/baseline/bm25/' + str(k) + '/' + str(tuples) + '-tuple/' + mode + '/content.txt'
+
     if not os.path.exists(path):
         return None
 
     with open(path, 'r') as f:
-        tables = json.load(f)
         predicted = dict()
 
-        for table in tables['scores']:
-            predicted[table['tableID']] = table['score']
+        if (is_bm25):
+            for line in f:
+                split = line.split('\t')
+                qid = 'wikipage_' + split[0]
+                table = split[2]
+                score = float(split[4])
+
+                if (qid == query_id):
+                    predicted[table] = score
+
+        else:
+            tables = json.load(f)
+
+            for table in tables['scores']:
+                predicted[table['tableID']] = table['score']
 
         scores = {table:0 for table in gt_tables}
 
@@ -112,6 +127,8 @@ def gen_boxplots(ndcg_dict, votes, tuples):
     data_types.append(ndcg_dict[str(votes)]['types_column']['128']['8'])
     data_types.append(ndcg_dict[str(votes)]['types_column']['30']['10'])
     data_types.append(ndcg_dict['baseline']['jaccard'])
+    data_types.append(ndcg_dict['baseline']['bm25_entities'])
+    data_types.append(ndcg_dict['baseline']['bm25_text'])
 
     data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['32']['8'])
     data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['128']['8'])
@@ -120,11 +137,13 @@ def gen_boxplots(ndcg_dict, votes, tuples):
     data_embeddings.append(ndcg_dict[str(votes)]['embeddings_column']['128']['8'])
     data_embeddings.append(ndcg_dict[str(votes)]['embeddings_column']['30']['10'])
     data_embeddings.append(ndcg_dict['baseline']['cosine'])
+    data_embeddings.append(ndcg_dict['baseline']['bm25_entities'])
+    data_embeddings.append(ndcg_dict['baseline']['bm25_text'])
 
-    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'TC(V=32, BS=8)', 'TC(V=128, BS=8)', 'TC(V=30, BS=10)', 'B - Jaccard'])
+    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'TC(V=32, BS=8)', 'TC(V=128, BS=8)', 'TC(V=30, BS=10)', 'B - Jaccard', 'BM25 - entities', 'BM25 - text'])
     ax1.set_title('LSH Using Types')
 
-    plot_embeddings = ax2.boxplot(data_embeddings, vert = True, patch_artist = True, medianprops = median_color, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'EC(V=32, BS=8)', 'EC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - cosine'])
+    plot_embeddings = ax2.boxplot(data_embeddings, vert = True, patch_artist = True, medianprops = median_color, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'EC(V=32, BS=8)', 'EC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - cosine', 'BM25 - entities', 'BM25 - text'])
     ax2.set_title('LSH Using Embeddings')
 
     for plot in (plot_types, plot_embeddings):
@@ -149,8 +168,9 @@ def plot_ndcg(tuples):
     mapping_file = '../../data/tables/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
     query_files = os.listdir(query_dir)
     table_files = full_corpus(corpus + '/../corpus')
-    k = 100
-    votes = [1, 2, 3]
+    k = 10
+    #votes = [1, 2, 3]
+    votes = [1]
     ndcg = dict()
 
     for vote in votes:
@@ -186,6 +206,8 @@ def plot_ndcg(tuples):
         ndcg['baseline'] = dict()
         ndcg['baseline']['jaccard'] = list()
         ndcg['baseline']['cosine'] = list()
+        ndcg['baseline']['bm25_entities'] = list()
+        ndcg['baseline']['bm25_text'] = list()
 
         count = 0
         print('Vote = ' + str(vote))
@@ -290,10 +312,28 @@ def plot_ndcg(tuples):
                 ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
                 ndcg['baseline']['cosine'].append(ndcg_baseline)
 
+            predicted_relevance = predicted_scores(query_id, vote, 'entities', 32, 8, tuples, k, gt_rels, True, False, True)
+
+            if not predicted_relevance is None:
+                ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg['baseline']['bm25_entities'].append(ndcg_baseline)
+
+            else:
+                print('Failed entities')
+
+            predicted_relevance = predicted_scores(query_id, vote, 'text', 32, 8, tuples, k, gt_rels, True, False, True)
+
+            if not predicted_relevance is None:
+                ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                ndcg['baseline']['bm25_text'].append(ndcg_baseline)
+
+            else:
+                print('Failed text')
+
         gen_boxplots(ndcg, vote, tuples)
 
 print('1-TUPLE QUERIES')
 plot_ndcg(1)
 
-print('2-TUPLE QUERIES')
-plot_ndcg(2)
+print('5-TUPLE QUERIES')
+plot_ndcg(5)
