@@ -1,13 +1,5 @@
 package dk.aau.cs.daisy.edao.search;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
-import co.elastic.clients.json.JsonpMapper;
-import co.elastic.clients.json.JsonpMapperFeatures;
-import co.elastic.clients.json.jackson.JacksonJsonpMapper;
-import co.elastic.clients.transport.ElasticsearchTransport;
-import co.elastic.clients.transport.rest_client.RestClientTransport;
 import dk.aau.cs.daisy.edao.store.EmbeddingsIndex;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
@@ -15,7 +7,14 @@ import dk.aau.cs.daisy.edao.store.EntityTableLink;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 import org.apache.http.HttpHost;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,10 +38,6 @@ public class BM25 extends AbstractSearch
 
         try (RestClient client = RestClient.builder(new HttpHost("localhost", 9200)).build())
         {
-            JsonpMapper jsonMapper = new JacksonJsonpMapper();
-            jsonMapper.withAttribute(JsonpMapperFeatures.SERIALIZE_TYPED_KEYS, false);
-            ElasticsearchTransport transport = new RestClientTransport(client, jsonMapper);
-            ElasticsearchClient searchClient = new ElasticsearchClient(transport);
             List<Pair<String, Double>> results = new ArrayList<>();
 
             for (int row = 0; row < queryRows; row++)
@@ -52,16 +47,21 @@ public class BM25 extends AbstractSearch
                 for (int column = 0; column < queryColumns; column++)
                 {
                     String entity = query.getRow(row).get(column);
-                    SearchResponse<String> search = searchClient.search(s -> s
-                            .index("bm25")
-                            .query(q -> q
-                                    .match(t -> t
-                                            .field("content")
-                                            .query(entity))), String.class);
+                    SearchRequest request = new SearchRequest("bm25");
+                    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+                    sourceBuilder.query(QueryBuilders.termQuery("content", entity));
+                    request.source(sourceBuilder);
 
-                    for (Hit<String> hit : search.hits().hits())
+                    RestHighLevelClient highLevelClient = new RestHighLevelClient(client);
+                    SearchResponse response = highLevelClient.search(request);
+
+                    SearchHits hits = response.getHits();
+
+                    for (SearchHit hit : hits)
                     {
-                        results.add(new Pair<>(hit.source(), hit.score()));
+                        String table = hit.getField("content").getName();
+                        double score = hit.getScore();
+                        results.add(new Pair<>(table, score));
                     }
                 }
             }
