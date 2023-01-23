@@ -59,7 +59,7 @@ public class BM25 extends AbstractSearch
 
                     for (SearchHit hit : hits)
                     {
-                        String table = hit.getField("content").getName();
+                        String table = hit.getSourceAsString();
                         double score = hit.getScore();
                         results.add(new Pair<>(table, score));
                     }
