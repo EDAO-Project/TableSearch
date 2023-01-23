@@ -21,6 +21,7 @@ public class Prefilter extends AbstractSearch
     private long elapsed = -1;
     private TypesLSHIndex typesLSH;
     private VectorLSHIndex vectorsLSH;
+    private BM25 bm25;
     private static final int SIZE_THRESHOLD = 8;
     private static final int SPLITS_SIZE = 3;
     private static final int MIN_EXISTS_IN = 2;
@@ -36,6 +37,7 @@ public class Prefilter extends AbstractSearch
         this(linker, entityTable, entityTableLink, embeddingsIndex);
         this.typesLSH = typesLSHIndex;
         this.vectorsLSH = null;
+        this.bm25 = null;
     }
 
     public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
@@ -44,6 +46,16 @@ public class Prefilter extends AbstractSearch
         this(linker, entityTable, entityTableLink, embeddingsIndex);
         this.vectorsLSH = vectorLSHIndex;
         this.typesLSH = null;
+        this.bm25 = null;
+    }
+
+    public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
+                     EmbeddingsIndex<String> embeddingsIndex, BM25 bm25)
+    {
+        this(linker, entityTable, entityTableLink, embeddingsIndex);
+        this.vectorsLSH = null;
+        this.typesLSH = null;
+        this.bm25 = bm25;
     }
 
     @Override
@@ -107,7 +119,15 @@ public class Prefilter extends AbstractSearch
                 }
             }
 
-            candidates.addAll(searchLSH(entities));
+            if (this.bm25 != null)
+            {
+                candidates.addAll(searchBM25(entities));
+            }
+
+            else
+            {
+                candidates.addAll(searchLSH(entities));
+            }
         }
 
         return candidates;
@@ -149,6 +169,21 @@ public class Prefilter extends AbstractSearch
         }
 
         return this.vectorsLSH.agggregatedSearch(entityArr);
+    }
+
+    private Set<String> searchBM25(Set<String> entities)
+    {
+        Table<String> query = new DynamicTable<>(List.of(new ArrayList<>(entities)));
+        Result result = this.bm25.search(query);
+        Iterator<Pair<String, Double>> resultIter = result.getResults();
+        Set<String> resultSet = new HashSet<>();
+
+        while (resultIter.hasNext())
+        {
+            resultSet.add(resultIter.next().getFirst());
+        }
+
+        return resultSet;
     }
 
     @Override

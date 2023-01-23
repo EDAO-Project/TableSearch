@@ -85,7 +85,7 @@ public class SearchTables extends Command {
         }
     }
 
-    private enum PrefilterTechnique {LSH_TYPES, LSH_EMBEDDINGS, PPR}
+    private enum PrefilterTechnique {LSH_TYPES, LSH_EMBEDDINGS, PPR, BM25}
 
     @CommandLine.Option(names = { "-sm", "--search-mode" }, description = "Must be one of {exact, analogous}", required = true)
     private SearchMode searchMode = null;
@@ -218,7 +218,7 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = {"-t", "--threads"}, description = "Number of threads", required = true, defaultValue = "1")
     private int threads;
 
-    @CommandLine.Option(names = {"-pf", "--pre-filter"}, description = "Pre-filtering technique to reduce search space (LSH_TYPES, LSH_EMBEDDINGS, PPR)")
+    @CommandLine.Option(names = {"-pf", "--pre-filter"}, description = "Pre-filtering technique to reduce search space (LSH_TYPES, LSH_EMBEDDINGS, BM25, PPR)")
     private PrefilterTechnique prefilterTechnique = null;
 
     @Override
@@ -250,6 +250,7 @@ public class SearchTables extends Command {
             EmbeddingsIndex embeddingsIdx = indexReader.getEmbeddingsIndex();
             TypesLSHIndex typesLSH = indexReader.getTypesLSHIndex();
             VectorLSHIndex embeddingsLSH = indexReader.getEmbeddingsLSHIndex();
+            BM25 bm25 = new BM25(linker, entityTable, entityTableLink, embeddingsIdx);
             typesLSH.useEntityLinker(linker);
             embeddingsLSH.useEntityLinker(linker);
             Prefilter prefilter = null;
@@ -259,6 +260,7 @@ public class SearchTables extends Command {
                 prefilter = switch (this.prefilterTechnique) {    // TODO: PPR pre-filtering must be implemented
                     case LSH_TYPES -> new Prefilter(linker, entityTable, entityTableLink, embeddingsIdx, typesLSH);
                     case LSH_EMBEDDINGS -> new Prefilter(linker, entityTable, entityTableLink, embeddingsIdx, embeddingsLSH);
+                    case BM25 -> new Prefilter(linker, entityTable, entityTableLink, embeddingsIdx, bm25);
                     default -> null;
                 };
             }
