@@ -1,6 +1,7 @@
 package dk.aau.cs.daisy.edao.search;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.Time;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.JsonData;
@@ -56,7 +57,8 @@ public class BM25 extends AbstractSearch
                                     .match(t -> t
                                             .field("content")
                                             .query(entity)))
-                            .size(10000), JsonData.class);
+                            .size(10000)
+                            .scroll(Time.of(t -> t.offset(0))), JsonData.class);
 
                     for (Hit<JsonData> hit : search.hits().hits())
                     {
@@ -68,7 +70,7 @@ public class BM25 extends AbstractSearch
             }
 
             this.elapsedNs = System.nanoTime() - start;
-            return new Result(-1, results);
+            return new Result(results.size(), results);
         }
 
         catch (IOException e)
