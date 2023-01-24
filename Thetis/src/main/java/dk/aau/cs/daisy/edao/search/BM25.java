@@ -3,6 +3,7 @@ package dk.aau.cs.daisy.edao.search;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.json.JsonData;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
@@ -49,16 +50,16 @@ public class BM25 extends AbstractSearch
                 {
                     String uri = query.getRow(row).get(column);
                     String entity = uri.substring(uri.lastIndexOf("/") + 1).replace("_", " ");
-                    SearchResponse<String> search = client.search(s -> s
+                    SearchResponse<JsonData> search = client.search(s -> s
                             .index("bm25")
                             .query(q -> q
                                     .match(t -> t
                                             .field("content")
-                                            .query(entity))), String.class);
+                                            .query(entity))), JsonData.class);
 
-                    for (Hit<String> hit : search.hits().hits())
+                    for (Hit<JsonData> hit : search.hits().hits())
                     {
-                        String table = hit.source();
+                        String table = hit.source().toJson().toString();
                         double score = hit.score();
                         results.add(new Pair<>(table, score));
                     }
