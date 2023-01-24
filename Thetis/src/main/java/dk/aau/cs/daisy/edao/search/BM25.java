@@ -1,5 +1,11 @@
 package dk.aau.cs.daisy.edao.search;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.ElasticsearchTransport;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
 import dk.aau.cs.daisy.edao.store.EmbeddingsIndex;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
@@ -7,14 +13,7 @@ import dk.aau.cs.daisy.edao.store.EntityTableLink;
 import dk.aau.cs.daisy.edao.structures.Pair;
 import dk.aau.cs.daisy.edao.structures.table.Table;
 import org.apache.http.HttpHost;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,9 +35,11 @@ public class BM25 extends AbstractSearch
         long start = System.nanoTime();
         int queryRows = query.rowCount();
 
-        try (RestClient client = RestClient.builder(new HttpHost("localhost", 9200)).build())
+        try (RestClient restClient = RestClient.builder(new HttpHost("localhost", 9200)).build())
         {
             List<Pair<String, Double>> results = new ArrayList<>();
+            ElasticsearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
+            ElasticsearchClient client = new ElasticsearchClient(transport);
 
             for (int row = 0; row < queryRows; row++)
             {
@@ -47,20 +48,17 @@ public class BM25 extends AbstractSearch
                 for (int column = 0; column < queryColumns; column++)
                 {
                     String entity = query.getRow(row).get(column);
-                    SearchRequest request = new SearchRequest("bm25");
-                    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-                    sourceBuilder.query(QueryBuilders.termQuery("content", entity));
-                    request.source(sourceBuilder);
+                    SearchResponse<String> search = client.search(s -> s
+                            .index("bm25")
+                            .query(q -> q
+                                    .term(t -> t
+                                            .field("content")
+                                            .value(v -> v.stringValue(entity)))), String.class);
 
-                    RestHighLevelClient highLevelClient = new RestHighLevelClient(client);
-                    SearchResponse response = highLevelClient.search(request);
-
-                    SearchHits hits = response.getHits();
-
-                    for (SearchHit hit : hits)
+                    for (Hit<String> hit : search.hits().hits())
                     {
-                        String table = hit.getSourceAsString();
-                        double score = hit.getScore();
+                        String table = hit.source();
+                        double score = hit.score();
                         results.add(new Pair<>(table, score));
                     }
                 }
