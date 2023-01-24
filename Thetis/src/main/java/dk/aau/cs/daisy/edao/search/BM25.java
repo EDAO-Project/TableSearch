@@ -47,13 +47,14 @@ public class BM25 extends AbstractSearch
 
                 for (int column = 0; column < queryColumns; column++)
                 {
-                    String entity = query.getRow(row).get(column);
+                    String uri = query.getRow(row).get(column);
+                    String entity = uri.substring(uri.lastIndexOf("/") + 1).replace("_", " ");
                     SearchResponse<String> search = client.search(s -> s
                             .index("bm25")
                             .query(q -> q
-                                    .term(t -> t
+                                    .match(t -> t
                                             .field("content")
-                                            .value(v -> v.stringValue(entity)))), String.class);
+                                            .query(entity))), String.class);
 
                     for (Hit<String> hit : search.hits().hits())
                     {
