@@ -55,11 +55,12 @@ public class BM25 extends AbstractSearch
                             .query(q -> q
                                     .match(t -> t
                                             .field("content")
-                                            .query(entity))), JsonData.class);
+                                            .query(entity)))
+                            .size(10000), JsonData.class);
 
                     for (Hit<JsonData> hit : search.hits().hits())
                     {
-                        String table = hit.source().toJson().toString();
+                        String table = hit.id();
                         double score = hit.score();
                         results.add(new Pair<>(table, score));
                     }
