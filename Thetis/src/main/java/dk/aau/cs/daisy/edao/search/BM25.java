@@ -3,6 +3,7 @@ package dk.aau.cs.daisy.edao.search;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.json.JsonData;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
@@ -35,11 +36,11 @@ public class BM25 extends AbstractSearch
         long start = System.nanoTime();
         int queryRows = query.rowCount();
 
-        try (RestClient client = RestClient.builder(new HttpHost("localhost", 9200)).build())
+        try (RestClient restClient = RestClient.builder(new HttpHost("localhost", 9200)).build())
         {
-            ElasticsearchTransport transport = new RestClientTransport(client, new JacksonJsonpMapper());
-            ElasticsearchClient searchClient = new ElasticsearchClient(transport);
             List<Pair<String, Double>> results = new ArrayList<>();
+            ElasticsearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
+            ElasticsearchClient client = new ElasticsearchClient(transport);
 
             for (int row = 0; row < queryRows; row++)
             {
@@ -47,23 +48,26 @@ public class BM25 extends AbstractSearch
 
                 for (int column = 0; column < queryColumns; column++)
                 {
-                    String entity = query.getRow(row).get(column);
-                    SearchResponse<String> search = searchClient.search(s -> s
+                    String uri = query.getRow(row).get(column);
+                    String entity = uri.substring(uri.lastIndexOf("/") + 1).replace("_", " ");
+                    SearchResponse<JsonData> search = client.search(s -> s
                             .index("bm25")
                             .query(q -> q
-                                    .term(t -> t
+                                    .match(t -> t
                                             .field("content")
-                                            .value(entity))), String.class);
+                                            .query(entity))), JsonData.class);
 
-                    for (Hit<String> hit : search.hits().hits())
+                    for (Hit<JsonData> hit : search.hits().hits())
                     {
-                        results.add(new Pair<>(hit.source(), hit.score()));
+                        String table = hit.id();
+                        double score = hit.score();
+                        results.add(new Pair<>(table, score));
                     }
                 }
             }
 
             this.elapsedNs = System.nanoTime() - start;
-            return new Result(-1, results);
+            return new Result(results.size(), results);
         }
 
         catch (IOException e)
