@@ -174,7 +174,7 @@ def gen_boxplots(ndcg_dict, votes, tuples):
     plt.rc('legend', fontsize = 25)
 
     colors = ['lightblue', 'blue', 'lightgreen', 'brown']
-    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (60, 10))
+    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (75, 10))
     median_color = dict(color = 'white')
     data_types = list()
     data_embeddings = list()
@@ -183,18 +183,22 @@ def gen_boxplots(ndcg_dict, votes, tuples):
     data_types.append(ndcg_dict[str(votes)]['types']['128']['8'])
     data_types.append(ndcg_dict[str(votes)]['types']['30']['10'])
     data_types.append(ndcg_dict['baseline']['bm25_prefilter']['types'])
+    data_types.append(ndcg_dict['baseline']['bm25_entities'])
+    data_types.append(ndcg_dict['baseline']['bm25_text'])
     data_types.append(ndcg_dict['baseline']['jaccard'])
 
     data_embeddings.append(ndcg_dict[str(votes)]['types']['32']['8'])
     data_embeddings.append(ndcg_dict[str(votes)]['types']['128']['8'])
     data_embeddings.append(ndcg_dict[str(votes)]['types']['30']['10'])
     data_embeddings.append(ndcg_dict['baseline']['bm25_prefilter']['embeddings'])
+    data_embeddings.append(ndcg_dict['baseline']['bm25_entities'])
+    data_embeddings.append(ndcg_dict['baseline']['bm25_text'])
     data_embeddings.append(ndcg_dict['baseline']['jaccard'])
 
-    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'BM25 pre-filtering - Jaccard', 'B - Jaccard'])
+    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'BM25 pre-filtering - Jaccard', 'BM25 - entities', 'BM25 - text', 'B - Jaccard'])
     ax1.set_title('LSH Using Types')
 
-    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'BM25 pre-filtering - cosine', 'B - cosine'])
+    plot_types = ax2.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'BM25 pre-filtering - cosine', 'BM25 - entities', 'BM25 - text', 'B - cosine'])
     ax2.set_title('LSH Using Embeddings')
 
     for plot in (plot_types, plot_embeddings):
