@@ -38,10 +38,10 @@ def convert_to_k(k, path):
                     results_k_10['algorithm'] = object['algorithm']
                     output_file.write(json.dumps(results_k_10, indent = 4))
 
-'''convert_to_k(10, 'results/vote_1/types/vectors_128/bandsize_8/100')
+convert_to_k(10, 'results/vote_1/types/vectors_128/bandsize_8/100')
 convert_to_k(10, 'results/vote_1/types/vectors_32/bandsize_8/100')
 convert_to_k(10, 'results/vote_1/types/vectors_30/bandsize_10/100')
-convert_to_k(10, 'results/vote_1/embeddings/vectors_128/bandsize_8/100')'''
+convert_to_k(10, 'results/vote_1/embeddings/vectors_128/bandsize_8/100')
 convert_to_k(10, 'results/vote_1/embeddings/vectors_32/bandsize_8/100')
 convert_to_k(10, 'results/vote_1/embeddings/vectors_30/bandsize_10/100')
 convert_to_k(10, 'results/vote_1/aggregation/types/vectors_128/bandsize_8/100')
@@ -79,3 +79,5 @@ convert_to_k(10, 'results/vote_3/aggregation/embeddings/vectors_30/bandsize_10/1
 
 convert_to_k(10, 'results/baseline/baseline_jaccard/100')
 convert_to_k(10, 'results/baseline/baseline_cosine/100')
+convert_to_k(10, 'results/baseline/baseline_bm25_prefiltering/types/100')
+convert_to_k(10, 'results/baseline/baseline_bm25_prefiltering/embeddings/100')
