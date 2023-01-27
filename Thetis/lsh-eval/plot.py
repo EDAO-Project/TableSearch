@@ -110,7 +110,7 @@ def full_corpus(base_dir):
 
     return tables
 
-def gen_boxplots(ndcg_dict, votes, tuples):
+def gen_boxplots(ndcg_dict, votes, tuples, k):
     # First the plots of all configurations
 
     plt.rc('xtick', labelsize = 25)
@@ -146,10 +146,10 @@ def gen_boxplots(ndcg_dict, votes, tuples):
     data_embeddings.append(ndcg_dict['baseline']['bm25_text'])
 
     plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'TC(V=32, BS=8)', 'TC(V=128, BS=8)', 'TC(V=30, BS=10)', 'B - Jaccard', 'BM25 - entities', 'BM25 - text'])
-    ax1.set_title('LSH Using Types')
+    ax1.set_title('LSH Using Types - Top-' + str(k))
 
     plot_embeddings = ax2.boxplot(data_embeddings, vert = True, patch_artist = True, medianprops = median_color, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'EC(V=32, BS=8)', 'EC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - cosine', 'BM25 - entities', 'BM25 - text'])
-    ax2.set_title('LSH Using Embeddings')
+    ax2.set_title('LSH Using Embeddings - Top-' + str(k))
 
     for plot in (plot_types, plot_embeddings):
         for patch, color in zip(plot['boxes'], colors):
@@ -196,10 +196,10 @@ def gen_boxplots(ndcg_dict, votes, tuples):
     data_embeddings.append(ndcg_dict['baseline']['jaccard'])
 
     plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'BM25 pre-filtering - Jaccard', 'BM25 - entities', 'BM25 - text', 'B - Jaccard'])
-    ax1.set_title('LSH Using Types')
+    ax1.set_title('LSH Using Types - Top-' + str(k))
 
     plot_types = ax2.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'BM25 pre-filtering - cosine', 'BM25 - entities', 'BM25 - text', 'B - cosine'])
-    ax2.set_title('LSH Using Embeddings')
+    ax2.set_title('LSH Using Embeddings - Top-' + str(k))
 
     for plot in (plot_types, plot_embeddings):
         for patch, color in zip(plot['boxes'], colors):
@@ -394,7 +394,7 @@ def plot_ndcg(tuples):
                 ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
                 ndcg['baseline']['bm25_prefilter']['embeddings'].append(ndcg_baseline)
 
-        gen_boxplots(ndcg, vote, tuples)
+        gen_boxplots(ndcg, vote, tuples, k)
 
 print('1-TUPLE QUERIES')
 plot_ndcg(1)
