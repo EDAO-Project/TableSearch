@@ -120,7 +120,7 @@ def gen_boxplots(ndcg_dict, votes, tuples, k):
     plt.rc('legend', fontsize = 25)
 
     colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
-    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (75, 10))
+    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (90, 10))
     median_color = dict(color = 'white')
     data_types = list()
     data_embeddings = list()
