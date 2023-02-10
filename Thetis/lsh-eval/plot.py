@@ -198,7 +198,7 @@ def gen_boxplots(ndcg_dict, votes, tuples, k):
     plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'BM25 pre-filtering - Jaccard', 'BM25 - entities', 'BM25 - text', 'B - Jaccard'])
     ax1.set_title('LSH Using Types - Top-' + str(k))
 
-    plot_types = ax2.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'BM25 pre-filtering - cosine', 'BM25 - entities', 'BM25 - text', 'B - cosine'])
+    plot_embeddings = ax2.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'BM25 pre-filtering - cosine', 'BM25 - entities', 'BM25 - text', 'B - cosine'])
     ax2.set_title('LSH Using Embeddings - Top-' + str(k))
 
     for plot in (plot_types, plot_embeddings):
