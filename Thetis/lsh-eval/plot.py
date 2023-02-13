@@ -115,36 +115,77 @@ def full_corpus(base_dir):
 
 
 # Boxplot of precision/recall
-def gen_quality_boxplot(predicted_tables, votes, tuples, k, title):
+def gen_quality_boxplot(precision_1_tuple, recall_1_tuple, precision_5_tuple, recall_5_tuple, votes, k):
     plt.rc('xtick', labelsize = 10)
     plt.rc('ytick', labelsize = 10)
     plt.rc('axes', labelsize = 15)
     plt.rc('axes', titlesize = 20)
     plt.rc('legend', fontsize = 25)
-    plt.rc('figure', figsize = (20, 15))
 
     colors = ['lightgreen', 'darkgreen', 'blue', 'lightblue', 'pink', 'red']
-    fig, ax = plt.subplots()
-    data = list()
+    fig, axs = plt.subplots(nrows = 2, ncols = 2, figsize = (20, 10))
+    precision1 = list()
+    recall1 = list()
+    precision5 = list()
+    recall5 = list()
 
-    data.append(predicted_tables['T(30, 10)'])
-    data.append(predicted_tables['E(30, 10)'])
-    data.append(predicted_tables['BT - Types'])
-    data.append(predicted_tables['BT - Embeddings'])
-    data.append(predicted_tables['BM25 - Entity'])
-    data.append(predicted_tables['BM25 - Text'])
+    precision1.append(precision_1_tuple['T(30, 10)'])
+    precision1.append(precision_1_tuple['E(30, 10)'])
+    precision1.append(precision_1_tuple['BT - Types'])
+    precision1.append(precision_1_tuple['BT - Embeddings'])
+    precision1.append(precision_1_tuple['BM25 - Entity'])
+    precision1.append(precision_1_tuple['BM25 - Text'])
 
-    plot = ax.boxplot(data, vert = True, patch_artist = True, medianprops = dict(color = 'white'), labels = list(predicted_tables.keys()))
+    recall1.append(recall_1_tuple['T(30, 10)'])
+    recall1.append(recall_1_tuple['E(30, 10)'])
+    recall1.append(recall_1_tuple['BT - Types'])
+    recall1.append(recall_1_tuple['BT - Embeddings'])
+    recall1.append(recall_1_tuple['BM25 - Entity'])
+    recall1.append(recall_1_tuple['BM25 - Text'])
 
-    for patch, color in zip(plot['boxes'], colors):
-        patch.set_facecolor(color)
+    precision5.append(precision_5_tuple['T(30, 10)'])
+    precision5.append(precision_5_tuple['E(30, 10)'])
+    precision5.append(precision_5_tuple['BT - Types'])
+    precision5.append(precision_5_tuple['BT - Embeddings'])
+    precision5.append(precision_5_tuple['BM25 - Entity'])
+    precision5.append(precision_5_tuple['BM25 - Text'])
 
-    ax.set_title(title + ' @' + str(k))
-    ax.yaxis.grid(True)
-    ax.set_ylabel('Fraction')
-    ax.vlines(4.5, 0, 1.0)
+    recall5.append(recall_5_tuple['T(30, 10)'])
+    recall5.append(recall_5_tuple['E(30, 10)'])
+    recall5.append(recall_5_tuple['BT - Types'])
+    recall5.append(recall_5_tuple['BT - Embeddings'])
+    recall5.append(recall_5_tuple['BM25 - Entity'])
+    recall5.append(recall_5_tuple['BM25 - Text'])
 
-    plt.savefig(title + '_' + str(tuples) + '-tuple_' + str(votes) + '-votes.pdf', format = 'pdf')
+    plot_precision1 = axs[0, 0].boxplot(precision1, vert = True, patch_artist = True, medianprops = dict(color = 'white'), labels = list(precision_1_tuple.keys()))
+    axs[0, 0].set_title('Precision@' + str(k) + ' (1-tuple queries)')
+    axs[0, 0].yaxis.grid(True)
+    axs[0, 0].set_ylabel('Fraction')
+    axs[0, 0].vlines(4.5, 0, 1.0)
+
+    plot_recall1 = axs[0, 1].boxplot(recall1, vert = True, patch_artist = True, medianprops = dict(color = 'white'), labels = list(recall_1_tuple.keys()))
+    axs[0, 1].set_title('Recall@' + str(k) + ' (1-tuple queries)')
+    axs[0, 1].yaxis.grid(True)
+    axs[0, 1].set_ylabel('Fraction')
+    axs[0, 1].vlines(4.5, 0, 1.0)
+
+    plot_precision5 = axs[1, 0].boxplot(precision5, vert = True, patch_artist = True, medianprops = dict(color = 'white'), labels = list(precision_5_tuple.keys()))
+    axs[1, 0].set_title('Precision@' + str(k) + ' (5-tuple queries)')
+    axs[1, 0].yaxis.grid(True)
+    axs[1, 0].set_ylabel('Fraction')
+    axs[1, 0].vlines(4.5, 0, 1.0)
+
+    plot_recall5 = axs[1, 1].boxplot(recall5, vert = True, patch_artist = True, medianprops = dict(color = 'white'), labels = list(recall_5_tuple.keys()))
+    axs[1, 1].set_title('Recall@' + str(k) + ' (5-tuple queries)')
+    axs[1, 1].yaxis.grid(True)
+    axs[1, 1].set_ylabel('Fraction')
+    axs[1, 1].vlines(4.5, 0, 1.0)
+
+    for plot in (plot_precision1, plot_recall1, plot_precision5, plot_recall5):
+        for patch, color in zip(plot['boxes'], colors):
+            patch.set_facecolor(color)
+
+    plt.savefig('Precision-Recall_' + str(votes) + '-votes.pdf', format = 'pdf')
     plt.clf()
 
 # Mainly NDCG plots
@@ -288,246 +329,262 @@ def recall(tables, gt):
     return float(count) / len(gt_tables)
 
 # Returns map: ['types'|'embeddings'|'baseline']->[<# BUCKETS: [150|300]>]->[<TOP-K: [10|100]>]->[NDCG SCORES]
-def plot_ndcg(tuples):
-    query_dir = 'queries/' + str(tuples) + '-tuple/'
-    ground_truth_dir = '../../data/tables/SemanticTableSearchDataset/ground_truth/wikipedia_categories'
-    corpus = '/data/tables/SemanticTableSearchDataset/table_corpus/tables'
-    mapping_file = '../../data/tables/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
-    query_files = os.listdir(query_dir)
-    table_files = full_corpus(corpus + '/../corpus')
+def plot_ndcg():
     k = 100
     #votes = [1, 2, 3]
     votes = [3]
+    tuples = [1, 5]
     ndcg = dict()
     precision_dict = dict()
     recall_dict = dict()
-    precision_dict['T(30, 10)'] = list()
-    precision_dict['E(30, 10)'] = list()
-    precision_dict['BT - Types'] = list()
-    precision_dict['BT - Embeddings'] = list()
-    precision_dict['BM25 - Entity'] = list()
-    precision_dict['BM25 - Text'] = list()
-    recall_dict['T(30, 10)'] = list()
-    recall_dict['E(30, 10)'] = list()
-    recall_dict['BT - Types'] = list()
-    recall_dict['BT - Embeddings'] = list()
-    recall_dict['BM25 - Entity'] = list()
-    recall_dict['BM25 - Text'] = list()
+    precision_dict['1'] = dict()
+    recall_dict['1'] = dict()
+    precision_dict['5'] = dict()
+    recall_dict['5'] = dict()
+    precision_dict['1']['T(30, 10)'] = list()
+    precision_dict['1']['E(30, 10)'] = list()
+    precision_dict['1']['BT - Types'] = list()
+    precision_dict['1']['BT - Embeddings'] = list()
+    precision_dict['1']['BM25 - Entity'] = list()
+    precision_dict['1']['BM25 - Text'] = list()
+    recall_dict['1']['T(30, 10)'] = list()
+    recall_dict['1']['E(30, 10)'] = list()
+    recall_dict['1']['BT - Types'] = list()
+    recall_dict['1']['BT - Embeddings'] = list()
+    recall_dict['1']['BM25 - Entity'] = list()
+    recall_dict['1']['BM25 - Text'] = list()
+    precision_dict['5']['T(30, 10)'] = list()
+    precision_dict['5']['E(30, 10)'] = list()
+    precision_dict['5']['BT - Types'] = list()
+    precision_dict['5']['BT - Embeddings'] = list()
+    precision_dict['5']['BM25 - Entity'] = list()
+    precision_dict['5']['BM25 - Text'] = list()
+    recall_dict['5']['T(30, 10)'] = list()
+    recall_dict['5']['E(30, 10)'] = list()
+    recall_dict['5']['BT - Types'] = list()
+    recall_dict['5']['BT - Embeddings'] = list()
+    recall_dict['5']['BM25 - Entity'] = list()
+    recall_dict['5']['BM25 - Text'] = list()
 
-    for vote in votes:
-        ndcg[str(vote)] = dict()
-        ndcg[str(vote)]['types'] = dict()
-        ndcg[str(vote)]['types_column'] = dict()
-        ndcg[str(vote)]['embeddings'] = dict()
-        ndcg[str(vote)]['embeddings_column'] = dict()
-        ndcg[str(vote)]['types']['30'] = dict()
-        ndcg[str(vote)]['types']['32'] = dict()
-        ndcg[str(vote)]['types']['128'] = dict()
-        ndcg[str(vote)]['types_column']['30'] = dict()
-        ndcg[str(vote)]['types_column']['32'] = dict()
-        ndcg[str(vote)]['types_column']['128'] = dict()
-        ndcg[str(vote)]['embeddings']['30'] = dict()
-        ndcg[str(vote)]['embeddings']['32'] = dict()
-        ndcg[str(vote)]['embeddings']['128'] = dict()
-        ndcg[str(vote)]['embeddings_column']['30'] = dict()
-        ndcg[str(vote)]['embeddings_column']['32'] = dict()
-        ndcg[str(vote)]['embeddings_column']['128'] = dict()
-        ndcg[str(vote)]['types']['30']['10'] = list()
-        ndcg[str(vote)]['types']['32']['8'] = list()
-        ndcg[str(vote)]['types']['128']['8'] = list()
-        ndcg[str(vote)]['types_column']['30']['10'] = list()
-        ndcg[str(vote)]['types_column']['32']['8'] = list()
-        ndcg[str(vote)]['types_column']['128']['8'] = list()
-        ndcg[str(vote)]['embeddings']['30']['10'] = list()
-        ndcg[str(vote)]['embeddings']['32']['8'] = list()
-        ndcg[str(vote)]['embeddings']['128']['8'] = list()
-        ndcg[str(vote)]['embeddings_column']['30']['10'] = list()
-        ndcg[str(vote)]['embeddings_column']['32']['8'] = list()
-        ndcg[str(vote)]['embeddings_column']['128']['8'] = list()
-        ndcg['baseline'] = dict()
-        ndcg['baseline']['jaccard'] = list()
-        ndcg['baseline']['cosine'] = list()
-        ndcg['baseline']['bm25_entities'] = list()
-        ndcg['baseline']['bm25_text'] = list()
-        ndcg['baseline']['bm25_prefilter'] = dict()
-        ndcg['baseline']['bm25_prefilter']['types'] = list()
-        ndcg['baseline']['bm25_prefilter']['embeddings'] = list()
+    for tuple in tuples:
+        query_dir = 'queries/' + str(tuple) + '-tuple/'
+        ground_truth_dir = '../../data/tables/SemanticTableSearchDataset/ground_truth/wikipedia_categories'
+        corpus = '/data/tables/SemanticTableSearchDataset/table_corpus/tables'
+        mapping_file = '../../data/tables/SemanticTableSearchDataset/table_corpus/wikipages_df.pickle'
+        query_files = os.listdir(query_dir)
+        table_files = full_corpus(corpus + '/../corpus')
+        print(str(tuple) + '-TUPLE QUERIES')
 
-        count = 0
-        print('Vote = ' + str(vote))
+        for vote in votes:
+            ndcg[str(vote)] = dict()
+            ndcg[str(vote)]['types'] = dict()
+            ndcg[str(vote)]['types_column'] = dict()
+            ndcg[str(vote)]['embeddings'] = dict()
+            ndcg[str(vote)]['embeddings_column'] = dict()
+            ndcg[str(vote)]['types']['30'] = dict()
+            ndcg[str(vote)]['types']['32'] = dict()
+            ndcg[str(vote)]['types']['128'] = dict()
+            ndcg[str(vote)]['types_column']['30'] = dict()
+            ndcg[str(vote)]['types_column']['32'] = dict()
+            ndcg[str(vote)]['types_column']['128'] = dict()
+            ndcg[str(vote)]['embeddings']['30'] = dict()
+            ndcg[str(vote)]['embeddings']['32'] = dict()
+            ndcg[str(vote)]['embeddings']['128'] = dict()
+            ndcg[str(vote)]['embeddings_column']['30'] = dict()
+            ndcg[str(vote)]['embeddings_column']['32'] = dict()
+            ndcg[str(vote)]['embeddings_column']['128'] = dict()
+            ndcg[str(vote)]['types']['30']['10'] = list()
+            ndcg[str(vote)]['types']['32']['8'] = list()
+            ndcg[str(vote)]['types']['128']['8'] = list()
+            ndcg[str(vote)]['types_column']['30']['10'] = list()
+            ndcg[str(vote)]['types_column']['32']['8'] = list()
+            ndcg[str(vote)]['types_column']['128']['8'] = list()
+            ndcg[str(vote)]['embeddings']['30']['10'] = list()
+            ndcg[str(vote)]['embeddings']['32']['8'] = list()
+            ndcg[str(vote)]['embeddings']['128']['8'] = list()
+            ndcg[str(vote)]['embeddings_column']['30']['10'] = list()
+            ndcg[str(vote)]['embeddings_column']['32']['8'] = list()
+            ndcg[str(vote)]['embeddings_column']['128']['8'] = list()
+            ndcg['baseline'] = dict()
+            ndcg['baseline']['jaccard'] = list()
+            ndcg['baseline']['cosine'] = list()
+            ndcg['baseline']['bm25_entities'] = list()
+            ndcg['baseline']['bm25_text'] = list()
+            ndcg['baseline']['bm25_prefilter'] = dict()
+            ndcg['baseline']['bm25_prefilter']['types'] = list()
+            ndcg['baseline']['bm25_prefilter']['embeddings'] = list()
 
-        for query_file in query_files:
-            count += 1
+            count = 0
+            print('Vote = ' + str(vote))
 
-            query_id = query_file.split('.')[0]
-            query_path = query_dir + query_file
-            truth = ground_truth(query_path, ground_truth_dir, corpus, mapping_file)
-            gt_rels = {table:0 for table in table_files}
+            for query_file in query_files:
+                count += 1
 
-            for relevance in truth[1]:
-                gt_rels[relevance[1]] = relevance[0]
+                query_id = query_file.split('.')[0]
+                query_path = query_dir + query_file
+                truth = ground_truth(query_path, ground_truth_dir, corpus, mapping_file)
+                gt_rels = {table:0 for table in table_files}
 
-            # Types
-            predicted_relevance = predicted_scores(query_id, vote, 'types', 30, 10, tuples, k, gt_rels)
-            predicted_tables = predicted_scores(query_id, vote, 'types', 30, 10, tuples, k, gt_rels, get_only_tables = True)
+                for relevance in truth[1]:
+                    gt_rels[relevance[1]] = relevance[0]
 
-            if not predicted_relevance is None:
-                ndcg_types = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg[str(vote)]['types']['30']['10'].append(ndcg_types)
+                # Types
+                predicted_relevance = predicted_scores(query_id, vote, 'types', 30, 10, tuple, k, gt_rels)
+                predicted_tables = predicted_scores(query_id, vote, 'types', 30, 10, tuple, k, gt_rels, get_only_tables = True)
 
-            if vote == 3 and not predicted_tables is None:
-                precision_val = precision(predicted_tables, truth)
-                recall_val = recall(predicted_tables, truth)
-                precision_dict['T(30, 10)'].append(precision_val)
-                recall_dict['T(30, 10)'].append(recall_val)
+                if not predicted_relevance is None:
+                    ndcg_types = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg[str(vote)]['types']['30']['10'].append(ndcg_types)
 
-            predicted_relevance = predicted_scores(query_id, vote, 'types', 32, 8, tuples, k, gt_rels)
+                if vote == 3 and not predicted_tables is None:
+                    precision_val = precision(predicted_tables, truth)
+                    recall_val = recall(predicted_tables, truth)
+                    precision_dict[str(tuple)]['T(30, 10)'].append(precision_val)
+                    recall_dict[str(tuple)]['T(30, 10)'].append(recall_val)
 
-            if not predicted_relevance is None:
-                ndcg_types = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg[str(vote)]['types']['32']['8'].append(ndcg_types)
+                predicted_relevance = predicted_scores(query_id, vote, 'types', 32, 8, tuple, k, gt_rels)
 
-            predicted_relevance = predicted_scores(query_id, vote, 'types', 128, 8, tuples, k, gt_rels)
+                if not predicted_relevance is None:
+                    ndcg_types = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg[str(vote)]['types']['32']['8'].append(ndcg_types)
 
-            if not predicted_relevance is None:
-                ndcg_types = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg[str(vote)]['types']['128']['8'].append(ndcg_types)
+                predicted_relevance = predicted_scores(query_id, vote, 'types', 128, 8, tuple, k, gt_rels)
 
-            # Types - column aggregation
-            predicted_relevance = predicted_scores(query_id, vote, 'types', 30, 10, tuples, k, gt_rels, False, True)
+                if not predicted_relevance is None:
+                    ndcg_types = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg[str(vote)]['types']['128']['8'].append(ndcg_types)
 
-            if not predicted_relevance is None:
-                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg[str(vote)]['types_column']['30']['10'].append(ndcg_embeddings)
+                # Types - column aggregation
+                predicted_relevance = predicted_scores(query_id, vote, 'types', 30, 10, tuple, k, gt_rels, False, True)
 
-            predicted_relevance = predicted_scores(query_id, vote, 'types', 32, 8, tuples, k, gt_rels, False, True)
+                if not predicted_relevance is None:
+                    ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg[str(vote)]['types_column']['30']['10'].append(ndcg_embeddings)
 
-            if not predicted_relevance is None:
-                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg[str(vote)]['types_column']['32']['8'].append(ndcg_embeddings)
+                predicted_relevance = predicted_scores(query_id, vote, 'types', 32, 8, tuple, k, gt_rels, False, True)
 
-            predicted_relevance = predicted_scores(query_id, vote, 'types', 128, 8, tuples, k, gt_rels, False, True)
+                if not predicted_relevance is None:
+                    ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg[str(vote)]['types_column']['32']['8'].append(ndcg_embeddings)
 
-            if not predicted_relevance is None:
-                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg[str(vote)]['types_column']['128']['8'].append(ndcg_embeddings)
+                predicted_relevance = predicted_scores(query_id, vote, 'types', 128, 8, tuple, k, gt_rels, False, True)
 
-            # Embeddings
-            predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 30, 10, tuples, k, gt_rels)
-            predicted_tables = predicted_scores(query_id, vote, 'embeddings', 30, 10, tuples, k, gt_rels, get_only_tables = True)
+                if not predicted_relevance is None:
+                    ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg[str(vote)]['types_column']['128']['8'].append(ndcg_embeddings)
 
-            if not predicted_relevance is None:
-                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg[str(vote)]['embeddings']['30']['10'].append(ndcg_embeddings)
+                # Embeddings
+                predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 30, 10, tuple, k, gt_rels)
+                predicted_tables = predicted_scores(query_id, vote, 'embeddings', 30, 10, tuple, k, gt_rels, get_only_tables = True)
 
-            if vote == 3 and not predicted_tables is None:
-                precision_val = precision(predicted_tables, truth)
-                recall_val = recall(predicted_tables, truth)
-                precision_dict['E(30, 10)'].append(precision_val)
-                recall_dict['E(30, 10)'].append(recall_val)
+                if not predicted_relevance is None:
+                    ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg[str(vote)]['embeddings']['30']['10'].append(ndcg_embeddings)
 
-            predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 32, 8, tuples, k, gt_rels)
+                if vote == 3 and not predicted_tables is None:
+                    precision_val = precision(predicted_tables, truth)
+                    recall_val = recall(predicted_tables, truth)
+                    precision_dict[str(tuple)]['E(30, 10)'].append(precision_val)
+                    recall_dict[str(tuple)]['E(30, 10)'].append(recall_val)
 
-            if not predicted_relevance is None:
-                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg[str(vote)]['embeddings']['32']['8'].append(ndcg_embeddings)
+                predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 32, 8, tuple, k, gt_rels)
 
-            predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 128, 8, tuples, k, gt_rels)
+                if not predicted_relevance is None:
+                    ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg[str(vote)]['embeddings']['32']['8'].append(ndcg_embeddings)
 
-            if not predicted_relevance is None:
-                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg[str(vote)]['embeddings']['128']['8'].append(ndcg_embeddings)
+                predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 128, 8, tuple, k, gt_rels)
 
-            # Embeddings - Column aggregation
-            predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 30, 10, tuples, k, gt_rels, False, True)
+                if not predicted_relevance is None:
+                    ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg[str(vote)]['embeddings']['128']['8'].append(ndcg_embeddings)
 
-            if not predicted_relevance is None:
-                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg[str(vote)]['embeddings_column']['30']['10'].append(ndcg_embeddings)
+                # Embeddings - Column aggregation
+                predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 30, 10, tuple, k, gt_rels, False, True)
 
-            predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 32, 8, tuples, k, gt_rels, False, True)
+                if not predicted_relevance is None:
+                    ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg[str(vote)]['embeddings_column']['30']['10'].append(ndcg_embeddings)
 
-            if not predicted_relevance is None:
-                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg[str(vote)]['embeddings_column']['32']['8'].append(ndcg_embeddings)
+                predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 32, 8, tuple, k, gt_rels, False, True)
 
-            predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 128, 8, tuples, k, gt_rels, False, True)
+                if not predicted_relevance is None:
+                    ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg[str(vote)]['embeddings_column']['32']['8'].append(ndcg_embeddings)
 
-            if not predicted_relevance is None:
-                ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg[str(vote)]['embeddings_column']['128']['8'].append(ndcg_embeddings)
+                predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 128, 8, tuple, k, gt_rels, False, True)
 
-            # Baseline
-            predicted_relevance = predicted_scores(query_id, vote, 'jaccard', 32, 8, tuples, k, gt_rels, True, False)
-            predicted_tables = predicted_scores(query_id, vote, 'jaccard', 32, 8, tuples, k, gt_rels, True, False, get_only_tables = True)
+                if not predicted_relevance is None:
+                    ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg[str(vote)]['embeddings_column']['128']['8'].append(ndcg_embeddings)
 
-            if not predicted_relevance is None:
-                ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg['baseline']['jaccard'].append(ndcg_baseline)
+                # Baseline
+                predicted_relevance = predicted_scores(query_id, vote, 'jaccard', 32, 8, tuple, k, gt_rels, True, False)
+                predicted_tables = predicted_scores(query_id, vote, 'jaccard', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True)
 
-            if vote == 3 and not predicted_tables is None:
-                precision_val = precision(predicted_tables, truth)
-                recall_val = recall(predicted_tables, truth)
-                precision_dict['BT - Types'].append(precision_val)
-                recall_dict['BT - Types'].append(recall_val)
+                if not predicted_relevance is None:
+                    ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg['baseline']['jaccard'].append(ndcg_baseline)
 
-            predicted_relevance = predicted_scores(query_id, vote, 'cosine', 32, 8, tuples, k, gt_rels, True, False)
-            predicted_tables = predicted_scores(query_id, vote, 'cosine', 32, 8, tuples, k, gt_rels, True, False, get_only_tables = True)
+                if vote == 3 and not predicted_tables is None:
+                    precision_val = precision(predicted_tables, truth)
+                    recall_val = recall(predicted_tables, truth)
+                    precision_dict[str(tuple)]['BT - Types'].append(precision_val)
+                    recall_dict[str(tuple)]['BT - Types'].append(recall_val)
 
-            if not predicted_relevance is None:
-                ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg['baseline']['cosine'].append(ndcg_baseline)
+                predicted_relevance = predicted_scores(query_id, vote, 'cosine', 32, 8, tuple, k, gt_rels, True, False)
+                predicted_tables = predicted_scores(query_id, vote, 'cosine', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True)
 
-            if vote == 3 and not predicted_tables is None:
-                precision_val = precision(predicted_tables, truth)
-                recall_val = recall(predicted_tables, truth)
-                precision_dict['BT - Embeddings'].append(precision_val)
-                recall_dict['BT - Embeddings'].append(recall_val)
+                if not predicted_relevance is None:
+                    ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg['baseline']['cosine'].append(ndcg_baseline)
 
-            predicted_relevance = predicted_scores(query_id, vote, 'entities', 32, 8, tuples, k, gt_rels, True, False, True)
-            predicted_tables = predicted_scores(query_id, vote, 'entities', 32, 8, tuples, k, gt_rels, True, False, True, get_only_tables = True)
+                if vote == 3 and not predicted_tables is None:
+                    precision_val = precision(predicted_tables, truth)
+                    recall_val = recall(predicted_tables, truth)
+                    precision_dict[str(tuple)]['BT - Embeddings'].append(precision_val)
+                    recall_dict[str(tuple)]['BT - Embeddings'].append(recall_val)
 
-            if not predicted_relevance is None:
-                ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg['baseline']['bm25_entities'].append(ndcg_baseline)
+                predicted_relevance = predicted_scores(query_id, vote, 'entities', 32, 8, tuple, k, gt_rels, True, False, True)
+                predicted_tables = predicted_scores(query_id, vote, 'entities', 32, 8, tuple, k, gt_rels, True, False, True, get_only_tables = True)
 
-            if vote == 3 and not predicted_tables is None:
-                precision_val = precision(predicted_tables, truth)
-                recall_val = recall(predicted_tables, truth)
-                precision_dict['BM25 - Entity'].append(precision_val)
-                recall_dict['BM25 - Entity'].append(recall_val)
+                if not predicted_relevance is None:
+                    ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg['baseline']['bm25_entities'].append(ndcg_baseline)
 
-            predicted_relevance = predicted_scores(query_id, vote, 'text', 32, 8, tuples, k, gt_rels, True, False, True)
-            predicted_tables = predicted_scores(query_id, vote, 'text', 32, 8, tuples, k, gt_rels, True, False, True, get_only_tables = True)
+                if vote == 3 and not predicted_tables is None:
+                    precision_val = precision(predicted_tables, truth)
+                    recall_val = recall(predicted_tables, truth)
+                    precision_dict[str(tuple)]['BM25 - Entity'].append(precision_val)
+                    recall_dict[str(tuple)]['BM25 - Entity'].append(recall_val)
 
-            if not predicted_relevance is None:
-                ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg['baseline']['bm25_text'].append(ndcg_baseline)
+                predicted_relevance = predicted_scores(query_id, vote, 'text', 32, 8, tuple, k, gt_rels, True, False, True)
+                predicted_tables = predicted_scores(query_id, vote, 'text', 32, 8, tuple, k, gt_rels, True, False, True, get_only_tables = True)
 
-            if vote == 3 and not predicted_tables is None:
-                precision_val = precision(predicted_tables, truth)
-                recall_val = recall(predicted_tables, truth)
-                precision_dict['BM25 - Text'].append(precision_val)
-                recall_dict['BM25 - Text'].append(recall_val)
+                if not predicted_relevance is None:
+                    ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg['baseline']['bm25_text'].append(ndcg_baseline)
 
-            '''predicted_relevance = predicted_scores(query_id, vote, 'types', 32, 8, tuples, k, gt_rels, False, False, False, True)
+                if vote == 3 and not predicted_tables is None:
+                    precision_val = precision(predicted_tables, truth)
+                    recall_val = recall(predicted_tables, truth)
+                    precision_dict[str(tuple)]['BM25 - Text'].append(precision_val)
+                    recall_dict[str(tuple)]['BM25 - Text'].append(recall_val)
 
-            if not predicted_relevance is None:
-                ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg['baseline']['bm25_prefilter']['types'].append(ndcg_baseline)
+                '''predicted_relevance = predicted_scores(query_id, vote, 'types', 32, 8, tuple, k, gt_rels, False, False, False, True)
 
-            predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 32, 8, tuples, k, gt_rels, False, False, False, True)
+                if not predicted_relevance is None:
+                    ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg['baseline']['bm25_prefilter']['types'].append(ndcg_baseline)
 
-            if not predicted_relevance is None:
-                ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                ndcg['baseline']['bm25_prefilter']['embeddings'].append(ndcg_baseline)'''
+                predicted_relevance = predicted_scores(query_id, vote, 'embeddings', 32, 8, tuple, k, gt_rels, False, False, False, True)
 
-        gen_quality_boxplot(precision_dict, vote, tuples, k, 'Precision')
-        gen_quality_boxplot(recall_dict, vote, tuples, k, 'Recall')
-        #gen_boxplots(ndcg, vote, tuples, k)
+                if not predicted_relevance is None:
+                    ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
+                    ndcg['baseline']['bm25_prefilter']['embeddings'].append(ndcg_baseline)'''
 
-print('1-TUPLE QUERIES')
-plot_ndcg(1)
+            #gen_boxplots(ndcg, vote, tuple, k)
 
-print('5-TUPLE QUERIES')
-plot_ndcg(5)
+        gen_quality_boxplot(precision_dict['1'], recall_dict['1'], precision_dict['5'], precision_dict['5'], vote, k)
+
+plot_ndcg()
