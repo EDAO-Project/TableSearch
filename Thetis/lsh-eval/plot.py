@@ -585,6 +585,6 @@ def plot_ndcg():
 
             #gen_boxplots(ndcg, vote, tuple, k)
 
-        gen_quality_boxplot(precision_dict['1'], recall_dict['1'], precision_dict['5'], precision_dict['5'], vote, k)
+    gen_quality_boxplot(precision_dict['1'], recall_dict['1'], precision_dict['5'], precision_dict['5'], vote, k)
 
 plot_ndcg()
