@@ -626,22 +626,23 @@ def plot_ndcg():
                     ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
                     ndcg['baseline']['bm25_prefilter']['embeddings'].append(ndcg_baseline)
 
-                predicted_tables_types = set(predicted_scores(query_id, vote, 'jaccard', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True))
-                predicted_tables_bm25 = set(predicted_scores(query_id, vote, 'text', 32, 8, tuple, k, gt_rels, True, False, True, get_only_tables = True))
+                predicted_tables = predicted_scores(query_id, vote, 'jaccard', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True)
+                predicted_tables_bm25 = predicted_scores(query_id, vote, 'text', 32, 8, tuple, k, gt_rels, True, False, True, get_only_tables = True)
                 mix = predicted_tables_types.union(predicted_tables_bm25)
 
                 if not predicted_tables_types is None and not predicted_tables_bm25 is None:
+                    mix = set(predicted_tables_types).union(set(predicted_tables_bm25))
                     recall_val = recall(mix, truth)
                     recall_mix_dict[str(tuple)]['BT - Types - Mix'].append(recall_val)
 
-                predicted_tables_embeddings = set(predicted_scores(query_id, vote, 'cosine', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True))
-                mix = predicted_tables_embeddings.union(predicted_tables_bm25)
+                predicted_tables_embeddings = predicted_scores(query_id, vote, 'cosine', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True)
 
                 if not predicted_tables_embeddings is None and not predicted_tables_bm25 is None:
+                    mix = set(predicted_tables_embeddings).union(set(predicted_tables_bm25))
                     recall_val = recall(mix, truth)
                     recall_mix_dict[str(tuple)]['BT - Embeddings - Mix'].append(recall_val)
 
-            #gen_boxplots(ndcg, vote, tuple, k)
+            gen_boxplots(ndcg, vote, tuple, k)
 
         gen_quality_boxplot(precision_dict['1'], recall_dict['1'], precision_dict['5'], precision_dict['5'], votes, k, mix_1_tuple = recall_mix_dict['1'], mix_5_tuple = recall_mix_dict['5'])
 
