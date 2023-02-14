@@ -626,9 +626,8 @@ def plot_ndcg():
                     ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
                     ndcg['baseline']['bm25_prefilter']['embeddings'].append(ndcg_baseline)
 
-                predicted_tables = predicted_scores(query_id, vote, 'jaccard', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True)
+                predicted_tables_types = predicted_scores(query_id, vote, 'jaccard', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True)
                 predicted_tables_bm25 = predicted_scores(query_id, vote, 'text', 32, 8, tuple, k, gt_rels, True, False, True, get_only_tables = True)
-                mix = predicted_tables_types.union(predicted_tables_bm25)
 
                 if not predicted_tables_types is None and not predicted_tables_bm25 is None:
                     mix = set(predicted_tables_types).union(set(predicted_tables_bm25))
