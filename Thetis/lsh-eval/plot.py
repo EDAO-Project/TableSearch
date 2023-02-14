@@ -115,7 +115,7 @@ def full_corpus(base_dir):
 
 
 # Boxplot of precision/recall
-def gen_quality_boxplot(precision_1_tuple, recall_1_tuple, precision_5_tuple, recall_5_tuple, votes, k):
+def gen_quality_boxplot(precision_1_tuple, recall_1_tuple, precision_5_tuple, recall_5_tuple, votes, k, mix_1_tuple = None, mix_5_tuple = None):
     plt.rc('xtick', labelsize = 10)
     plt.rc('ytick', labelsize = 10)
     plt.rc('axes', labelsize = 15)
@@ -188,18 +188,55 @@ def gen_quality_boxplot(precision_1_tuple, recall_1_tuple, precision_5_tuple, re
     plt.savefig('Precision-Recall_' + str(votes) + '-votes.pdf', format = 'pdf')
     plt.clf()
 
+    # Mixing Thetis and BM25 - recall only
+    if (mix_1_tuple is None or mix_5_tuple is None):
+        pass
+
+    plt.rc('xtick', labelsize = 10)
+    plt.rc('ytick', labelsize = 10)
+    plt.rc('axes', labelsize = 15)
+    plt.rc('axes', titlesize = 18)
+    plt.rc('legend', fontsize = 25)
+
+    colors = ['blue', 'red']
+    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (12, 4))
+    recall1 = list()
+    recall5 = list()
+
+    recall1.append(mix_1_tuple['BT - Types - Mix'])
+    recall1.append(mix_1_tuple['BT - Embeddings - Mix'])
+    recall5.append(mix_5_tuple['BT - Types - Mix'])
+    recall5.append(mix_5_tuple['BT - Embeddings - Mix'])
+
+    plot_1_tuple = ax1.boxplot(recall1, vert = True, patch_artist = True, medianprops = dict(color = 'white'), labels = list(mix_1_tuple.keys()))
+    ax1.set_title('Recall@' + str(k) + ' (1-Tuple Queries)')
+    ax1.yaxis.grid(True)
+    ax1.set_ylabel('Fraction')
+
+    plot_5_tuple = ax2.boxplot(recall5, vert = True, patch_artist = True, medianprops = dict(color = 'white'), labels = list(mix_5_tuple.keys()))
+    ax2.set_title('Recall@' + str(k) + ' (5-Tuple Queries)')
+    ax2.yaxis.grid(True)
+    ax2.set_ylabel('Fraction')
+
+    for plot in (plot_1_tuple, plot_5_tuple):
+        for patch, color in zip(plot['boxes'], colors):
+            patch.set_facecolor(color)
+
+    plt.savefig('mixed-recall_' + str(votes) + '-votes.pdf', format = 'pdf')
+    plt.clf()
+
 # Mainly NDCG plots
 def gen_boxplots(ndcg_dict, votes, tuples, k):
     # First the plots of all configurations
 
     plt.rc('xtick', labelsize = 20)
     plt.rc('ytick', labelsize = 20)
-    plt.rc('axes', labelsize = 12)
+    plt.rc('axes', labelsize = 16)
     plt.rc('axes', titlesize = 30)
     plt.rc('legend', fontsize = 20)
 
     colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
-    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (90, 10))
+    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (50, 6))
     median_color = dict(color = 'white')
     data_types = list()
     data_embeddings = list()
@@ -266,13 +303,13 @@ def gen_boxplots(ndcg_dict, votes, tuples, k):
     data_types.append(ndcg_dict['baseline']['bm25_text'])
     data_types.append(ndcg_dict['baseline']['jaccard'])
 
-    data_embeddings.append(ndcg_dict[str(votes)]['types']['32']['8'])
-    data_embeddings.append(ndcg_dict[str(votes)]['types']['128']['8'])
-    data_embeddings.append(ndcg_dict[str(votes)]['types']['30']['10'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['32']['8'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['128']['8'])
+    data_embeddings.append(ndcg_dict[str(votes)]['embeddings']['30']['10'])
     data_embeddings.append(ndcg_dict['baseline']['bm25_prefilter']['embeddings'])
     data_embeddings.append(ndcg_dict['baseline']['bm25_entities'])
     data_embeddings.append(ndcg_dict['baseline']['bm25_text'])
-    data_embeddings.append(ndcg_dict['baseline']['jaccard'])
+    data_embeddings.append(ndcg_dict['baseline']['cosine'])
 
     plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'BM25 pre-filtering - Jaccard', 'BM25 - entities', 'BM25 - text', 'B - Jaccard'])
     ax1.set_title('LSH Using Types - Top-' + str(k))
@@ -330,17 +367,19 @@ def recall(tables, gt):
 
 # Returns map: ['types'|'embeddings'|'baseline']->[<# BUCKETS: [150|300]>]->[<TOP-K: [10|100]>]->[NDCG SCORES]
 def plot_ndcg():
-    k = 100
-    #votes = [1, 2, 3]
-    votes = [3]
+    k = 10
+    votes = [1, 2, 3]
     tuples = [1, 5]
     ndcg = dict()
     precision_dict = dict()
     recall_dict = dict()
+    recall_mix_dict = dict()
     precision_dict['1'] = dict()
     recall_dict['1'] = dict()
     precision_dict['5'] = dict()
     recall_dict['5'] = dict()
+    recall_mix_dict['1'] = dict()
+    recall_mix_dict['5'] = dict()
     precision_dict['1']['T(30, 10)'] = list()
     precision_dict['1']['E(30, 10)'] = list()
     precision_dict['1']['BT - Types'] = list()
@@ -365,6 +404,10 @@ def plot_ndcg():
     recall_dict['5']['BT - Embeddings'] = list()
     recall_dict['5']['BM25 - Entity'] = list()
     recall_dict['5']['BM25 - Text'] = list()
+    recall_mix_dict['1']['BT - Types - Mix'] = list()
+    recall_mix_dict['5']['BT - Types - Mix'] = list()
+    recall_mix_dict['1']['BT - Embeddings - Mix'] = list()
+    recall_mix_dict['5']['BT - Embeddings - Mix'] = list()
 
     for tuple in tuples:
         query_dir = 'queries/' + str(tuple) + '-tuple/'
@@ -571,7 +614,7 @@ def plot_ndcg():
                     precision_dict[str(tuple)]['BM25 - Text'].append(precision_val)
                     recall_dict[str(tuple)]['BM25 - Text'].append(recall_val)
 
-                '''predicted_relevance = predicted_scores(query_id, vote, 'types', 32, 8, tuple, k, gt_rels, False, False, False, True)
+                predicted_relevance = predicted_scores(query_id, vote, 'types', 32, 8, tuple, k, gt_rels, False, False, False, True)
 
                 if not predicted_relevance is None:
                     ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
@@ -581,10 +624,25 @@ def plot_ndcg():
 
                 if not predicted_relevance is None:
                     ndcg_baseline = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
-                    ndcg['baseline']['bm25_prefilter']['embeddings'].append(ndcg_baseline)'''
+                    ndcg['baseline']['bm25_prefilter']['embeddings'].append(ndcg_baseline)
+
+                predicted_tables_types = set(predicted_scores(query_id, vote, 'jaccard', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True))
+                predicted_tables_bm25 = set(predicted_scores(query_id, vote, 'text', 32, 8, tuple, k, gt_rels, True, False, True, get_only_tables = True))
+                mix = predicted_tables_types.union(predicted_tables_bm25)
+
+                if not predicted_tables_types is None and not predicted_tables_bm25 is None:
+                    recall_val = recall(mix, truth)
+                    recall_mix_dict[str(tuple)]['BT - Types - Mix'].append(recall_val)
+
+                predicted_tables_embeddings = set(predicted_scores(query_id, vote, 'cosine', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True))
+                mix = predicted_tables_embeddings.union(predicted_tables_bm25)
+
+                if not predicted_tables_embeddings is None and not predicted_tables_bm25 is None:
+                    recall_val = recall(mix, truth)
+                    recall_mix_dict[str(tuple)]['BT - Embeddings - Mix'].append(recall_val)
 
             #gen_boxplots(ndcg, vote, tuple, k)
 
-    gen_quality_boxplot(precision_dict['1'], recall_dict['1'], precision_dict['5'], precision_dict['5'], vote, k)
+        gen_quality_boxplot(precision_dict['1'], recall_dict['1'], precision_dict['5'], precision_dict['5'], votes, k, mix_1_tuple = recall_mix_dict['1'], mix_5_tuple = recall_mix_dict['5'])
 
 plot_ndcg()
