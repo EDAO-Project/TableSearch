@@ -25,7 +25,7 @@ do
         java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_${VECTORS}_bandsize_${BAND_SIZE} \
             -q ${QUERIES} -td ${CORPUS} -od ${OUT_K} -t 4 -pf LSH_TYPES --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn    done
 
-    OUT=${OUTPUT_DIR}embeddings/vectors_${VECTORS}/bandsize_${BAND_SIZE}
+    OUT=${OUTPUT_DIR}corpus_${CORPUS_SIZE}/embeddings/vectors_${VECTORS}/bandsize_${BAND_SIZE}
     mkdir -p ${OUT}
 
     for TUPLES in {1,5} ; \
