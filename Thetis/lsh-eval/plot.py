@@ -462,7 +462,7 @@ def plot_ndcg():
                 query_path = query_dir + query_file
                 truth = ground_truth(query_path, ground_truth_dir, corpus, mapping_file)
                 truth_tables = truth[1]
-                truth_tables.sort(key = sort_truth_val)
+                truth_tables.sort(reverse = True, key = sort_truth_val)
                 top_k_truth_tables = list()
                 count_k = 0
                 gt_rels = {table:0 for table in table_files}
@@ -474,7 +474,7 @@ def plot_ndcg():
                     if count_k == k:
                         break
 
-                    top_k_truth_tables.append(truth_table)
+                    top_k_truth_tables.append(truth_table[1])
 
                 # Types
                 predicted_relevance = predicted_scores(query_id, vote, 'types', 30, 10, tuple, k, gt_rels)
