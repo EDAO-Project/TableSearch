@@ -333,14 +333,10 @@ def gen_boxplots(ndcg_dict, votes, tuples, k):
 
 # Computes precision
 def precision(tables, gt):
-    gt_tables = list()
     count = 0
 
-    for t in gt[1]:
-        gt_tables.append(t[1])
-
     for table in tables:
-        if table in gt_tables:
+        if table in gt:
             count += 1
 
     if len(tables) == 0:
@@ -350,20 +346,19 @@ def precision(tables, gt):
 
 # Computes recall
 def recall(tables, gt):
-    gt_tables = list()
     count = 0
 
-    for t in gt[1]:
-        gt_tables.append(t[1])
-
     for table in tables:
-        if table in gt_tables:
+        if table in gt:
             count += 1
 
     if len(tables) == 0:
         return 0
 
-    return float(count) / len(gt_tables)
+    return float(count) / len(gt)
+
+def sort_truth_val(elem):
+    return elem[0]
 
 # Returns map: ['types'|'embeddings'|'baseline']->[<# BUCKETS: [150|300]>]->[<TOP-K: [10|100]>]->[NDCG SCORES]
 def plot_ndcg():
@@ -466,10 +461,20 @@ def plot_ndcg():
                 query_id = query_file.split('.')[0]
                 query_path = query_dir + query_file
                 truth = ground_truth(query_path, ground_truth_dir, corpus, mapping_file)
+                truth_tables = truth[1]
+                truth_tables.sort(key = sort_truth_val)
+                top_k_truth_tables = list()
+                count_k = 0
                 gt_rels = {table:0 for table in table_files}
 
                 for relevance in truth[1]:
                     gt_rels[relevance[1]] = relevance[0]
+
+                for truth_table in truth_tables:
+                    if count_k == k:
+                        break
+
+                    top_k_truth_tables.append(truth_table)
 
                 # Types
                 predicted_relevance = predicted_scores(query_id, vote, 'types', 30, 10, tuple, k, gt_rels)
@@ -480,8 +485,8 @@ def plot_ndcg():
                     ndcg[str(vote)]['types']['30']['10'].append(ndcg_types)
 
                 if vote == 3 and not predicted_tables is None:
-                    precision_val = precision(predicted_tables, truth)
-                    recall_val = recall(predicted_tables, truth)
+                    precision_val = precision(predicted_tables, top_k_truth_tables)
+                    recall_val = recall(predicted_tables, top_k_truth_tables)
                     precision_dict[str(tuple)]['T(30, 10)'].append(precision_val)
                     recall_dict[str(tuple)]['T(30, 10)'].append(recall_val)
 
@@ -525,8 +530,8 @@ def plot_ndcg():
                     ndcg[str(vote)]['embeddings']['30']['10'].append(ndcg_embeddings)
 
                 if vote == 3 and not predicted_tables is None:
-                    precision_val = precision(predicted_tables, truth)
-                    recall_val = recall(predicted_tables, truth)
+                    precision_val = precision(predicted_tables, top_k_truth_tables)
+                    recall_val = recall(predicted_tables, top_k_truth_tables)
                     precision_dict[str(tuple)]['E(30, 10)'].append(precision_val)
                     recall_dict[str(tuple)]['E(30, 10)'].append(recall_val)
 
@@ -570,8 +575,8 @@ def plot_ndcg():
                     ndcg['baseline']['jaccard'].append(ndcg_baseline)
 
                 if vote == 3 and not predicted_tables is None:
-                    precision_val = precision(predicted_tables, truth)
-                    recall_val = recall(predicted_tables, truth)
+                    precision_val = precision(predicted_tables, top_k_truth_tables)
+                    recall_val = recall(predicted_tables, top_k_truth_tables)
                     precision_dict[str(tuple)]['BT - Types'].append(precision_val)
                     recall_dict[str(tuple)]['BT - Types'].append(recall_val)
 
@@ -583,8 +588,8 @@ def plot_ndcg():
                     ndcg['baseline']['cosine'].append(ndcg_baseline)
 
                 if vote == 3 and not predicted_tables is None:
-                    precision_val = precision(predicted_tables, truth)
-                    recall_val = recall(predicted_tables, truth)
+                    precision_val = precision(predicted_tables, top_k_truth_tables)
+                    recall_val = recall(predicted_tables, top_k_truth_tables)
                     precision_dict[str(tuple)]['BT - Embeddings'].append(precision_val)
                     recall_dict[str(tuple)]['BT - Embeddings'].append(recall_val)
 
@@ -596,8 +601,8 @@ def plot_ndcg():
                     ndcg['baseline']['bm25_entities'].append(ndcg_baseline)
 
                 if vote == 3 and not predicted_tables is None:
-                    precision_val = precision(predicted_tables, truth)
-                    recall_val = recall(predicted_tables, truth)
+                    precision_val = precision(predicted_tables, top_k_truth_tables)
+                    recall_val = recall(predicted_tables, top_k_truth_tables)
                     precision_dict[str(tuple)]['BM25 - Entity'].append(precision_val)
                     recall_dict[str(tuple)]['BM25 - Entity'].append(recall_val)
 
@@ -609,8 +614,8 @@ def plot_ndcg():
                     ndcg['baseline']['bm25_text'].append(ndcg_baseline)
 
                 if vote == 3 and not predicted_tables is None:
-                    precision_val = precision(predicted_tables, truth)
-                    recall_val = recall(predicted_tables, truth)
+                    precision_val = precision(predicted_tables, top_k_truth_tables)
+                    recall_val = recall(predicted_tables, top_k_truth_tables)
                     precision_dict[str(tuple)]['BM25 - Text'].append(precision_val)
                     recall_dict[str(tuple)]['BM25 - Text'].append(recall_val)
 
@@ -631,14 +636,14 @@ def plot_ndcg():
 
                 if not predicted_tables_types is None and not predicted_tables_bm25 is None:
                     mix = set(predicted_tables_types).union(set(predicted_tables_bm25))
-                    recall_val = recall(mix, truth)
+                    recall_val = recall(mix, top_k_truth_tables)
                     recall_mix_dict[str(tuple)]['BT - Types - Mix'].append(recall_val)
 
                 predicted_tables_embeddings = predicted_scores(query_id, vote, 'cosine', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True)
 
                 if not predicted_tables_embeddings is None and not predicted_tables_bm25 is None:
                     mix = set(predicted_tables_embeddings).union(set(predicted_tables_bm25))
-                    recall_val = recall(mix, truth)
+                    recall_val = recall(mix, top_k_truth_tables)
                     recall_mix_dict[str(tuple)]['BT - Embeddings - Mix'].append(recall_val)
 
             gen_boxplots(ndcg, vote, tuple, k)
