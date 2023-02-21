@@ -101,7 +101,7 @@ def predicted_scores(query_id, votes, mode, vectors, band_size, tuples, k, gt_ta
         for table in predicted:
             scores[table] = predicted[table]
 
-        sort = list(sorted(scores.items(), key = operator.itemgetter(1), reverse = True))
+        sort = list(sorted(predicted.items(), key = operator.itemgetter(1), reverse = True))
 
         if (not top is None):
             sort = sort[:int(top)]
@@ -200,15 +200,13 @@ def gen_quality_boxplot(precision_1_tuple, recall_1_tuple, precision_5_tuple, re
     print('E(30, 10): ' + str(statistics.median(recall1[1])))
     print('BFJ: ' + str(statistics.median(recall1[2])))
     print('BFC: ' + str(statistics.median(recall1[3])))
-    print('BM25E: ' + str(statistics.median(recall1[4])))
-    print('BM25T: ' + str(statistics.median(recall1[5])))
+    print('BM25T: ' + str(statistics.median(recall1[4])))
     print('\n5-tuple')
     print('T(30, 10): ' + str(statistics.median(recall5[0])))
     print('E(30, 10): ' + str(statistics.median(recall5[1])))
     print('BFJ: ' + str(statistics.median(recall5[2])))
     print('BFC: ' + str(statistics.median(recall5[3])))
-    print('BM25E: ' + str(statistics.median(recall5[4])))
-    print('BM25T: ' + str(statistics.median(recall5[5])))
+    print('BM25T: ' + str(statistics.median(recall5[4])))
     print('\nMixing\n1-tuple')
 
     # Mixing Thetis and BM25 - recall only
@@ -249,10 +247,10 @@ def gen_quality_boxplot(precision_1_tuple, recall_1_tuple, precision_5_tuple, re
     plt.clf()
 
     print('BFJ: ' + statistics.median(recall1[0]))
-    print('BFC: ' + statistics.median(recall1[0]))
+    print('BFC: ' + statistics.median(recall1[1]))
     print('5-tuple')
     print('BFJ: ' + statistics.median(recall5[0]))
-    print('BFC: ' + statistics.median(recall5[0]))
+    print('BFC: ' + statistics.median(recall5[1]))
 
 # Mainly NDCG plots
 def gen_boxplots(ndcg_dict, votes, tuples, k):
@@ -591,6 +589,7 @@ def plot_ndcg():
                     ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
                     ndcg[str(vote)]['embeddings_column']['128']['8'].append(ndcg_embeddings)
 
+                # Baselines
                 predicted_relevance = predicted_scores(query_id, vote, 'jaccard', 32, 8, tuple, k, gt_rels, True, False)
                 predicted_tables = predicted_scores(query_id, vote, 'jaccard', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True)
 
