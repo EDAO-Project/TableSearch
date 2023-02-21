@@ -86,7 +86,7 @@ public class Prefilter extends AbstractSearch
                 candidates.add(new Pair<>(entry.getKey(), -1.0));
             }
 
-            else
+            else if (!isQuerySplit)
             {
                 candidates.add(new Pair<>(entry.getKey(), -1.0));
             }
