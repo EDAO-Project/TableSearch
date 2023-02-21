@@ -7,6 +7,7 @@ import os
 import pickle
 import random
 import itertools
+import operator
 
 from pathlib import Path
 
@@ -57,7 +58,7 @@ def ground_truth(query_filename, ground_truth_folder, table_corpus_folder, pickl
     return query, relevances
 
 # Returns None if results for given query ID do not exist
-def predicted_scores(query_id, votes, mode, vectors, band_size, tuples, k, gt_tables, is_baseline = False, is_column_aggregation = False, is_bm25 = False, is_bm25_prefilter = False, get_only_tables = False):
+def predicted_scores(query_id, votes, mode, vectors, band_size, tuples, k, gt_tables, is_baseline = False, is_column_aggregation = False, is_bm25 = False, is_bm25_prefilter = False, get_only_tables = False, top = None):
     path = 'results/vote_' + str(votes) + '/' + mode + '/vectors_' + str(vectors) + '/bandsize_' + str(band_size) + '/' + str(k) + '/' + str(tuples) + '-tuple/search_output/' + query_id + '/filenameToScore.json'
 
     if (is_baseline):
@@ -99,10 +100,15 @@ def predicted_scores(query_id, votes, mode, vectors, band_size, tuples, k, gt_ta
         for table in predicted:
             scores[table] = predicted[table]
 
-        if (get_only_tables):
-            return list(predicted.keys())
+        sort = sorted(map.items(), key = operator.itemgetter(1))
 
-        return list(scores.values())
+        if (not top is None):
+            sort = sort[:top]
+
+        if (get_only_tables):
+            return [e[0] for e in sort]
+
+        return [e[1] for e in sort]
 
 def full_corpus(base_dir):
     files = os.listdir(base_dir)
@@ -229,14 +235,14 @@ def gen_quality_boxplot(precision_1_tuple, recall_1_tuple, precision_5_tuple, re
 def gen_boxplots(ndcg_dict, votes, tuples, k):
     # First the plots of all configurations
 
-    plt.rc('xtick', labelsize = 20)
+    plt.rc('xtick', labelsize = 16)
     plt.rc('ytick', labelsize = 20)
     plt.rc('axes', labelsize = 16)
-    plt.rc('axes', titlesize = 30)
+    plt.rc('axes', titlesize = 20)
     plt.rc('legend', fontsize = 20)
 
     colors = ['lightblue', 'blue', 'lightgreen', 'green', 'pink', 'red']
-    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (50, 6))
+    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (28, 4))
     median_color = dict(color = 'white')
     data_types = list()
     data_embeddings = list()
@@ -261,17 +267,17 @@ def gen_boxplots(ndcg_dict, votes, tuples, k):
     data_embeddings.append(ndcg_dict['baseline']['bm25_entities'])
     data_embeddings.append(ndcg_dict['baseline']['bm25_text'])
 
-    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'TC(V=32, BS=8)', 'TC(V=128, BS=8)', 'TC(V=30, BS=10)', 'B - Jaccard', 'BM25 - entities', 'BM25 - text'])
+    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['(32, 8)', '(128, 8)', '(30, 10)', '(32, 8)*', '(128, 8)*', '(30, 10)*', 'BFJ', 'BM25E', 'BM25T'])
     ax1.set_title('LSH Using Types - Top-' + str(k))
 
-    plot_embeddings = ax2.boxplot(data_embeddings, vert = True, patch_artist = True, medianprops = median_color, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'EC(V=32, BS=8)', 'EC(V=128, BS=8)', 'EC(V=30, BS=10)', 'B - cosine', 'BM25 - entities', 'BM25 - text'])
+    plot_embeddings = ax2.boxplot(data_embeddings, vert = True, patch_artist = True, medianprops = median_color, labels = ['(32, 8)', '(128, 8)', '(30, 10)', '(32, 8)*', '(128, 8)*', '(30, 10)*', 'BFC', 'BM25E', 'BM25T'])
     ax2.set_title('LSH Using Embeddings - Top-' + str(k))
 
     for plot in (plot_types, plot_embeddings):
         for patch, color in zip(plot['boxes'], colors):
             patch.set_facecolor(color)
 
-    ax1.set_xlabel('T = LSH of types, E = LSH of embeddings, TC = Column-based LSH of types, EC = Column-based LSH of embeddings, B = Brute-Force V = # permutation/projection vectors, BS = band size')
+    ax1.set_xlabel('(X, Y): X is number of permutation/projection vectors and Y is band size, *: Table column aggregating configuration, BFJ: Brute-force using Jaccard of types, BFC: Brute-force using cosine of embeddings, BM25E: BM25 using entity queries, BM25T: BM25 using text queries')
 
     for ax in [ax1, ax2]:
         ax.yaxis.grid(True)
@@ -283,14 +289,14 @@ def gen_boxplots(ndcg_dict, votes, tuples, k):
 
     # Plotting BM25 as a pre-filtering technique and comparing it to all configurations without aggregation
 
-    plt.rc('xtick', labelsize = 25)
-    plt.rc('ytick', labelsize = 35)
-    plt.rc('axes', labelsize = 27)
-    plt.rc('axes', titlesize = 30)
-    plt.rc('legend', fontsize = 25)
+    plt.rc('xtick', labelsize = 16)
+    plt.rc('ytick', labelsize = 20)
+    plt.rc('axes', labelsize = 16)
+    plt.rc('axes', titlesize = 22)
+    plt.rc('legend', fontsize = 20)
 
     colors = ['lightblue', 'blue', 'lightgreen', 'brown']
-    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (85, 10))
+    fig, (ax1, ax2) = plt.subplots(nrows = 1, ncols = 2, figsize = (20, 4))
     median_color = dict(color = 'white')
     data_types = list()
     data_embeddings = list()
@@ -311,17 +317,17 @@ def gen_boxplots(ndcg_dict, votes, tuples, k):
     data_embeddings.append(ndcg_dict['baseline']['bm25_text'])
     data_embeddings.append(ndcg_dict['baseline']['cosine'])
 
-    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['T(V=32, BS=8)', 'T(V=128, BS=8)', 'T(V=30, BS=10)', 'BM25 pre-filtering - Jaccard', 'BM25 - entities', 'BM25 - text', 'B - Jaccard'])
+    plot_types = ax1.boxplot(data_types, vert = True, patch_artist = True, medianprops = median_color, labels = ['(32, 8)', '(128, 8)', '(30, 10)', 'BM25JP', 'BM25E', 'BM25T', 'BFJ'])
     ax1.set_title('LSH Using Types - Top-' + str(k))
 
-    plot_embeddings = ax2.boxplot(data_embeddings, vert = True, patch_artist = True, medianprops = median_color, labels = ['E(V=32, BS=8)', 'E(V=128, BS=8)', 'E(V=30, BS=10)', 'BM25 pre-filtering - cosine', 'BM25 - entities', 'BM25 - text', 'B - cosine'])
+    plot_embeddings = ax2.boxplot(data_embeddings, vert = True, patch_artist = True, medianprops = median_color, labels = ['(32, 8)', '(128, 8)', '(30, 10)', 'BM25PC', 'BM25E', 'BM25T', 'BFC'])
     ax2.set_title('LSH Using Embeddings - Top-' + str(k))
 
     for plot in (plot_types, plot_embeddings):
         for patch, color in zip(plot['boxes'], colors):
             patch.set_facecolor(color)
 
-    ax1.set_xlabel('T = LSH of types, E = LSH of embeddings, B = Brute-Force V = # permutation/projection vectors, BS = band size')
+    ax1.set_xlabel('(X, Y): X is number of permutation/projection vectors and Y is band size, *: Table column aggregating configuration, BFJ: Brute-force using Jaccard of types, BFC: Brute-force using cosine of embeddings, BM25E: BM25 using entity queries, BM25T: BM25 using text queries, BM25PJ: BM25 as pre-filter followed by brute-force using Jaccard of types, BM25PC: BM25 as pre-filter followed by brute-force using cosine of embeddings')
 
     for ax in [ax1, ax2]:
         ax.yaxis.grid(True)
@@ -566,7 +572,6 @@ def plot_ndcg():
                     ndcg_embeddings = ndcg_score(np.array([list(gt_rels.values())]), np.array([predicted_relevance]), k = k)
                     ndcg[str(vote)]['embeddings_column']['128']['8'].append(ndcg_embeddings)
 
-                # Baseline
                 predicted_relevance = predicted_scores(query_id, vote, 'jaccard', 32, 8, tuple, k, gt_rels, True, False)
                 predicted_tables = predicted_scores(query_id, vote, 'jaccard', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True)
 
@@ -632,7 +637,7 @@ def plot_ndcg():
                     ndcg['baseline']['bm25_prefilter']['embeddings'].append(ndcg_baseline)
 
                 predicted_tables_types = predicted_scores(query_id, vote, 'jaccard', 32, 8, tuple, k, gt_rels, True, False, get_only_tables = True)
-                predicted_tables_bm25 = predicted_scores(query_id, vote, 'text', 32, 8, tuple, k, gt_rels, True, False, True, get_only_tables = True)
+                predicted_tables_bm25 = predicted_scores(query_id, vote, 'text', 32, 8, tuple, k / 2, gt_rels, True, False, True, get_only_tables = True)
 
                 if not predicted_tables_types is None and not predicted_tables_bm25 is None:
                     mix = set(predicted_tables_types).union(set(predicted_tables_bm25))
