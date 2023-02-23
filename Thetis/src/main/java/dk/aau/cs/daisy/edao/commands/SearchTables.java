@@ -547,7 +547,7 @@ public class SearchTables extends Command {
                 tmp.addProperty("tupleVectors", String.valueOf(tableStats.get(score.getFirst()).queryRowVectors()));
             }
 
-            if (this.singleColumnPerQueryEntity)
+            if (this.singleColumnPerQueryEntity && tableStats.containsKey(score.getFirst()))
                 tmp.addProperty("tuple_query_alignment", String.valueOf(tableStats.get(score.getFirst()).tupleQueryAlignment()));
 
             innerObjs.add(tmp);
