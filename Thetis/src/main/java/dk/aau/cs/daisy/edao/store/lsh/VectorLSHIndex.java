@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.random.RandomGenerator;
 
 /**
  * LSH index of entity embeddings
@@ -32,6 +33,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
     private transient final Object lock = new Object();
     private transient EntityLinking linker = null;
     private HashFunction hash;
+    private RandomGenerator randomGen;
     private transient Cache<Id, List<Integer>> cache;
 
     /**
@@ -42,13 +44,14 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
      */
     public VectorLSHIndex(int bucketGroups, int bucketCount, int projections, int bandSize,
                           Set<PairNonComparable<String, Table<String>>> tables, int threads, EntityLinking linker,
-                          HashFunction hash, boolean aggregateColumns)
+                          HashFunction hash, RandomGenerator randomGenerator, boolean aggregateColumns)
     {
         super(bucketGroups, bucketCount);
         this.bandSize = bandSize;
         this.threads = threads;
         this.linker = linker;
         this.hash = hash;
+        this.randomGen = randomGenerator;
         this.aggregateColumns = aggregateColumns;
         this.cache = CacheBuilder.newBuilder().maximumSize(500).build();
         load(tables, projections);
@@ -77,7 +80,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
             throw new RuntimeException("No embeddings exists for table entities");
         }
 
-        this.projections = createProjections(projections, dimension);
+        this.projections = createProjections(projections, dimension, this.randomGen);
 
         for (PairNonComparable<String, Table<String>> table : tables)
         {
@@ -191,10 +194,9 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         return dimension;
     }
 
-    private static Set<List<Double>> createProjections(int num, int dimension)
+    private static Set<List<Double>> createProjections(int num, int dimension, RandomGenerator random)
     {
         Set<List<Double>> projections = new HashSet<>();
-        Random r = new Random();
         double min = -1.0, max = 1.0;
 
         for (int i = 0; i < num; i++)
@@ -203,7 +205,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
 
             for (int dim = 0; dim < dimension; dim++)
             {
-                projection.add(min + (max - min) * r.nextDouble());
+                projection.add(min + (max - min) * random.nextDouble());
             }
 
             projections.add(projection);
