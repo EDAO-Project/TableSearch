@@ -230,7 +230,7 @@ public class AnalogousSearch extends AbstractSearch
 
         if (this.singleColumnPerQueryEntity)
         {
-            queryRowToColumnMappings = getQueryToColumnMapping(query, jTable, table);
+            queryRowToColumnMappings = getQueryToColumnMapping(query, jTable);
             List<List<String>> queryRowToColumnNames = new ArrayList<>(); // Log in the `statisticsMap` the column names aligned with each query row
 
             for (int queryRow = 0; queryRow < queryRowToColumnMappings.size(); queryRow++)
@@ -334,7 +334,7 @@ public class AnalogousSearch extends AbstractSearch
      * Initialize multi-dimensional array indexed by (tupleID, entityID, columnID) mapping to the
      * aggregated score for that query entity with respect to the column
      */
-    private List<List<Integer>> getQueryToColumnMapping(Table<String> query, JsonTable table, String tableName)
+    private List<List<Integer>> getQueryToColumnMapping(Table<String> query, JsonTable table)
     {
         List<List<List<Double>>> entityToColumnScore = new ArrayList<>();
 
