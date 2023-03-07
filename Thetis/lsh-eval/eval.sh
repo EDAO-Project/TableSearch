@@ -4,9 +4,10 @@
 
 INDEX_DIR="/src/lsh-eval/indexes/"
 TABLES="/data/tables/SemanticTableSearchDataset/table_corpus/corpus/"
-OUTPUT_DIR='/src/lsh-eval/results/vote_1/'
+OUTPUT_DIR='/src/lsh-eval/results/vote_3/'
 QUERIES_DIR="/src/lsh-eval/queries/"
-TOP_K=100
+#TOP_K=100
+TOP_K=200
 
 for I in ${INDEX_DIR}* ; \
 do
@@ -96,62 +97,62 @@ do
     done
 done
 
-OUTPUT_DIR='/src/lsh-eval/results/baseline/'
+#OUTPUT_DIR='/src/lsh-eval/results/baseline/'
 
-echo "BASELINE - PURE BRUTE FORCE"
-OUT=${OUTPUT_DIR}baseline_jaccard
-mkdir -p ${OUT}
+#echo "BASELINE - PURE BRUTE FORCE"
+#OUT=${OUTPUT_DIR}baseline_jaccard
+#mkdir -p ${OUT}
 
-for TUPLES in {1,2} ; \
-do
-    OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
-    mkdir -p ${OUT_K}
+#for TUPLES in {1,5} ; \
+#do
+#    OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
+#    mkdir -p ${OUT_K}
 
-    QUERIES=${QUERIES_DIR}${TUPLES}-tuple/
-    java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_30_bandsize_10 \
-        -q ${QUERIES} -td ${TABLES} -od ${OUT_K} -t 4 --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
-done
+#    QUERIES=${QUERIES_DIR}${TUPLES}-tuple/
+#    java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_30_bandsize_10 \
+#        -q ${QUERIES} -td ${TABLES} -od ${OUT_K} -t 4 --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
+#done
 
-OUT=${OUTPUT_DIR}baseline_cosine
-mkdir -p ${OUT}
+#OUT=${OUTPUT_DIR}baseline_cosine
+#mkdir -p ${OUT}
 
-for TUPLES in {1,2} ; \
-do
-    OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
-    mkdir -p ${OUT_K}
+#for TUPLES in {1,5} ; \
+#do
+#    OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
+#    mkdir -p ${OUT_K}
 
-    QUERIES=${QUERIES_DIR}${TUPLES}-tuple/
-    java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_30_bandsize_10 \
-        -q ${QUERIES} -td ${TABLES} -od ${OUT_K} -t 4 --singleColumnPerQueryEntity --usePretrainedEmbeddings --useMaxSimilarityPerColumn --embeddingSimilarityFunction norm_cos
-done
+#    QUERIES=${QUERIES_DIR}${TUPLES}-tuple/
+#    java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_30_bandsize_10 \
+#        -q ${QUERIES} -td ${TABLES} -od ${OUT_K} -t 4 --singleColumnPerQueryEntity --usePretrainedEmbeddings --useMaxSimilarityPerColumn --embeddingSimilarityFunction norm_cos
+#done
 
-echo "BASELINE - BM25 PRE-FILTERING (TYPES)"
-OUT=${OUTPUT_DIR}baseline_bm25_prefiltering/types
-mkdir -p ${OUT}
+#echo "BASELINE - BM25 PRE-FILTERING (TYPES)"
+#OUT=${OUTPUT_DIR}baseline_bm25_prefiltering/types
+#mkdir -p ${OUT}
 
-for TUPLES in {1,5} ; \
-do
-    OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
-    mkdir -p ${OUT_K}
+#for TUPLES in {1,5} ; \
+#do
+#    OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
+#    mkdir -p ${OUT_K}
 
-    QUERIES=${QUERIES_DIR}${TUPLES}-tuple/
-    java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_30_bandsize_10 \
-        -q ${QUERIES} -td ${TABLES} -od ${OUT_K} -t 4 -pf BM25 --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
-done
+#    QUERIES=${QUERIES_DIR}${TUPLES}-tuple/
+#    java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_30_bandsize_10 \
+#        -q ${QUERIES} -td ${TABLES} -od ${OUT_K} -t 4 -pf BM25 --singleColumnPerQueryEntity --adjustedJaccardSimilarity --useMaxSimilarityPerColumn
+#done
 
-echo "BASELINE - BM25 PRE-FILTERING (EMBEDDINGS)"
-OUT=${OUTPUT_DIR}baseline_bm25_prefiltering/embeddings
-mkdir -p ${OUT}
+#echo "BASELINE - BM25 PRE-FILTERING (EMBEDDINGS)"
+#OUT=${OUTPUT_DIR}baseline_bm25_prefiltering/embeddings
+#mkdir -p ${OUT}
 
-for TUPLES in {1,5} ; \
-do
-    OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
-    mkdir -p ${OUT_K}
+#for TUPLES in {1,5} ; \
+#do
+#    OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
+#    mkdir -p ${OUT_K}
 
-    QUERIES=${QUERIES_DIR}${TUPLES}-tuple/
-    java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_30_bandsize_10 \
-        -q ${QUERIES} -td ${TABLES} -od ${OUT_K} -t 4 -pf BM25 --singleColumnPerQueryEntity --usePretrainedEmbeddings --useMaxSimilarityPerColumn --embeddingSimilarityFunction norm_cos
-done
+#    QUERIES=${QUERIES_DIR}${TUPLES}-tuple/
+#    java -Xmx55g -jar target/Thetis.0.1.jar search --search-mode analogous -topK ${TOP_K} -i ${INDEX_DIR}vectors_30_bandsize_10 \
+#        -q ${QUERIES} -td ${TABLES} -od ${OUT_K} -t 4 -pf BM25 --singleColumnPerQueryEntity --usePretrainedEmbeddings --useMaxSimilarityPerColumn --embeddingSimilarityFunction norm_cos
+#done
 
 #echo "BASELINE - BM25"
 #OUT=${OUTPUT_DIR}baseline_bm25
@@ -160,7 +161,7 @@ done
 
 #for TOP_K in {10,100} ; \
 #do
-#    for TUPLES in {1,2} ; \
+#    for TUPLES in {1,5} ; \
 #    do
 #        OUT_K=${OUT}/${TOP_K}/${TUPLES}-tuple/
 #        mkdir -p ${OUT_K}
