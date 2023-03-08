@@ -58,7 +58,7 @@ public class AnalogousSearch extends AbstractSearch
     Set<String> queryEntitiesMissingCoverage = new HashSet<>();
     private long elapsed = -1, parsedTables;
     private double reduction = 0.0;
-    private boolean useEmbeddings, singleColumnPerQueryEntity, weightedJaccard, adjustedJaccard,
+    private boolean useEmbeddings, singleColumnPerQueryEntity, weightedJaccard, adjustedSimilarity,
             useMaxSimilarityPerColumn, hungarianAlgorithmSameAlignmentAcrossTuples;
     private CosineSimilarityFunction embeddingSimFunction;
     private SimilarityMeasure measure;
@@ -69,7 +69,7 @@ public class AnalogousSearch extends AbstractSearch
 
     public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<String> embeddingIdx,
                            int topK, int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
-                           boolean singleColumnPerQueryEntity, boolean weightedJaccard, boolean adjustedJaccard,
+                           boolean singleColumnPerQueryEntity, boolean weightedJaccard, boolean adjustedSimilarity,
                            boolean useMaxSimilarityPerColumn, boolean hungarianAlgorithmSameAlignmentAcrossTuples,
                            SimilarityMeasure similarityMeasure)
     {
@@ -80,7 +80,7 @@ public class AnalogousSearch extends AbstractSearch
         this.embeddingSimFunction = cosineFunction;
         this.singleColumnPerQueryEntity = singleColumnPerQueryEntity;
         this.weightedJaccard = weightedJaccard;
-        this.adjustedJaccard = adjustedJaccard;
+        this.adjustedSimilarity = adjustedSimilarity;
         this.hungarianAlgorithmSameAlignmentAcrossTuples = hungarianAlgorithmSameAlignmentAcrossTuples;
         this.useMaxSimilarityPerColumn = useMaxSimilarityPerColumn;
         this.measure = similarityMeasure;
@@ -90,12 +90,12 @@ public class AnalogousSearch extends AbstractSearch
 
     public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<String> embeddingIdx,
                            int topK, int threads, boolean useEmbeddings, CosineSimilarityFunction cosineFunction,
-                           boolean singleColumnPerQueryEntity, boolean weightedJaccard, boolean adjustedJaccard,
+                           boolean singleColumnPerQueryEntity, boolean weightedJaccard, boolean adjustedSimilarity,
                            boolean useMaxSimilarityPerColumn, boolean hungarianAlgorithmSameAlignmentAcrossTuples,
                            SimilarityMeasure similarityMeasure, Prefilter prefilter)
     {
         this(linker, entityTable, entityTableLink, embeddingIdx, topK, threads, useEmbeddings, cosineFunction, singleColumnPerQueryEntity,
-                weightedJaccard, adjustedJaccard, useMaxSimilarityPerColumn, hungarianAlgorithmSameAlignmentAcrossTuples,
+                weightedJaccard, adjustedSimilarity, useMaxSimilarityPerColumn, hungarianAlgorithmSameAlignmentAcrossTuples,
                 similarityMeasure);
         this.prefilter = prefilter;
     }
@@ -419,18 +419,26 @@ public class AnalogousSearch extends AbstractSearch
      */
     private double entitySimilarityScore(String ent1, String ent2)
     {
+        double sim = 0;
+
         if (!this.useEmbeddings)
-            return jaccardSimilarity(ent1, ent2);
+            sim = jaccardSimilarity(ent1, ent2);
 
         else if (entityExists(ent1) && entityExists(ent2))
-            return cosineSimilarity(ent1, ent2);
+            sim = cosineSimilarity(ent1, ent2);
 
-        synchronized (this.lockStats)
+        else
         {
-            this.nonEmbeddingComparisons++;
+            synchronized (this.lockStats)
+            {
+                this.nonEmbeddingComparisons++;
+            }
         }
 
-        return 0.0;
+        if (this.adjustedSimilarity)
+            return ent1.equals(ent2) ? 1.0 : Math.min(0.8, sim);
+
+        return sim;
     }
 
     private double jaccardSimilarity(String ent1, String ent2)
@@ -457,9 +465,6 @@ public class AnalogousSearch extends AbstractSearch
 
         else
             jaccardScore = JaccardSimilarity.make(entTypes1, entTypes2).similarity();
-
-        if (this.adjustedJaccard)
-            return ent1.equals(ent2) ? 1.0 : Math.min(0.95, jaccardScore);
 
         return jaccardScore;
     }

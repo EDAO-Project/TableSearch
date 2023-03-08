@@ -99,9 +99,9 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = { "--hungarianAlgorithmSameAlignmentAcrossTuples"}, description = "If specified, the Hungarian algorithm uses the same alignment of columns to query entities across all query tuples")
     private boolean hungarianAlgorithmSameAlignmentAcrossTuples;
 
-    @CommandLine.Option(names = { "-ajs", "--adjustedJaccardSimilarity"}, description = "If specified, the Jaccard similarity between two entities can only be one if the two entities compared are identical. " +
-            "If two different entities share the same types then assign an adjusted score of 0.95. ")
-    private boolean adjustedJaccardSimilarity;
+    @CommandLine.Option(names = { "-as", "--adjustedSimilarity"}, description = "If specified, the similarity score between two entities can only be 1.0 if the two entities compared are identical. " +
+            "If two different entities share the same types then assign an adjusted score of < 1.0> ")
+    private boolean adjustedSimilarity;
 
     @CommandLine.Option(names = { "-wjs", "--weightedJaccardSimilarity"}, description = "If specified, the a weighted Jaccard similarity between two entities is performed. " +
             "The weights for each entity type correspond to their respective IDF scores")
@@ -428,14 +428,14 @@ public class SearchTables extends Command {
         if (prefilter == null)
         {
             search = new AnalogousSearch(linker, table, tableLink, embeddingIdx, this.topK, this.threads, this.usePretrainedEmbeddings,
-                    cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedJaccardSimilarity,
+                    cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity,
                     this.useMaxSimilarityPerColumn, this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN);
         }
 
         else
         {
             search = new AnalogousSearch(linker, table, tableLink, embeddingIdx, this.topK, this.threads, this.usePretrainedEmbeddings,
-                    cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedJaccardSimilarity,
+                    cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity,
                     this.useMaxSimilarityPerColumn, this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN,
                     prefilter);
         }
@@ -558,7 +558,7 @@ public class SearchTables extends Command {
         String algorithm = (this.prefilterTechnique != null ? this.prefilterTechnique.name() + " " : "") + "brute-force with " +
                 (this.useMaxSimilarityPerColumn ? "max similarity per column aggregation" : "average similarity per column aggregation") +
                 " (" + (this.usePretrainedEmbeddings ? "embeddings - " + this.embeddingSimFunction.name() : "types - " +
-                (this.adjustedJaccardSimilarity ? "with" : "without") + " adjusted Jaccard") + ")";
+                (this.adjustedSimilarity ? "with" : "without") + " adjusted entity similarity") + ")";
         jsonObj.addProperty("runtime", runtime);
         jsonObj.addProperty("reduction", reduction);
         jsonObj.addProperty("threads", this.threads);
