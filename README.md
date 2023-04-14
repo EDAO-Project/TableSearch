@@ -2,8 +2,7 @@
 
 ## Table Search Algorithm based on Semantic Relevance
 
-Semantically Augmented Table Search
-
+Semantically Augmented Table Search.
 
 ### Outline
 
@@ -23,9 +22,7 @@ Semantically Augmented Table Search
    Return a set of ranked tables
         T1, T2, T3 --> ranked based on relevance score
 
-
 ## Data Preparation
-
 
 ### KG
 
@@ -38,67 +35,66 @@ The reference KG is DBpedia.
    ```
 
 2. Load the data into a database. In this case Neo4j
+
+   2.1. Make sure to have JDK 11 installed
+
+    ```bash
+    apt-get install default-jdk
+    ```
+    
+    Otherwise, consider using docker : https://hub.docker.com/_/openjdk.
+    Third option, not recommended, you can install Java in userspace, you will have to play around with terminal configuration. Here is a starting point under "Installing OpenJDK Manually": https://dzone.com/articles/installing-openjdk-11-on-ubuntu-1804-for-real
+
+   2.2. Get Neo4j v4.1.X Community server and install Neosemantics plugin, also configure neosemantics and add required index
    
-   Take a look at: https://gist.github.com/kuzeko/7ce71c6088c866b0639c50cf9504869a for more details on setting up Neo4J
+   ```bash
+   ./get-neo4j.sh
+   ```
+   
+   2.3. Download DBpedia Files, uncompress, ready to be imported
+
+   ```bash
+   ./download-dbpedia.sh dbpedia_files.txt
+   ```
+   
+   2.4. Load the data files Notice 1: DBpedia contains malformed IRIs, I've done my best to exclude those, but still some can pass through. A better solution is needed. Notice 2: DBpedia has multi-valued properties with inconsistent types. At the moment handleMultival: "OVERWRITE" could be an option.
+   
+   ```bash
+   ./import-dbpedia.sh
+   ```
+   
+3. Test data is all right:
+
+   - Count nodes
+
+     ```bash
+     ${NEO4J_HOME}/bin/cypher-shell -u neo4j -p 'admin' "MATCH (r:Resource) RETURN COUNT(r)"
+     ```
+     
+   - Count edges
+   
+     ```bash
+     ${NEO4J_HOME}/bin/cypher-shell -u neo4j -p 'admin' "MATCH (r1:Resource)-[l]->(r2:Resource) RETURN COUNT(l)"
+     ```
+     
+   - Distinct relationship types
+
+     ```bash
+     ${NEO4J_HOME}/bin/cypher-shell -u neo4j -p 'admin' "CALL db.relationshipTypes() YIELD relationshipType RETURN relationshipType"
+     ```
+     
+   - Example node-edges
+
+     ```bash
+     ${NEO4J_HOME}/bin/cypher-shell -u neo4j -p 'admin' "MATCH (r1:Resource)-[l]->(r2:Resource) RETURN r1, l, r2 LIMIT 20"
+     ```
 
 ### Embeddings
 
 Generate RDF embeddings by following the steps in the README in the <a href="https://github.com/EDAO-Project/DBpediaEmbedding">DBpediaEmbedding</a> repository. 
 Create a folder `embeddings` in `data`. Move the embeddings file `vectors.txt` into the `data/embeddings` folder.
 
-#### Milvus
-
-1. Enter the `data/embeddings` directory and download the Milvus Docker Compose file and its configuration file
-
-    ```
-    wget https://github.com/milvus-io/milvus/releases/download/v2.0.1/milvus-standalone-docker-compose.yml -O docker-compose.yml
-    wget https://raw.githubusercontent.com/milvus-io/milvus/v2.0.1/configs/milvus.yaml
-    ```
-    
-2. Start Milvus in a tmux session
-
-    ```
-    sudo docker-compose up -d
-    sudo docker compose up
-    ```
-    
-3. Check Milvus is running with `docker-compose ps`. You should now see the following output
-
-    ```
-          Name                     Command                  State                          Ports
-    ----------------------------------------------------------------------------------------------------------------
-    milvus-etcd         etcd -listen-peer-urls=htt ...   Up (healthy)   2379/tcp, 2380/tcp
-    milvus-minio        /usr/bin/docker-entrypoint ...   Up (healthy)   9000/tcp
-    milvus-standalone   /tini -- milvus run standalone   Up             0.0.0.0:19530->19530/tcp,:::19530->19530/tcp
-    ```
-
-4. Milvus is now accessible on port 19530. Enter the project root directory and load embeddings into a Milvus instance, which also requires using SQLite
-
-   ```
-   docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17  
-   cd /src
-   mvn package
-   java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o /data/embeddings -h localhost -p 19530 -dim 200 -db milvus
-   ```
-
-   Add the option `-dp` or `--disable-parsing` to skip pre-parsing the embeddings file before insertion.
-
-#### SQLite
-
-Enter the project root directory. Start parsing and inserting embeddings into an SQLite instance
-
-```
-docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17 
-cd /src
-mvn package
-java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -o /data/embeddings -db sqlite -dbn embeddings
-```
-
-Add the option `-dp` or `--disable-parsing` to skip pre-parsing the embeddings file before insertion.
-
-#### Postgres
-
-Enter the project root directory. Pull the Postgress image and setup a database
+Pull the Postgress image and setup a database
 
 ```
 docker pull postgres
@@ -110,13 +106,12 @@ Choose a username and password and substitute `<USERNAME>` and `<PASSWORD>` with
 Extract the IP address of the Postgress container
 
 ```
-docker exec -it db hostname -I
+docker exec db hostname -I
 ```
 
-Remember the IP address for later.
 With the command `docker exec -it db psql -U thetis embeddings`, you can connect to the `embeddings` database and modify and query it as you like.
 
-Now, exit the Docker interactive mode and start inserting embeddings into Postgres
+Now, start inserting embeddings into Postgres using the IP from above command
 
 ```
 docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17
@@ -134,7 +129,6 @@ The Table datasets consist of:
 
 - **WikiTables** Tables taken from Wikipedia pages
 - **WikiPages** Tables taken from Wikipedia pages with multiple tables in them. This dataset is a subset of the WikiTables dataset
-- **GitTables** maybe TODO? 
 
 ## WikiTables
 The WikiTables corpus originates from the TabEL paper
@@ -223,11 +217,6 @@ For all baselines each query entity is mapped to a single column.
 ./run_www18_wikitable_queries.sh
 ```
 
-Run PPR over all queries in `www18_wikitables/queries/`
-```bash
-./run_www18_wikitable_queries_ppr.sh
-```
-
 ## WikiPages
 The WikiPages dataset is a subset of the WikiTables dataset.
 The WikiPages dataset is constructed by selecting tables from Wikipedia pages that have multiple tables in them.
@@ -274,105 +263,10 @@ python generate_queries.py --wikipages_df ../../tables/wikipages/wikipages_expan
 The following commands should be run inside docker
 ```bash
 # Construct the Index for the wikipages dataset
-java -Xms25g -jar target/Thetis.0.1.jar index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_dataset/tables/ --output-dir /data/index/wikipages/ -t 4
+java -Xms25g -jar target/Thetis.0.1.jar index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_dataset/tables/ --output-dir /data/index/wikipages/ -t 4 -pv 30 -bs 10
 
 # Construct the index for the expanded wikipages dataset
-java -Xmx25g -jar target/Thetis.0.1.jar index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_expanded_dataset/tables/ --output-dir /data/index/wikipages_expanded/ -t 4
+java -Xmx25g -jar target/Thetis.0.1.jar index --table-type wikitables --table-dir  /data/tables/wikipages/wikipages_expanded_dataset/tables/ --output-dir /data/index/wikipages_expanded/ -t 4 -pv 30 -bs 10
 ```
 
-## OLD WRITEUP (REMOVE EVENTUALLY)
-Small Dataset Baseline (Single Column per Query Entity using pre-trained embeddings)
-```bash
-java -Xms25g -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/small_test/ --query-file ../data/queries/test_queries/query_small_test.json --table-dir /data/tables/wikitables/small_test/ --output-dir /data/search/small_test/single_column_per_entity/ --singleColumnPerQueryEntity --usePretrainedEmbeddings
-```
-
-Full Dataset Baseline (Single Column per Query Entity)
-```bash
-java -Xms25g -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/www18_wikitables/ --query-file ../data/queries/www18_wikitables/queries/q_9.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/search/www18_wikitables/full_index/naive/q_9 --singleColumnPerQueryEntity
-```
-
-Full Dataset PPR
-```bash
-java -Xmx25g -jar target/Thetis.0.1.jar search --search-mode ppr --query-file ../data/queries/www18_wikitables/queries/q_15.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/search/www18_wikitables/ppr/q_15/ --minThreshold 0.002 --numParticles 300 --topK 200
-```
-
-Testing commands (TODO: Delete for final version)
-
-
-<!-- Table Search Test on www18_wikitables_test using pre-trained embeddings on query q_9 -->
-```bash
-java -Xms25g -jar target/Thetis.0.1.jar search --search-mode analogous --hashmap-dir ../data/index/www18_wikitables_test/ --query-file ../data/queries/www18_wikitables/queries/q_9.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed_test/tables_10_MAX/ --output-dir /data/search/www18_wikitables_test/single_column_per_entity/ --singleColumnPerQueryEntity --usePretrainedEmbeddings
-```
-
-<!-- Table Search Test on www18_wikitables_test using PPR on query q_9 -->
-```bash
-java -Xmx25g -jar target/Thetis.0.1.jar search --search-mode ppr --hashmap-dir ../data/index/www18_wikitables/ --query-file ../data/queries/www18_wikitables/queries/q_9.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/search/www18_wikitables_test/ppr_weighted/ --weightedPPR --minThreshold 0.005 --numParticles 300 --topK 200 
-```
-
-<!-- Table Search Test on wikitables_small_index using PPR on query test_queries/query_small_test.json -->
-```bash
-java -Xmx25g -jar target/Thetis.0.1.jar search --search-mode ppr --hashmap-dir ../data/index/wikitables_small_test/ --query-file ../data/queries/test_queries/query_small_test.json --table-dir /data/tables/wikitables/small_test/ --output-dir /data/search/small_test/ppr_unweighted_single_q_tuple/ --pprSingleRequestForAllQueryTuples --weightedPPR --minThreshold 0.01 --numParticles 200 --topK 200
-```
-
-<!-- Table Search Test on www18_wikitables using PPR on query www18_wikitables/wikipage_tables_analysis/queries/query.json -->
-```bash
-java -Xms25g -jar target/Thetis.0.1.jar search --search-mode ppr --hashmap-dir ../data/index/www18_wikitables/ --query-file ../data/queries/www18_wikitables/wikipage_tables_analysis/queries/query.json --table-dir /data/tables/wikitables/files/www18_wikitables_parsed/tables_10_MAX/ --output-dir /data/search/wikipage_tables_analysis/ --minThreshold 0.005 --numParticles 300 --topK 200
-```
-
-* Perform Search using the Web Interface (TODO: Maybe remove this since we don't use it?)
-
-To test the interface on your local computer (i.e. LOCALHOST) we first need to create an ssh tunnel between the server and your current machine.
-SparkJava uses port 4567 by default.
-To create the ssh tunnel run the following command:
-```
-ssh -L 4567:localhost:4567 ubuntu@130.226.98.8
-```
-Then we can initialize the SparkJava web service
-
-To return results based on PPR run
-```bash
-java -jar target/Thetis.0.1.jar web --mode ppr --table-dir /data/tables/wikitables/files/tables_50_MAX/ --output-dir /data/index/wikitables/
-```
-
-To return results using the baseline run
-```bash
-java -jar target/Thetis.0.1.jar web --mode analogous --table-dir /data/tables/wikitables/small_test/ --output-dir /data/index/small_test/
-```
-
-Then once the server is running simply visit http://localhost:4567/ in your browser and the web interface should show up where you can input your queries.
-
-
-#### Tough Tables
-
-> Cutrona, V., Bianchi, F., Jimenez-Ruiz, E. and Palmonari, M. (2020). Tough Tables: Carefully Evaluating Entity Linking for Tabular Data. ISWC 2020, LNCS 12507, pp. 1–16.
-
-
-1. Download from Zenodo URL
-
-  ```bash
-  mkdir -P data/tables/2t
-  wget  -P data/tables/2t https://zenodo.org/record/4246370/files/2T.zip?download=1 -O 2T.zip
-  unzip data/tables/2t/2T.zip
-  rm data/tables/2t/2T.zip
-  mv data/tables/2t/2T/tables data/tables/2t/files
-  rm -v data/tables/2t/files/*Noise*
-  mv data/tables/2t/2T/tables
-  ```
-
-2. Run preprocessing script for indexing
-
-# Useful Docker Commands
-
-Detach a container (i.e., container still exists after execution and can be connected to again in the future):
-* `Ctrl`+`P` and then `Ctrl` + `Q`
-
-Attach to existing container (e.g., after detaching from a container use the following command to connect to it again):
-* `docker attach [container_name]`
-
-# Useful Neo4j Commands
-
-Count the number of edges for node `http://dbpedia.org/resource/Harry_Potter`:
-* `bin/cypher-shell -u neo4j -p 'admin' "MATCH (a:Resource) WHERE a.uri in ['http://dbpedia.org/resource/Harry_Potter'] RETURN apoc.node.degree(a)"`
-
-Compile project in maven without running the tests:
-* `mvn package -DskipTests`
+The options `-pv` and `-bs` are LSH parameters and set the number of permutation/projection vectors and band size, respectively.`
