@@ -2,7 +2,6 @@ package dk.aau.cs.daisy.edao.connector;
 
 import dk.aau.cs.daisy.edao.connector.embeddings.EmbeddingDBWrapper;
 import dk.aau.cs.daisy.edao.connector.embeddings.EmbeddingStore;
-import dk.aau.cs.daisy.edao.connector.embeddings.RelationalEmbeddings;
 import dk.aau.cs.daisy.edao.system.Configuration;
 
 import java.sql.ResultSet;

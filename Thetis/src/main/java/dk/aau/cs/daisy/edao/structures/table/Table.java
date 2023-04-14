@@ -18,6 +18,11 @@ public interface Table<T>
         StringBuilder builder = new StringBuilder("[");
         int size = rowCount();
 
+        if (size == 0)
+        {
+            return "[]";
+        }
+
         for (int i = 0; i < size; i++)
         {
             builder.append(getRow(i)).append(", ");
@@ -65,6 +70,11 @@ public interface Table<T>
         public String toString()
         {
             StringBuilder builder = new StringBuilder("[");
+
+            if (this.row.isEmpty())
+            {
+                return "[]";
+            }
 
             for (E e : this.row)
             {

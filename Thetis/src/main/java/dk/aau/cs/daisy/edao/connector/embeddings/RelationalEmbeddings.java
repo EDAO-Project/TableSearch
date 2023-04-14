@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -165,6 +166,12 @@ public class RelationalEmbeddings implements DBDriverBatch<List<Double>, String>
 
             return null;
         }
+    }
+
+    @Override
+    public Map<String, List<Double>> batchSelect(List<String> iris)
+    {
+        throw new UnsupportedOperationException("Operation not supported");
     }
 
     /**

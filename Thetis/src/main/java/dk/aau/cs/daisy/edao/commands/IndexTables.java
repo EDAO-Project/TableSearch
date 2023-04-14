@@ -9,11 +9,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import dk.aau.cs.daisy.edao.connector.DBDriverBatch;
+import dk.aau.cs.daisy.edao.connector.Factory;
 import dk.aau.cs.daisy.edao.loader.IndexWriter;
 import dk.aau.cs.daisy.edao.structures.Id;
 import dk.aau.cs.daisy.edao.structures.graph.Entity;
 import dk.aau.cs.daisy.edao.structures.graph.Type;
 
+import dk.aau.cs.daisy.edao.system.Configuration;
 import dk.aau.cs.daisy.edao.system.Logger;
 import picocli.CommandLine;
 
@@ -75,7 +78,6 @@ public class IndexTables extends Command {
         configFile = value;
     }
 
-
     private File tableDir = null;
     @CommandLine.Option(names = { "-td", "--table-dir"}, paramLabel = "TABLE_DIR", description = "Directory containing the input tables", required = true)
     public void setTableDirectory(File value) {
@@ -126,6 +128,28 @@ public class IndexTables extends Command {
         this.disallowedEntityTypes = argument.split(",");
     }
 
+    @CommandLine.Option(names = {"-pv", "--permutation-vectors"}, paramLabel = "PERMUTATION-VECTORS", description = "Number of permutation vectors to build entity signatures in LSH index", defaultValue = "15")
+    public void setPermutationVectors(int value)
+    {
+        if (value <= 0)
+        {
+            throw new CommandLine.ParameterException(spec.commandLine(), "Number of permutation vectors must be positive");
+        }
+
+        Configuration.setPermutationVectors(value);
+    }
+
+    @CommandLine.Option(names = {"-bs", "--band-size"}, paramLabel = "BAND-SIZE", description = "Size of bands in LSH index of entity types", defaultValue = "4")
+    public void setBandSize(int val)
+    {
+        if (val <= 1)
+        {
+            throw new CommandLine.ParameterException(spec.commandLine(), "Band size must be greater than 0");
+        }
+
+        Configuration.setBandSize(val);
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private static final String WIKI_PREFIX = "http://www.wikipedia.org/";
@@ -133,11 +157,18 @@ public class IndexTables extends Command {
 
     @Override
     public Integer call() {
+        if (!embeddingsAreLoaded())
+        {
+            Logger.logNewLine(Logger.Level.ERROR, "Load embeddings before using this command");
+            return 1;
+        }
+
         long parsedTables;
         Logger.logNewLine(Logger.Level.INFO, "Input Directory: " + this.tableDir.getAbsolutePath());
         Logger.logNewLine(Logger.Level.INFO, "Output Directory: " + this.outputDir.getAbsolutePath());
 
         try {
+            DBDriverBatch<List<Double>, String> embeddingStore = Factory.fromConfig(false);
             Neo4jEndpoint connector = new Neo4jEndpoint(this.configFile);
             connector.testConnection();
 
@@ -147,26 +178,49 @@ public class IndexTables extends Command {
                     break;
                 case WIKI:
                     Logger.logNewLine(Logger.Level.INFO, "Starting indexing of '" + TableType.WIKI.getName() + "'");
-                    parsedTables = this.indexWikiTables(this.tableDir.toPath(), this.outputDir, connector, this.threads);
+                    parsedTables = indexWikiTables(this.tableDir.toPath(), this.outputDir, connector, embeddingStore, this.threads);
                     Logger.logNewLine(Logger.Level.INFO, "Indexed " + parsedTables + " tables\n");
                     break;
             }
+
+            embeddingStore.close();
         } catch(AuthenticationException ex){
             Logger.logNewLine(Logger.Level.ERROR, "Could not Login to Neo4j Server (user or password do not match)");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
+            return 1;
         }catch (ServiceUnavailableException ex){
             Logger.logNewLine(Logger.Level.ERROR, "Could not connect to Neo4j Server");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
+            return 1;
         } catch (FileNotFoundException ex){
             Logger.logNewLine(Logger.Level.ERROR, "Configuration file for Neo4j connector not found");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
-        } catch ( IOException ex){
+            return 1;
+        } catch (IOException ex){
             Logger.logNewLine(Logger.Level.ERROR, "Error in reading configuration for Neo4j connector");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
+            return 1;
         }
 
         Logger.logNewLine(Logger.Level.INFO, "DONE");
-        return 23;
+        return 0;
+    }
+
+    private boolean embeddingsAreLoaded()
+    {
+        try
+        {
+            DBDriverBatch<List<Double>, String> db = Factory.fromConfig(false);
+            List<Double> embeddings;
+
+            return (embeddings = db.select("http://dbpedia.org/ontology/team")) != null &&
+                    !embeddings.isEmpty();
+        }
+
+        catch (RuntimeException e)
+        {
+            return false;
+        }
     }
 
     /**
@@ -175,7 +229,8 @@ public class IndexTables extends Command {
      * @param connector Neo4J connector instance
      * @return Number of successfully loaded tables
      */
-    public long indexWikiTables(Path tableDir, File outputDir, Neo4jEndpoint connector, int threads){
+    private long indexWikiTables(Path tableDir, File outputDir, Neo4jEndpoint connector,
+                                DBDriverBatch<List<Double>, String> embeddingStore, int threads){
 
         // Open table directory
         // Iterate each table (each table is a JSON file)
@@ -193,7 +248,8 @@ public class IndexTables extends Command {
             Logger.logNewLine(Logger.Level.INFO, "There are " + filePaths.size() + " files to be processed.");
 
             long startTime = System.nanoTime();
-            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads, true, WIKI_PREFIX, URI_PREFIX, this.disallowedEntityTypes);
+            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads, true,
+                    embeddingStore, WIKI_PREFIX, URI_PREFIX, this.disallowedEntityTypes);
             indexWriter.performIO();
 
             long elapsedTime = System.nanoTime() - startTime;

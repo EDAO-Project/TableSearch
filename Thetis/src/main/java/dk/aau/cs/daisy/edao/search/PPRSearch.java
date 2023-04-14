@@ -1,6 +1,7 @@
 package dk.aau.cs.daisy.edao.search;
 
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
+import dk.aau.cs.daisy.edao.store.EmbeddingsIndex;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
 import dk.aau.cs.daisy.edao.store.EntityTableLink;
@@ -26,10 +27,10 @@ public class PPRSearch extends AbstractSearch
 
     private double elapsedTime = -1;
 
-    public PPRSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, Neo4jEndpoint neo4j,
-                     boolean weightedPPR, double minThreshold, double particles, int topK)
+    public PPRSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<String> embeddingsIndex,
+                     Neo4jEndpoint neo4j, boolean weightedPPR, double minThreshold, double particles, int topK)
     {
-        super(linker, entityTable, entityTableLink);
+        super(linker, entityTable, entityTableLink, embeddingsIndex);
         this.neo4j = neo4j;
         this.weighted = weightedPPR;
         this.threshold = minThreshold;

@@ -47,6 +47,6 @@ public class Result
         if (this.tableScores.size() < this.k + 1)
             return this.tableScores.iterator();
 
-        return this.tableScores.subList(0, this.k + 1).iterator();
+        return this.tableScores.subList(0, this.k).iterator();
     }
 }

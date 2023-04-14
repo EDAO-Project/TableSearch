@@ -4,9 +4,7 @@ import dk.aau.cs.daisy.edao.connector.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class EmbeddingDBWrapper implements DBDriverBatch<List<Double>, String>, ExplainableCause, Setup
 {
@@ -133,6 +131,70 @@ public class EmbeddingDBWrapper implements DBDriverBatch<List<Double>, String>, 
     {
         EmbeddingStore store = (EmbeddingStore) this.driver;
         return store.select(iri);
+    }
+
+    /**
+     * Performs a simple select for all entities in argument
+     * @param iris List of entities to retrieve embeddings for
+     * @return Map of entity to corresponding embeddings
+     */
+    @Override
+    public Map<String, List<Double>> batchSelect(List<String> iris)
+    {
+        if (this.driver instanceof EmbeddingStore)
+            throw new UnsupportedOperationException("Batch select is not supported for Milvus");
+
+        else if (this.driver instanceof SQLite || this.driver instanceof Postgres)
+        {
+            DBDriver<ResultSet, String> sql = (DBDriver<ResultSet, String>) this.driver;
+            StringBuilder builder = new StringBuilder();
+            builder.append("SELECT ").append(IRI_FIELD).append(", ").append(EMBEDDING_FIELD).append(" FROM ").append(COLLECTION_NAME).append(" WHERE ");
+
+            for (String iri : iris)
+            {
+                builder.append(IRI_FIELD).append("='").append(iri).append("' OR ");
+            }
+
+            builder.delete(builder.length() - 4, builder.length()).append(";");
+
+            ResultSet results = sql.select(builder.toString());
+            Map<String, List<Double>> embeddings = new HashMap<>(iris.size());
+
+            try
+            {
+                while (results.next())
+                {
+                    String entity = results.getString(1);
+                    List<Double> embedding = new ArrayList<>();
+
+                    if (this.driver instanceof SQLite)
+                    {
+                        String[] vector = results.getString(2).split(",");
+
+                        for (String e : vector)
+                        {
+                            embedding.add(Double.parseDouble(e));
+                        }
+                    }
+
+                    else
+                    {
+                        embedding = Arrays.asList((Double[]) results.getArray(2).getArray());
+                    }
+
+                    embeddings.put(entity, embedding);
+                }
+
+                return embeddings;
+            }
+
+            catch (SQLException e)
+            {
+                return null;
+            }
+        }
+
+        throw new UnsupportedOperationException("Batch select is not supported for this database");
     }
 
     /**

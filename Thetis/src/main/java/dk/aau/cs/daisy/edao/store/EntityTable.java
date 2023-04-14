@@ -2,10 +2,10 @@ package dk.aau.cs.daisy.edao.store;
 
 import dk.aau.cs.daisy.edao.structures.graph.Entity;
 import dk.aau.cs.daisy.edao.structures.Id;
+import dk.aau.cs.daisy.edao.structures.graph.Type;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Indexing of entities containing types
@@ -48,5 +48,22 @@ public class EntityTable implements Index<Id, Entity>, Serializable
     public void clear()
     {
         this.idx.clear();
+    }
+
+    public Iterator<Type> allTypes()
+    {
+        Set<Type> types = new HashSet<>();
+
+        for (Entity entity : this.idx.values())
+        {
+            types.addAll(entity.getTypes());
+        }
+
+        return types.iterator();
+    }
+
+    public Iterator<Id> allIds()
+    {
+        return this.idx.keySet().iterator();
     }
 }

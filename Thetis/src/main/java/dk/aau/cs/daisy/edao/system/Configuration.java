@@ -84,6 +84,15 @@ public class Configuration
         if (!props.contains("EntityToTables"))
             props.setProperty("EntityToTables", "entity_to_tables.ser");
 
+        if (!props.contains("EmbeddingsIndex"))
+            props.setProperty("EmbeddingsIndex", "embeddings_idx.ser");
+
+        if (!props.contains("TypesLSH"))
+            props.setProperty("TypesLSH", "types_lsh.ser");
+
+        if (!props.contains("EmbeddingsLSH"))
+            props.setProperty("EmbeddingsLSH", "embeddings_lsh.ser");
+
         if (!props.contains("TableToEntities"))
             props.setProperty("TableToEntities", "tableIDToEntities.ttl");
 
@@ -240,6 +249,21 @@ public class Configuration
         return readProperties().getProperty("EntityToTables");
     }
 
+    public static String getEmbeddingsIndexFile()
+    {
+        return readProperties().getProperty("EmbeddingsIndex");
+    }
+
+    public static String getTypesLSHIndexFile()
+    {
+        return readProperties().getProperty("TypesLSH");
+    }
+
+    public static String getEmbeddingsLSHFile()
+    {
+        return readProperties().getProperty("EmbeddingsLSH");
+    }
+
     public static String getTableToEntitiesFile()
     {
         return readProperties().getProperty("TableToEntities");
@@ -273,5 +297,25 @@ public class Configuration
     public static String getLogLevel()
     {
         return readProperties().getProperty("LogLevel");
+    }
+
+    public static void setPermutationVectors(int num)
+    {
+        addProperty("PermutationVectors", String.valueOf(num));
+    }
+
+    public static int getPermutationVectors()
+    {
+        return Integer.parseInt(readProperties().getProperty("PermutationVectors"));
+    }
+
+    public static void setBandSize(int value)
+    {
+        addProperty("BandSize", String.valueOf(value));
+    }
+
+    public static int getBandSize()
+    {
+        return Integer.parseInt(readProperties().getProperty("BandSize"));
     }
 }

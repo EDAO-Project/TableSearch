@@ -1,6 +1,8 @@
 package dk.aau.cs.daisy.edao.loader;
 
 import dk.aau.cs.daisy.edao.TestUtils;
+import dk.aau.cs.daisy.edao.connector.DBDriverBatch;
+import dk.aau.cs.daisy.edao.connector.Factory;
 import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
 import dk.aau.cs.daisy.edao.store.EntityLinking;
 import dk.aau.cs.daisy.edao.store.EntityTable;
@@ -35,11 +37,12 @@ public class IndexReaderTest
         synchronized (TestUtils.lock)
         {
             Configuration.reloadConfiguration();
+            DBDriverBatch<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
             List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
                     Path.of("table-0782-820.json"), Path.of("table-1019-555.json"), Path.of("table-1260-258.json"));
             paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
             IndexWriter writer = new IndexWriter(paths, this.outDir, new Neo4jEndpoint("config.properties"), 1,
-                    true, "http://www.wikipedia.org/", "http://dbpedia.org/");
+                    true, embeddingsDB, "http://www.wikipedia.org/", "http://dbpedia.org/");
             writer.performIO();
             this.reader = new IndexReader(this.outDir, false, true);
             this.reader.performIO();

@@ -49,6 +49,15 @@ public class Id implements Serializable, Comparable<Id>
         return new IdAllocator().allocId();
     }
 
+    /**
+     * Represents a global ID
+     * @return Global ID
+     */
+    public static Id any()
+    {
+        return new Id(-1);
+    }
+
     public Id(int id)
     {
         this.id = id;
@@ -83,5 +92,11 @@ public class Id implements Serializable, Comparable<Id>
             return 0;
 
         return this.id < other.getId() ? -1 : 1;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "|" + this.id + "|";
     }
 }
