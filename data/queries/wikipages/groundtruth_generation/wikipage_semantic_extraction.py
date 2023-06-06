@@ -108,6 +108,7 @@ def perform_navigation_links_search(wikipage_name, wikipage_to_links_dict, link_
         # Specified wikipage could not be retrieved from wikipedia
         unmatchable_wikipages.add(wikipage_name)
 
+
 def main(args):
     df = pd.read_pickle(args.wikipages_df)
     print("There are", len(df), "wikipages to process")
@@ -177,18 +178,18 @@ def main(args):
                 with open(args.output_dir+'category_to_num_occurrences.json', 'w', encoding='utf-8') as fp:
                     json.dump(category_to_num_occurrences_dict, fp, indent=4)
             
-            if args.mode in ['navigation_links', 'all']:
-                if args.use_chunks:
-                    Path(chunk_output_path).mkdir(parents=True, exist_ok=True)
-                    with open(chunk_output_path, 'w', encoding='utf-8') as fp:
-                        json.dump(wikipage_to_links_dict, fp, indent=4)
-                    with open(chunk_output_path, 'w', encoding='utf-8') as fp:
-                        json.dump(link_to_num_occurrences_dict, fp, indent=4)
-                else:
-                    with open(args.output_dir+'wikipage_to_links.json', 'w', encoding='utf-8') as fp:
-                        json.dump(wikipage_to_links_dict, fp, indent=4)
-                    with open(args.output_dir+'link_to_num_occurrences.json', 'w', encoding='utf-8') as fp:
-                        json.dump(link_to_num_occurrences_dict, fp, indent=4)
+        if args.mode in ['navigation_links', 'all']:
+            if args.use_chunks:
+                Path(chunk_output_path).mkdir(parents=True, exist_ok=True)
+                with open(chunk_output_path+'wikipage_to_links.json', 'w', encoding='utf-8') as fp:
+                    json.dump(wikipage_to_links_dict, fp, indent=4)
+                with open(chunk_output_path+'link_to_num_occurrences.json', 'w', encoding='utf-8') as fp:
+                    json.dump(link_to_num_occurrences_dict, fp, indent=4)
+            else:
+                with open(args.output_dir+'wikipage_to_links.json', 'w', encoding='utf-8') as fp:
+                    json.dump(wikipage_to_links_dict, fp, indent=4)
+                with open(args.output_dir+'link_to_num_occurrences.json', 'w', encoding='utf-8') as fp:
+                    json.dump(link_to_num_occurrences_dict, fp, indent=4)
         
         if args.use_chunks:
             Path(chunk_output_path).mkdir(parents=True, exist_ok=True)

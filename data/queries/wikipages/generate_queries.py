@@ -82,63 +82,80 @@ def get_query_entity_tuples(df, tables_dir, wiki_links_to_ents, min_tuple_width,
     # Dictionary that maps each query with a list of the chosen tuples of entities
     query_to_list_of_tuples = {}
 
+    wikipages_with_no_relevant_files = []
+
     print("\nGenerating a query from each wikipage...")
     for idx, df_row in tqdm(df.iterrows(), total=len(df.index)):
 
         relevant_tables = df_row['tables']
-
         table_to_max_ents_dict = {'table_id': [], 'max_num_unique_ents_per_row': [], 'num_rows_with_max_num_unique_ents': [], 'row_ids': []}
+
+        # Find relevant tables for which we have files
+        relevant_tables_with_files = []
         for table_id in relevant_tables:
-            with open(tables_dir + table_id, "r") as json_file:
-                table = json.load(json_file)
+            if Path(tables_dir+table_id).is_file():
+                relevant_tables_with_files.append(table_id)
+        
+        if len(relevant_tables_with_files) > 0:
+            for table_id in relevant_tables:
+                # Check if the table exists
+                if Path(tables_dir+table_id).is_file():
+                    with open(tables_dir + table_id, "r") as json_file:
+                        table = json.load(json_file)
 
-            # Find the rows with the maximal number of unique entities for the current table
-            max_num_unique_ents_per_row, num_rows_with_max_num_unique_ents, row_ids = get_rows_with_max_num_unique_ents(table, wiki_links_to_ents)
-            table_to_max_ents_dict["table_id"].append(table_id)
-            table_to_max_ents_dict["max_num_unique_ents_per_row"].append(max_num_unique_ents_per_row)
-            table_to_max_ents_dict["num_rows_with_max_num_unique_ents"].append(num_rows_with_max_num_unique_ents)
-            table_to_max_ents_dict["row_ids"].append(row_ids)
+                    # Find the rows with the maximal number of unique entities for the current table
+                    max_num_unique_ents_per_row, num_rows_with_max_num_unique_ents, row_ids = get_rows_with_max_num_unique_ents(table, wiki_links_to_ents)
+                    table_to_max_ents_dict["table_id"].append(table_id)
+                    table_to_max_ents_dict["max_num_unique_ents_per_row"].append(max_num_unique_ents_per_row)
+                    table_to_max_ents_dict["num_rows_with_max_num_unique_ents"].append(num_rows_with_max_num_unique_ents)
+                    table_to_max_ents_dict["row_ids"].append(row_ids)
+                else:
+                    print("Table", table_id, "not found")
 
-        # Choose the table that has rows with the highest number of unique entities
-        table_to_max_ents_df = pd.DataFrame.from_dict(table_to_max_ents_dict)
-        table_to_max_ents_df = table_to_max_ents_df.sort_values(['max_num_unique_ents_per_row', 'num_rows_with_max_num_unique_ents'], ascending=[False, False])
-        best_table_row = table_to_max_ents_df.head(1)
+            # Choose the table that has rows with the highest number of unique entities
+            table_to_max_ents_df = pd.DataFrame.from_dict(table_to_max_ents_dict)
+            table_to_max_ents_df = table_to_max_ents_df.sort_values(['max_num_unique_ents_per_row', 'num_rows_with_max_num_unique_ents'], ascending=[False, False])
+            best_table_row = table_to_max_ents_df.head(1)
 
 
-        # Ensure that the 'max_num_unique_ents_per_row' is greater than 0
-        if max(best_table_row['max_num_unique_ents_per_row']) > 0:
-            with open(tables_dir + best_table_row['table_id'].values[0], "r") as json_file:
-                best_table = json.load(json_file)
+            # Ensure that the 'max_num_unique_ents_per_row' is greater than 0
+            if max(best_table_row['max_num_unique_ents_per_row']) > 0:
+                with open(tables_dir + best_table_row['table_id'].values[0], "r") as json_file:
+                    best_table = json.load(json_file)
 
-            # Check if `min_tuple_width` is specified and if so check if it is satisfied
-            if min_tuple_width != None and min_tuple_width > max(best_table_row['max_num_unique_ents_per_row']):
-                print("Skipping query creation for wikipage:", df_row['wikipage'],
-                    ". Needed a minimum tuple width of", min_tuple_width, "but current maximum is", max(best_table_row['max_num_unique_ents_per_row']))
-                continue
-            
-            # Check if `num_tuples_per_query` is specified and if so check if it is satisfied
-            if num_tuples_per_query != None and num_tuples_per_query > max(best_table_row['num_rows_with_max_num_unique_ents']):
-                print("Skipping query creation for wikipage:", df_row['wikipage'],
-                    ". Needed a minimum of", num_tuples_per_query, "tuples but currently there are only",
-                    max(best_table_row['num_rows_with_max_num_unique_ents']), 'tuples available')
-                continue
-            
-            # Select the desired rows and row IDs
-            if num_tuples_per_query:
-                selected_row_ids = best_table_row['row_ids'].values[0][:num_tuples_per_query]
-            else:
-                selected_row_ids = best_table_row['row_ids'].values[0]
-            
-            selected_tuples = [get_entity_tuple(best_table['rows'][row_id], wiki_links_to_ents) for row_id in selected_row_ids]
-            query_to_list_of_tuples[df_row['wikipage_id']] = selected_tuples
+                # Check if `min_tuple_width` is specified and if so check if it is satisfied
+                if min_tuple_width != None and min_tuple_width > max(best_table_row['max_num_unique_ents_per_row']):
+                    # print("Skipping query creation for wikipage:", df_row['wikipage'],
+                        # ". Needed a minimum tuple width of", min_tuple_width, "but current maximum is", max(best_table_row['max_num_unique_ents_per_row']))
+                    continue
+                
+                # Check if `num_tuples_per_query` is specified and if so check if it is satisfied
+                if num_tuples_per_query != None and num_tuples_per_query > max(best_table_row['num_rows_with_max_num_unique_ents']):
+                    # print("Skipping query creation for wikipage:", df_row['wikipage'],
+                        # ". Needed a minimum of", num_tuples_per_query, "tuples but currently there are only",
+                        # max(best_table_row['num_rows_with_max_num_unique_ents']), 'tuples available')
+                    continue
+                
+                # Select the desired rows and row IDs
+                if num_tuples_per_query:
+                    selected_row_ids = best_table_row['row_ids'].values[0][:num_tuples_per_query]
+                else:
+                    selected_row_ids = best_table_row['row_ids'].values[0]
+                
+                selected_tuples = [get_entity_tuple(best_table['rows'][row_id], wiki_links_to_ents) for row_id in selected_row_ids]
+                query_to_list_of_tuples[df_row['wikipage_id']] = selected_tuples
 
-            # Update the dataframe `df`
-            df.loc[idx, 'tuple_width'] = len(selected_tuples[0])
-            df.loc[idx, 'num_tuples'] = len(selected_tuples)
-            df.loc[idx, 'selected_table'] = best_table_row['table_id'].values[0]
-            df.at[idx, 'selected_row_ids'] = selected_row_ids
+                # Update the dataframe `df`
+                df.loc[idx, 'tuple_width'] = len(selected_tuples[0])
+                df.loc[idx, 'num_tuples'] = len(selected_tuples)
+                df.loc[idx, 'selected_table'] = best_table_row['table_id'].values[0]
+                df.at[idx, 'selected_row_ids'] = selected_row_ids
+        else:
+            wikipages_with_no_relevant_files.append(df_row['wikipage_id'])
 
     print("Finished generating queries\n")
+
+    print("There are", len(wikipages_with_no_relevant_files), 'wikipages with no relevant files. No queries were generated for these Wikipages')
 
     return df, query_to_list_of_tuples
 
