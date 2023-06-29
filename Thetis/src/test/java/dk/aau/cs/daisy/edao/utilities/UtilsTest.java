@@ -1,6 +1,7 @@
 package dk.aau.cs.daisy.edao.utilities;
 
-import dk.aau.cs.daisy.edao.structures.table.Table;
+import com.thetis.structures.table.Table;
+import com.thetis.utilities.Utils;
 import org.junit.Test;
 
 import java.util.List;

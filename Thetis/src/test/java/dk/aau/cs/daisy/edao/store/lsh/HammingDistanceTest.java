@@ -1,5 +1,7 @@
 package dk.aau.cs.daisy.edao.store.lsh;
 
+import com.thetis.store.lsh.Distance;
+import com.thetis.store.lsh.HammingDistance;
 import org.junit.Test;
 
 import java.util.List;

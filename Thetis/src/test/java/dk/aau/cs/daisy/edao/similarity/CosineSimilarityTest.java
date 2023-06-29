@@ -1,5 +1,6 @@
 package dk.aau.cs.daisy.edao.similarity;
 
+import com.thetis.similarity.CosineSimilarity;
 import org.junit.Test;
 
 import java.util.List;

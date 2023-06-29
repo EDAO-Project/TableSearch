@@ -3,12 +3,10 @@ package dk.aau.cs.daisy.edao.commands;
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
-import dk.aau.cs.daisy.edao.tables.JsonTable;
+import com.thetis.tables.JsonTable;
 import junit.framework.TestCase;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;

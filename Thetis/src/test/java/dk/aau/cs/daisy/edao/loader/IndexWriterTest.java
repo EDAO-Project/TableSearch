@@ -1,16 +1,17 @@
 package dk.aau.cs.daisy.edao.loader;
 
+import com.thetis.connector.DBDriverBatch;
+import com.thetis.connector.Factory;
+import com.thetis.connector.Neo4jEndpoint;
+import com.thetis.loader.IndexWriter;
+import com.thetis.store.EntityLinking;
+import com.thetis.store.EntityTable;
+import com.thetis.store.EntityTableLink;
+import com.thetis.structures.Id;
+import com.thetis.structures.graph.Entity;
+import com.thetis.structures.graph.Type;
+import com.thetis.system.Configuration;
 import dk.aau.cs.daisy.edao.TestUtils;
-import dk.aau.cs.daisy.edao.connector.DBDriverBatch;
-import dk.aau.cs.daisy.edao.connector.Factory;
-import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
-import dk.aau.cs.daisy.edao.store.EntityLinking;
-import dk.aau.cs.daisy.edao.store.EntityTable;
-import dk.aau.cs.daisy.edao.store.EntityTableLink;
-import dk.aau.cs.daisy.edao.structures.Id;
-import dk.aau.cs.daisy.edao.structures.graph.Entity;
-import dk.aau.cs.daisy.edao.structures.graph.Type;
-import dk.aau.cs.daisy.edao.system.Configuration;
 import org.junit.*;
 
 import java.io.File;

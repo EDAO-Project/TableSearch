@@ -1,8 +1,9 @@
 package dk.aau.cs.daisy.edao.store;
 
-import dk.aau.cs.daisy.edao.structures.graph.Entity;
-import dk.aau.cs.daisy.edao.structures.Id;
-import dk.aau.cs.daisy.edao.structures.graph.Type;
+import com.thetis.store.EntityTable;
+import com.thetis.structures.Id;
+import com.thetis.structures.graph.Entity;
+import com.thetis.structures.graph.Type;
 import org.junit.Before;
 import org.junit.Test;
 

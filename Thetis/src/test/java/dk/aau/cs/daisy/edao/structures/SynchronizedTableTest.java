@@ -1,7 +1,7 @@
 package dk.aau.cs.daisy.edao.structures;
 
-import dk.aau.cs.daisy.edao.structures.table.SynchronizedTable;
-import dk.aau.cs.daisy.edao.structures.table.Table;
+import com.thetis.structures.table.SynchronizedTable;
+import com.thetis.structures.table.Table;
 import org.junit.Test;
 
 import java.util.ArrayList;

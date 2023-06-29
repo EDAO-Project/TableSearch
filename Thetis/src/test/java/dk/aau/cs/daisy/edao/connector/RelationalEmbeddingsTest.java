@@ -1,6 +1,7 @@
 package dk.aau.cs.daisy.edao.connector;
 
-import dk.aau.cs.daisy.edao.connector.embeddings.RelationalEmbeddings;
+import com.thetis.connector.SQLite;
+import com.thetis.connector.embeddings.RelationalEmbeddings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

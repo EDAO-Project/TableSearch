@@ -1,18 +1,14 @@
 package dk.aau.cs.daisy.edao.connector;
 
+import com.thetis.connector.Milvus;
+import com.thetis.connector.MilvusCommand;
 import io.milvus.grpc.DataType;
-import io.milvus.grpc.QueryResults;
 import io.milvus.param.collection.FieldType;
 import io.milvus.param.dml.InsertParam;
-import io.milvus.response.QueryResultsWrapper;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Test;
 
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
 
 public class MilvusTest
 {

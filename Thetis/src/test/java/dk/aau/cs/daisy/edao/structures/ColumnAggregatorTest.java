@@ -1,11 +1,11 @@
 package dk.aau.cs.daisy.edao.structures;
 
-import dk.aau.cs.daisy.edao.structures.graph.Entity;
-import dk.aau.cs.daisy.edao.structures.graph.Type;
-import dk.aau.cs.daisy.edao.structures.table.Aggregator;
-import dk.aau.cs.daisy.edao.structures.table.ColumnAggregator;
-import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
-import dk.aau.cs.daisy.edao.structures.table.Table;
+import com.thetis.structures.graph.Entity;
+import com.thetis.structures.graph.Type;
+import com.thetis.structures.table.Aggregator;
+import com.thetis.structures.table.ColumnAggregator;
+import com.thetis.structures.table.DynamicTable;
+import com.thetis.structures.table.Table;
 import org.junit.Before;
 import org.junit.Test;
 

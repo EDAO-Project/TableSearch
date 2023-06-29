@@ -1,6 +1,7 @@
 package dk.aau.cs.daisy.edao.store;
 
-import dk.aau.cs.daisy.edao.structures.Id;
+import com.thetis.store.EmbeddingsIndex;
+import com.thetis.structures.Id;
 import org.junit.Before;
 import org.junit.Test;
 

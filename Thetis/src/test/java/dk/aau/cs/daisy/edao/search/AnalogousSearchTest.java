@@ -1,14 +1,16 @@
 package dk.aau.cs.daisy.edao.search;
 
+import com.thetis.connector.DBDriverBatch;
+import com.thetis.connector.Factory;
+import com.thetis.connector.Neo4jEndpoint;
+import com.thetis.loader.IndexWriter;
+import com.thetis.search.AnalogousSearch;
+import com.thetis.search.Result;
+import com.thetis.structures.Pair;
+import com.thetis.structures.table.SimpleTable;
+import com.thetis.structures.table.Table;
+import com.thetis.system.Configuration;
 import dk.aau.cs.daisy.edao.TestUtils;
-import dk.aau.cs.daisy.edao.connector.DBDriverBatch;
-import dk.aau.cs.daisy.edao.connector.Factory;
-import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
-import dk.aau.cs.daisy.edao.loader.IndexWriter;
-import dk.aau.cs.daisy.edao.structures.Pair;
-import dk.aau.cs.daisy.edao.structures.table.SimpleTable;
-import dk.aau.cs.daisy.edao.structures.table.Table;
-import dk.aau.cs.daisy.edao.system.Configuration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

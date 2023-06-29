@@ -1,15 +1,10 @@
 package dk.aau.cs.daisy.edao.connector;
 
-import dk.aau.cs.daisy.edao.connector.embeddings.EmbeddingStore;
+import com.thetis.connector.embeddings.EmbeddingStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 
 import java.io.File;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class EmbeddingStoreTest
 {

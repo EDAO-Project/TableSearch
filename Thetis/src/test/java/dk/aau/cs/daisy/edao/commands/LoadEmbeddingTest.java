@@ -1,9 +1,8 @@
 package dk.aau.cs.daisy.edao.commands;
 
+import com.thetis.commands.parser.EmbeddingsParser;
+import com.thetis.connector.SQLite;
 import org.junit.Test;
-
-import dk.aau.cs.daisy.edao.connector.SQLite;
-import dk.aau.cs.daisy.edao.commands.parser.EmbeddingsParser;
 
 import java.io.File;
 import java.sql.ResultSet;

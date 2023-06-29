@@ -1,5 +1,6 @@
 package dk.aau.cs.daisy.edao.system;
 
+import com.thetis.system.Configuration;
 import org.junit.After;
 import org.junit.Test;
 

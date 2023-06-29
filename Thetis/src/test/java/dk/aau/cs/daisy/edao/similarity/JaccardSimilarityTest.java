@@ -1,6 +1,7 @@
 package dk.aau.cs.daisy.edao.similarity;
 
-import dk.aau.cs.daisy.edao.structures.graph.Type;
+import com.thetis.similarity.JaccardSimilarity;
+import com.thetis.structures.graph.Type;
 import org.junit.Test;
 
 import java.util.Set;

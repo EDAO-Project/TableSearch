@@ -1,9 +1,9 @@
 package dk.aau.cs.daisy.edao.store;
 
-import dk.aau.cs.daisy.edao.structures.Id;
-import dk.aau.cs.daisy.edao.structures.Pair;
-import dk.aau.cs.daisy.edao.system.Configuration;
-import dk.aau.cs.daisy.edao.system.Logger;
+import com.thetis.store.EntityTableLink;
+import com.thetis.structures.Id;
+import com.thetis.structures.Pair;
+import com.thetis.system.Configuration;
 import org.junit.Before;
 import org.junit.Test;
 

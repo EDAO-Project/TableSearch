@@ -1,12 +1,12 @@
 package dk.aau.cs.daisy.edao.store.lsh;
 
-import dk.aau.cs.daisy.edao.store.EntityLinking;
-import dk.aau.cs.daisy.edao.store.EntityTable;
-import dk.aau.cs.daisy.edao.structures.Id;
-import dk.aau.cs.daisy.edao.structures.graph.Entity;
-import dk.aau.cs.daisy.edao.structures.graph.Type;
-import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
-import dk.aau.cs.daisy.edao.structures.table.Table;
+import com.thetis.store.EntityLinking;
+import com.thetis.store.EntityTable;
+import com.thetis.store.lsh.TypeStats;
+import com.thetis.structures.graph.Entity;
+import com.thetis.structures.graph.Type;
+import com.thetis.structures.table.DynamicTable;
+import com.thetis.structures.table.Table;
 import org.junit.Before;
 import org.junit.Test;
 

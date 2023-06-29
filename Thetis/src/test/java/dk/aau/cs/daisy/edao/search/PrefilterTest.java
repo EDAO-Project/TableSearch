@@ -1,19 +1,19 @@
 package dk.aau.cs.daisy.edao.search;
 
-import dk.aau.cs.daisy.edao.commands.parser.TableParser;
-import dk.aau.cs.daisy.edao.connector.DBDriverBatch;
-import dk.aau.cs.daisy.edao.connector.Factory;
-import dk.aau.cs.daisy.edao.connector.Neo4jEndpoint;
-import dk.aau.cs.daisy.edao.loader.IndexWriter;
-import dk.aau.cs.daisy.edao.store.EmbeddingsIndex;
-import dk.aau.cs.daisy.edao.store.EntityLinking;
-import dk.aau.cs.daisy.edao.store.EntityTable;
-import dk.aau.cs.daisy.edao.store.EntityTableLink;
-import dk.aau.cs.daisy.edao.structures.Pair;
-import dk.aau.cs.daisy.edao.structures.PairNonComparable;
-import dk.aau.cs.daisy.edao.structures.table.DynamicTable;
-import dk.aau.cs.daisy.edao.structures.table.Table;
-import dk.aau.cs.daisy.edao.system.Configuration;
+import com.thetis.connector.DBDriverBatch;
+import com.thetis.connector.Factory;
+import com.thetis.connector.Neo4jEndpoint;
+import com.thetis.loader.IndexWriter;
+import com.thetis.search.Prefilter;
+import com.thetis.store.EmbeddingsIndex;
+import com.thetis.store.EntityLinking;
+import com.thetis.store.EntityTable;
+import com.thetis.store.EntityTableLink;
+import com.thetis.structures.Pair;
+import com.thetis.structures.PairNonComparable;
+import com.thetis.structures.table.DynamicTable;
+import com.thetis.structures.table.Table;
+import com.thetis.system.Configuration;
 import org.junit.Before;
 import org.junit.Test;
 

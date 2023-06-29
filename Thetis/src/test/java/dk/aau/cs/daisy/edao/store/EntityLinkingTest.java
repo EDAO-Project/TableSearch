@@ -1,5 +1,6 @@
 package dk.aau.cs.daisy.edao.store;
 
+import com.thetis.store.EntityLinking;
 import org.junit.Before;
 import org.junit.Test;
 
