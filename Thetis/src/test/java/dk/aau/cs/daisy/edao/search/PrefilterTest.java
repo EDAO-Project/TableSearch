@@ -30,7 +30,7 @@ import static org.junit.Assert.*;
 public class PrefilterTest
 {
     private final File outDir = new File("testing/output");
-    private Prefilter typesPrefilter;
+    private Prefilter setPrefilter;
     private Prefilter embeddingsPrefilter;
     private PairNonComparable<Table<String>, String> singleQuery, nQuery;
 
@@ -51,7 +51,7 @@ public class PrefilterTest
         EntityTable entityTable = indexWriter.getEntityTable();
         EntityTableLink tableLink = indexWriter.getEntityTableLinker();
         EmbeddingsIndex<String> embeddingsIdx = indexWriter.getEmbeddingsIndex();
-        this.typesPrefilter = new Prefilter(linker, entityTable, tableLink, embeddingsIdx, indexWriter.getTypesLSH());
+        this.setPrefilter = new Prefilter(linker, entityTable, tableLink, embeddingsIdx, indexWriter.getTypesLSH());
         this.embeddingsPrefilter = new Prefilter(linker, entityTable, tableLink, embeddingsIdx, indexWriter.getEmbeddingsLSH());
 
         String singleUri = linker.mapTo("http://www.wikipedia.org/wiki/WebOS");
@@ -68,7 +68,7 @@ public class PrefilterTest
     @Test
     public void testOneEntityTableTypesLSH()
     {
-        Iterator<Pair<String, Double>> results = this.typesPrefilter.search(this.singleQuery.getFirst()).getResults();
+        Iterator<Pair<String, Double>> results = this.setPrefilter.search(this.singleQuery.getFirst()).getResults();
         boolean foundQueryTable = false;
 
         while (results.hasNext())
@@ -119,7 +119,7 @@ public class PrefilterTest
         }
 
         Table<String> query = new DynamicTable<>(queryMatrix);
-        Iterator<Pair<String, Double>> results = this.typesPrefilter.search(query).getResults();
+        Iterator<Pair<String, Double>> results = this.setPrefilter.search(query).getResults();
         boolean foundQueryTable = false;
 
         while (results.hasNext())

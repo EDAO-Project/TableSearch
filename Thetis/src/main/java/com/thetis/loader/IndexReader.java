@@ -5,7 +5,7 @@ import com.thetis.store.EntityLinking;
 import com.thetis.store.EntityTable;
 import com.thetis.store.EntityTableLink;
 import com.thetis.store.lsh.VectorLSHIndex;
-import com.thetis.store.lsh.TypesLSHIndex;
+import com.thetis.store.lsh.SetLSHIndex;
 import com.thetis.system.Configuration;
 import com.thetis.system.Logger;
 
@@ -28,7 +28,7 @@ public class IndexReader implements IndexIO
     private EntityTable entityTable;
     private EntityTableLink entityTableLink;
     private EmbeddingsIndex<String> embeddingsIdx;
-    private TypesLSHIndex typesLSHIndex;
+    private SetLSHIndex typesLSHIndex, predicatesLSHIndex;
     private VectorLSHIndex embeddingsLSHIndex;
     private static final int INDEX_COUNT = 5;
 
@@ -117,7 +117,8 @@ public class IndexReader implements IndexIO
 
     private void loadLSHIndexes()
     {
-        this.typesLSHIndex = (TypesLSHIndex) readIndex(this.indexDir + "/" + Configuration.getTypesLSHIndexFile());
+        this.typesLSHIndex = (SetLSHIndex) readIndex(this.indexDir + "/" + Configuration.getTypesLSHIndexFile());
+        this.predicatesLSHIndex = (SetLSHIndex) readIndex(this.indexDir + "/" + Configuration.getPredicatesLSHIndexFile());
         this.embeddingsLSHIndex = (VectorLSHIndex) readIndex(this.indexDir + "/" + Configuration.getEmbeddingsLSHFile());
     }
 
@@ -170,9 +171,14 @@ public class IndexReader implements IndexIO
         return this.embeddingsIdx;
     }
 
-    public TypesLSHIndex getTypesLSHIndex()
+    public SetLSHIndex getTypesLSHIndex()
     {
         return this.typesLSHIndex;
+    }
+
+    public SetLSHIndex getPredicatesLSHIndex()
+    {
+        return this.predicatesLSHIndex;
     }
 
     public VectorLSHIndex getEmbeddingsLSHIndex()

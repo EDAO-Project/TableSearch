@@ -24,7 +24,7 @@ import com.thetis.store.EmbeddingsIndex;
 import com.thetis.store.EntityLinking;
 import com.thetis.store.EntityTable;
 import com.thetis.store.EntityTableLink;
-import com.thetis.store.lsh.TypesLSHIndex;
+import com.thetis.store.lsh.SetLSHIndex;
 import com.thetis.store.lsh.VectorLSHIndex;
 import com.thetis.system.Logger;
 import com.thetis.tables.JsonTable;
@@ -67,6 +67,10 @@ public class SearchTables extends Command {
         }
     }
 
+    private enum SimilarityProperty {
+        TYPES, PREDICATES, EMBEDDINGS;
+    }
+
     private enum EmbeddingSimFunction {
         NORM_COS("norm_cos"), ABS_COS("abs_cos"), ANG_COS("ang_cos");
 
@@ -85,7 +89,7 @@ public class SearchTables extends Command {
         }
     }
 
-    private enum PrefilterTechnique {LSH_TYPES, LSH_EMBEDDINGS, PPR, BM25}
+    private enum PrefilterTechnique {LSH_TYPES, LSH_PREDICATES, LSH_EMBEDDINGS, PPR, BM25}
 
     @CommandLine.Option(names = { "-sm", "--search-mode" }, description = "Must be one of {exact, analogous}", required = true)
     private SearchMode searchMode = null;
@@ -95,6 +99,9 @@ public class SearchTables extends Command {
 
     @CommandLine.Option(names = { "-upe", "--usePretrainedEmbeddings"}, description = "If specified, pre-trained embeddings are used to capture the similarity between two entities whenever possible")
     private boolean usePretrainedEmbeddings;
+
+    @CommandLine.Option(names = {"-prop", "--kgProperty"}, description = "KG property to be used in entity similarity scoring", required = true)
+    private SimilarityProperty simProperty;
 
     @CommandLine.Option(names = { "--hungarianAlgorithmSameAlignmentAcrossTuples"}, description = "If specified, the Hungarian algorithm uses the same alignment of columns to query entities across all query tuples")
     private boolean hungarianAlgorithmSameAlignmentAcrossTuples;
@@ -218,7 +225,7 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = {"-t", "--threads"}, description = "Number of threads", required = true, defaultValue = "1")
     private int threads;
 
-    @CommandLine.Option(names = {"-pf", "--pre-filter"}, description = "Pre-filtering technique to reduce search space (LSH_TYPES, LSH_EMBEDDINGS, BM25, PPR)")
+    @CommandLine.Option(names = {"-pf", "--pre-filter"}, description = "Pre-filtering technique to reduce search space (LSH_TYPES, LSH_PREDICATES, LSH_EMBEDDINGS, BM25, PPR)")
     private PrefilterTechnique prefilterTechnique = null;
 
     @Override
@@ -248,10 +255,12 @@ public class SearchTables extends Command {
             EntityTable entityTable = indexReader.getEntityTable();
             EntityTableLink entityTableLink = indexReader.getEntityTableLink();
             EmbeddingsIndex embeddingsIdx = indexReader.getEmbeddingsIndex();
-            TypesLSHIndex typesLSH = indexReader.getTypesLSHIndex();
+            SetLSHIndex typesLSH = indexReader.getTypesLSHIndex();
+            SetLSHIndex predicatesLSH = indexReader.getPredicatesLSHIndex();
             VectorLSHIndex embeddingsLSH = indexReader.getEmbeddingsLSHIndex();
             BM25 bm25 = new BM25(linker, entityTable, entityTableLink, embeddingsIdx);
             typesLSH.useEntityLinker(linker);
+            predicatesLSH.useEntityLinker(linker);
             embeddingsLSH.useEntityLinker(linker);
             Prefilter prefilter = null;
 
@@ -259,6 +268,7 @@ public class SearchTables extends Command {
             {
                 prefilter = switch (this.prefilterTechnique) {    // TODO: PPR pre-filtering must be implemented
                     case LSH_TYPES -> new Prefilter(linker, entityTable, entityTableLink, embeddingsIdx, typesLSH);
+                    case LSH_PREDICATES -> new Prefilter(linker, entityTable, entityTableLink, embeddingsIdx, predicatesLSH);
                     case LSH_EMBEDDINGS -> new Prefilter(linker, entityTable, entityTableLink, embeddingsIdx, embeddingsLSH);
                     case BM25 -> new Prefilter(linker, entityTable, entityTableLink, embeddingsIdx, bm25);
                     default -> null;
@@ -421,23 +431,28 @@ public class SearchTables extends Command {
                 (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
         Set<Path> filePaths = fileStream.collect(Collectors.toSet());
         filePaths = filePaths.stream().map(Path::toAbsolutePath).collect(Collectors.toSet());
-        AnalogousSearch.CosineSimilarityFunction cosineFunction = this.embeddingSimFunction == EmbeddingSimFunction.ABS_COS
-                ? AnalogousSearch.CosineSimilarityFunction.ABS_COS : this.embeddingSimFunction == EmbeddingSimFunction.NORM_COS
-                ? AnalogousSearch.CosineSimilarityFunction.NORM_COS : AnalogousSearch.CosineSimilarityFunction.ANG_COS;
+        AnalogousSearch.EntitySimilarity entitySimilarity = this.simProperty == SimilarityProperty.TYPES ?
+                AnalogousSearch.EntitySimilarity.JACCARD_TYPES : AnalogousSearch.EntitySimilarity.JACCARD_PREDICATES;
+
+        if (this.simProperty == SimilarityProperty.EMBEDDINGS)
+        {
+            entitySimilarity = this.embeddingSimFunction == EmbeddingSimFunction.ABS_COS
+                    ? AnalogousSearch.EntitySimilarity.EMBEDDINGS_ABS : this.embeddingSimFunction == EmbeddingSimFunction.NORM_COS
+                    ? AnalogousSearch.EntitySimilarity.EMBEDDINGS_NORM : AnalogousSearch.EntitySimilarity.EMBEDDINGS_ANG;
+        }
 
         if (prefilter == null)
         {
-            search = new AnalogousSearch(linker, table, tableLink, embeddingIdx, this.topK, this.threads, this.usePretrainedEmbeddings,
-                    cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity,
-                    this.useMaxSimilarityPerColumn, this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN);
+            search = new AnalogousSearch(linker, table, tableLink, embeddingIdx, this.topK, this.threads, entitySimilarity,
+                    this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity, this.useMaxSimilarityPerColumn,
+                    this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN);
         }
 
         else
         {
-            search = new AnalogousSearch(linker, table, tableLink, embeddingIdx, this.topK, this.threads, this.usePretrainedEmbeddings,
-                    cosineFunction, this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity,
-                    this.useMaxSimilarityPerColumn, this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN,
-                    prefilter);
+            search = new AnalogousSearch(linker, table, tableLink, embeddingIdx, this.topK, this.threads, entitySimilarity,
+                    this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity, this.useMaxSimilarityPerColumn,
+                    this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, prefilter);
         }
 
         search.setCorpus(filePaths.stream().map(Path::toString).collect(Collectors.toSet()));

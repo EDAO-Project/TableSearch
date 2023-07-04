@@ -7,15 +7,17 @@ import com.thetis.structures.graph.Type;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
+
 import static org.junit.Assert.*;
 
 public class EntityTableTest
 {
     private final EntityTable entTable = new EntityTable();
     private final Id id1 = Id.alloc(), id2 = Id.alloc(), id3 = Id.alloc();
-    Entity ent1 = new Entity("uri1", new Type("type1"), new Type("type2"), new Type("type3")),
-            ent2 = new Entity("uri2", new Type("type2"), new Type("type3")),
-            ent3 = new Entity("uri3", new Type("type1"), new Type("type2"));
+    Entity ent1 = new Entity("uri1", List.of(new Type("type1"), new Type("type2"), new Type("type3")), List.of()),
+            ent2 = new Entity("uri2", List.of(new Type("type2"), new Type("type3")), List.of()),
+            ent3 = new Entity("uri3", List.of(new Type("type1"), new Type("type2")), List.of());
 
     @Before
     public void init()

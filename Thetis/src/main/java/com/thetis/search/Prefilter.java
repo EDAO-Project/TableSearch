@@ -4,7 +4,7 @@ import com.thetis.store.EmbeddingsIndex;
 import com.thetis.store.EntityLinking;
 import com.thetis.store.EntityTable;
 import com.thetis.store.EntityTableLink;
-import com.thetis.store.lsh.TypesLSHIndex;
+import com.thetis.store.lsh.SetLSHIndex;
 import com.thetis.store.lsh.VectorLSHIndex;
 import com.thetis.structures.Pair;
 import com.thetis.structures.table.DynamicTable;
@@ -19,7 +19,7 @@ import java.util.*;
 public class Prefilter extends AbstractSearch
 {
     private long elapsed = -1;
-    private TypesLSHIndex typesLSH;
+    private SetLSHIndex setLSH;
     private VectorLSHIndex vectorsLSH;
     private BM25 bm25;
     private static final int SIZE_THRESHOLD = 8;
@@ -32,10 +32,10 @@ public class Prefilter extends AbstractSearch
     }
 
     public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
-                     EmbeddingsIndex<String> embeddingsIndex, TypesLSHIndex typesLSHIndex)
+                     EmbeddingsIndex<String> embeddingsIndex, SetLSHIndex setLSHIndex)
     {
         this(linker, entityTable, entityTableLink, embeddingsIndex);
-        this.typesLSH = typesLSHIndex;
+        this.setLSH = setLSHIndex;
         this.vectorsLSH = null;
         this.bm25 = null;
     }
@@ -45,7 +45,7 @@ public class Prefilter extends AbstractSearch
     {
         this(linker, entityTable, entityTableLink, embeddingsIndex);
         this.vectorsLSH = vectorLSHIndex;
-        this.typesLSH = null;
+        this.setLSH = null;
         this.bm25 = null;
     }
 
@@ -54,7 +54,7 @@ public class Prefilter extends AbstractSearch
     {
         this(linker, entityTable, entityTableLink, embeddingsIndex);
         this.vectorsLSH = null;
-        this.typesLSH = null;
+        this.setLSH = null;
         this.bm25 = bm25;
     }
 
@@ -163,9 +163,9 @@ public class Prefilter extends AbstractSearch
             entityArr[i++] = entity;
         }
 
-        if (this.typesLSH != null)
+        if (this.setLSH != null)
         {
-            return this.typesLSH.agggregatedSearch(entityArr);
+            return this.setLSH.agggregatedSearch(entityArr);
         }
 
         return this.vectorsLSH.agggregatedSearch(entityArr);

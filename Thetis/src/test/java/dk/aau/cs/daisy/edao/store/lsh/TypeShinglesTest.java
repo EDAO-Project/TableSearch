@@ -1,6 +1,6 @@
 package dk.aau.cs.daisy.edao.store.lsh;
 
-import com.thetis.store.lsh.TypeShingles;
+import com.thetis.store.lsh.ElementShingles;
 import org.junit.Test;
 
 import java.util.List;
@@ -14,7 +14,7 @@ public class TypeShinglesTest
     public void test1()
     {
         Set<String> types = Set.of("t1", "t2", "t3");
-        Set<List<String>> shingles = TypeShingles.shingles(types, 2);
+        Set<List<String>> shingles = ElementShingles.shingles(types, 2);
         assertTrue(shingles.contains(List.of("t1", "t2")));
         assertTrue(shingles.contains(List.of("t1", "t3")));
         assertTrue(shingles.contains(List.of("t2", "t1")));

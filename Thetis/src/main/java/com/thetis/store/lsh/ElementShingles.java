@@ -7,36 +7,36 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class TypeShingles implements Shingles
+public class ElementShingles implements Shingles
 {
     private Set<List<String>> shingles;
 
-    public static Set<List<String>> shingles(Set<String> types, int shingleSize)
+    public static Set<List<String>> shingles(Set<String> elements, int shingleSize)
     {
-        return new TypeShingles(types, shingleSize).shingles();
+        return new ElementShingles(elements, shingleSize).shingles();
     }
 
-    public TypeShingles(Set<String> types, int shingleSize)
+    public ElementShingles(Set<String> elements, int shingleSize)
     {
-        this.shingles = compute(types, shingleSize);
+        this.shingles = compute(elements, shingleSize);
     }
 
-    private static Set<List<String>> compute(Set<String> types, int size)
+    private static Set<List<String>> compute(Set<String> elements, int size)
     {
         List<Set<String>> duplicates = new ArrayList<>(size);
 
         for (int i = 0; i < size; i++)
         {
-            duplicates.add(types);
+            duplicates.add(elements);
         }
 
         Set<List<String>> product = Sets.cartesianProduct(duplicates);
         product = product.stream().filter(t -> {
             String first = t.get(0);
 
-            for (String type : t)
+            for (String element : t)
             {
-                if (!type.equals(first))
+                if (!element.equals(first))
                 {
                     return true;
                 }

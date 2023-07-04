@@ -47,9 +47,9 @@ public class AnalogousSearchTest
             indexWriter.performIO();
 
             this.search = new AnalogousSearch(indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
-                    indexWriter.getEmbeddingsIndex(), 5, 1, false, null, false, false,
-                    true, false, false, AnalogousSearch.SimilarityMeasure.EUCLIDEAN,
-                    null);
+                    indexWriter.getEmbeddingsIndex(), 5, 1, AnalogousSearch.EntitySimilarity.JACCARD_TYPES,
+                    false, false, true, false,
+                    false, AnalogousSearch.SimilarityMeasure.EUCLIDEAN);
         }
     }
 

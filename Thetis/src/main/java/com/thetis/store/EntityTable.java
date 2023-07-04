@@ -62,6 +62,18 @@ public class EntityTable implements Index<Id, Entity>, Serializable
         return types.iterator();
     }
 
+    public Iterator<String> allPredicates()
+    {
+        Set<String> predicates = new HashSet<>();
+
+        for (Entity entity : this.idx.values())
+        {
+            predicates.addAll(entity.getPredicates());
+        }
+
+        return predicates.iterator();
+    }
+
     public Iterator<Id> allIds()
     {
         return this.idx.keySet().iterator();

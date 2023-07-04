@@ -10,7 +10,7 @@ import com.thetis.commands.parser.TableParser;
 import com.thetis.connector.DBDriverBatch;
 import com.thetis.connector.Neo4jEndpoint;
 import com.thetis.store.lsh.HashFunction;
-import com.thetis.store.lsh.TypesLSHIndex;
+import com.thetis.store.lsh.SetLSHIndex;
 import com.thetis.structures.Pair;
 import com.thetis.structures.PairNonComparable;
 import com.thetis.structures.graph.Entity;
@@ -51,7 +51,7 @@ public class IndexWriter implements IndexIO
     private SynchronizedIndex<Id, Entity> entityTable;
     private SynchronizedIndex<Id, List<String>> entityTableLink;
     private SynchronizedIndex<Id, List<Double>> embeddingsIdx;
-    private TypesLSHIndex typesLSH;
+    private SetLSHIndex typesLSH, predicatesLSH;
     private VectorLSHIndex embeddingsLSH;
     private DBDriverBatch<List<Double>, String> embeddingsDB;
     private BloomFilter<String> filter = BloomFilter.create(
@@ -172,16 +172,20 @@ public class IndexWriter implements IndexIO
             throw new IllegalArgumentException("Number of permutation/projection vectors is not divisible by band size");
         }
 
-        Logger.log(Logger.Level.INFO, "Loaded LSH index 0/2");
-        this.typesLSH = new TypesLSHIndex(this.neo4j.getConfigFile(), permutations, bandSize, 2,
+        Logger.log(Logger.Level.INFO, "Loaded LSH index 0/3");
+        this.typesLSH = new SetLSHIndex(this.neo4j.getConfigFile(), SetLSHIndex.EntitySet.TYPES, permutations, bandSize, 2,
                 this.tableEntities, HASH_FUNCTION_NUMERIC, bucketGroups, bucketsPerGroup, this.threads,
                 (EntityLinking) this.linker.getLinker(), (EntityTable) this.entityTable.getIndex(), false);
 
-        Logger.log(Logger.Level.INFO, "Loaded LSH index 1/2");
+        Logger.log(Logger.Level.INFO, "Loaded LSH index 1/3");
+        this.predicatesLSH = new SetLSHIndex(this.neo4j.getConfigFile(), SetLSHIndex.EntitySet.PREDICATES, permutations, bandSize, 2,
+                this.tableEntities, HASH_FUNCTION_NUMERIC, bucketGroups, bucketsPerGroup, this.threads,
+                (EntityLinking) this.linker.getLinker(), (EntityTable) this.entityTable.getIndex(), false);
 
+        Logger.log(Logger.Level.INFO, "Loaded LSH index 2/3");
         this.embeddingsLSH = new VectorLSHIndex(bucketGroups, bucketsPerGroup, permutations, bandSize,
                 this.tableEntities, this.threads, (EntityLinking) this.linker.getLinker(), HASH_FUNCTION_BOOLEAN, new Random(0), false);
-        Logger.log(Logger.Level.INFO, "Loaded LSH index 2/2");
+        Logger.log(Logger.Level.INFO, "Loaded LSH index 3/3");
     }
 
     private boolean load(Path tablePath)
@@ -226,6 +230,7 @@ public class IndexWriter implements IndexIO
                             {
                                 String entity = tempLinks.get(0);
                                 List<String> entityTypes = this.neo4j.searchTypes(entity);
+                                List<String> entityPredicates = this.neo4j.searchPredicates(entity);
                                 matchesUris.add(entity);
                                 this.linker.addMapping(link, entity);
                                 this.linkToNumEntitiesFrequency.merge(tempLinks.size(), 1, Integer::sum);
@@ -238,7 +243,7 @@ public class IndexWriter implements IndexIO
                                 Id entityId = ((EntityLinking) this.linker.getLinker()).kgUriLookup(entity);
                                 List<Double> embeddings = this.embeddingsDB.select(entity.replace("'", "''"));
                                 this.entityTable.insert(entityId,
-                                        new Entity(entity, entityTypes.stream().map(Type::new).collect(Collectors.toList())));
+                                        new Entity(entity, entityTypes.stream().map(Type::new).collect(Collectors.toList()), entityPredicates));
 
                                 if (embeddings != null)
                                 {
@@ -493,6 +498,12 @@ public class IndexWriter implements IndexIO
         outputStream.flush();
         outputStream.close();
 
+        // LSH of entity predicates
+        outputStream = new ObjectOutputStream(new FileOutputStream(this.outputPath + "/" + Configuration.getPredicatesLSHIndexFile()));
+        outputStream.writeObject(this.predicatesLSH);
+        outputStream.flush();
+        outputStream.close();
+
         // LSH of entity embeddings
         outputStream = new ObjectOutputStream(new FileOutputStream(this.outputPath + "/" + Configuration.getEmbeddingsLSHFile()));
         outputStream.writeObject(this.embeddingsLSH);
@@ -603,9 +614,18 @@ public class IndexWriter implements IndexIO
      * Getter to LSH index of entity types
      * @return Entity types-based LSH index
      */
-    public TypesLSHIndex getTypesLSH()
+    public SetLSHIndex getTypesLSH()
     {
         return this.typesLSH;
+    }
+
+    /**
+     * Getter to LSH index of entity predicates
+     * @return Entity predicates-based LSH index
+     */
+    public SetLSHIndex getPredicatesLSH()
+    {
+        return this.predicatesLSH;
     }
 
     /**

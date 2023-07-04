@@ -23,12 +23,12 @@ public class ColumnAggregatorTest
     @Before
     public void setup()
     {
-        Entity ent1 = new Entity("uri1", new Type("t1"), new Type("t2")),
-                ent2 = new Entity("uri2", new Type("t2"), new Type("t3"), new Type("t4")),
-                ent3 = new Entity("uri3", new Type("t1"), new Type("t3"), new Type("t5")),
-                ent4 = new Entity("uri4", new Type("t6")),
-                ent5 = new Entity("uri5", new Type("t6"), new Type("t7")),
-                ent6 = new Entity("uri6", new Type("t1"), new Type("t4"));
+        Entity ent1 = new Entity("uri1", List.of(new Type("t1"), new Type("t2")), List.of()),
+                ent2 = new Entity("uri2", List.of(new Type("t2"), new Type("t3"), new Type("t4")), List.of()),
+                ent3 = new Entity("uri3", List.of(new Type("t1"), new Type("t3"), new Type("t5")), List.of()),
+                ent4 = new Entity("uri4", List.of(new Type("t6")), List.of()),
+                ent5 = new Entity("uri5", List.of(new Type("t6"), new Type("t7")), List.of()),
+                ent6 = new Entity("uri6", List.of(new Type("t1"), new Type("t4")), List.of());
         this.table = new DynamicTable<>(List.of(List.of(ent1, ent2), List.of(ent3, ent4), List.of(ent5, ent6)));
     }
 

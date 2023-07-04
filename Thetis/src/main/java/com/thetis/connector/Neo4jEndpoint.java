@@ -170,6 +170,25 @@ public class Neo4jEndpoint implements AutoCloseable {
         }
     }
 
+    public List<String> searchPredicates(String entity) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("entity", entity);
+
+        try (Session session = this.driver.session()) {
+            return session.readTransaction(tx -> {
+                Set<String> entityPredicates = new HashSet<>();
+                Result result = tx.run("MATCH (a:Resource) -[l]-> (b)" + "\n" +
+                        "WHERE a.uri in [$entity]" + "\n" +
+                        "RETURN DISTINCT TYPE(l) as predicate", params);
+
+                for (var r : result.list()) {
+                    entityPredicates.add(r.get("predicate").asString());
+                }
+
+                return new ArrayList<>(entityPredicates);
+            });
+        }
+    }
 
     public List<Pair<String, String>> searchLinkMentions(List<String> links) {
 

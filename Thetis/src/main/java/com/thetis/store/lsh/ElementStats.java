@@ -3,19 +3,22 @@ package com.thetis.store.lsh;
 import com.thetis.store.EntityLinking;
 import com.thetis.store.EntityTable;
 import com.thetis.structures.Id;
+import com.thetis.structures.graph.Entity;
 import com.thetis.structures.graph.Type;
 import com.thetis.structures.table.Table;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public final class TypeStats
+public final class ElementStats
 {
     private EntityTable entityTable;
+    private SetLSHIndex.EntitySet setType;
 
-    public TypeStats(EntityTable entityTable)
+    public ElementStats(EntityTable entityTable, SetLSHIndex.EntitySet setType)
     {
         this.entityTable = entityTable;
+        this.setType = setType;
     }
 
     /**
@@ -53,18 +56,21 @@ public final class TypeStats
         while (ids.hasNext())
         {
             Id id = ids.next();
-            List<Type> entityTypes = this.entityTable.find(id).getTypes();
+            Entity entity = this.entityTable.find(id);
+            List<?> entityElements = this.setType == SetLSHIndex.EntitySet.TYPES ? entity.getTypes() : entity.getPredicates();
 
-            for (Type t : entityTypes)
+            for (var v : entityElements)
             {
-                if (count.containsKey(t.getType()))
+                String element = this.setType == SetLSHIndex.EntitySet.TYPES ? ((Type) v).getType() : (String) v;
+
+                if (count.containsKey(element))
                 {
-                    count.put(t.getType(), count.get(t.getType()) + 1);
+                    count.put(element, count.get(element) + 1);
                 }
 
                 else
                 {
-                    count.put(t.getType(), 1);
+                    count.put(element, 1);
                 }
             }
         }
@@ -73,31 +79,31 @@ public final class TypeStats
     }
 
     /**
-     * Most popular types according to type percentages in tables.
-     * @param percentage Determines the percentage within which the type must be to be included.
+     * Most popular elements according to element percentages in tables.
+     * @param percentage Determines the percentage within which the element must be to be included.
      * @param tables Corpus of tables to compute percentages from.
      * @param linker To perform lookup from entity string to its numeric ID
-     * @return Set of types included in the top-K most frequent types found in tables, where K is a given percentage.
+     * @return Set of elements included in the top-K most frequent elements found in tables, where K is a given percentage.
      */
     public Set<String> popularByTable(double percentage, Set<Table<String>> tables, EntityLinking linker)
     {
-        Set<String> types = countOccurrences().keySet();
-        Map<String, Integer> typeCountInTables = new HashMap<>();
+        Set<String> elements = countOccurrences().keySet();
+        Map<String, Integer> elementCountInTables = new HashMap<>();
 
-        for (String type : types)
+        for (String element : elements)
         {
             for (Table<String> table : tables)
             {
-                if (hasType(table, type, linker))
+                if (hasElement(table, element, linker))
                 {
-                    typeCountInTables.put(type,
-                            typeCountInTables.containsKey(type) ? typeCountInTables.get(type) + 1 : 1);
+                    elementCountInTables.put(element,
+                            elementCountInTables.containsKey(element) ? elementCountInTables.get(element) + 1 : 1);
                 }
             }
         }
 
-        Map<String, Double> typePercentages = percentages(typeCountInTables, tables.size());
-        List<Map.Entry<String, Double>> sorted = new ArrayList<>(typePercentages.entrySet());
+        Map<String, Double> elementPercentages = percentages(elementCountInTables, tables.size());
+        List<Map.Entry<String, Double>> sorted = new ArrayList<>(elementPercentages.entrySet());
         sorted.sort(Comparator.comparingDouble(Map.Entry::getValue));
 
         List<String> sortedTypes = sorted.stream()
@@ -107,7 +113,7 @@ public final class TypeStats
         return new HashSet<>(sortedTypes);
     }
 
-    private boolean hasType(Table<String> table, String type, EntityLinking linker)
+    private boolean hasElement(Table<String> table, String element, EntityLinking linker)
     {
         int rows = table.rowCount();
 
@@ -128,14 +134,18 @@ public final class TypeStats
 
                 if (id != null)
                 {
-                    Set<String> entityTypes = this.entityTable.find(id)
+                    Set<String> entityElements = this.entityTable.find(id)
                             .getTypes()
                             .stream()
                             .map(Type::getType)
                             .collect(Collectors.toSet());
 
+                    if (this.setType == SetLSHIndex.EntitySet.PREDICATES)
+                    {
+                        entityElements = new HashSet<>(this.entityTable.find(id).getPredicates());
+                    }
 
-                    if (entityTypes.contains(type))
+                    if (entityElements.contains(element))
                     {
                         return true;
                     }

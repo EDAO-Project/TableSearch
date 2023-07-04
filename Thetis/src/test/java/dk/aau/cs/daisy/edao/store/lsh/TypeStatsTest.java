@@ -2,7 +2,8 @@ package dk.aau.cs.daisy.edao.store.lsh;
 
 import com.thetis.store.EntityLinking;
 import com.thetis.store.EntityTable;
-import com.thetis.store.lsh.TypeStats;
+import com.thetis.store.lsh.ElementStats;
+import com.thetis.store.lsh.SetLSHIndex;
 import com.thetis.structures.graph.Entity;
 import com.thetis.structures.graph.Type;
 import com.thetis.structures.table.DynamicTable;
@@ -22,9 +23,9 @@ public class TypeStatsTest
     private final EntityTable entTable = new EntityTable();
     private final EntityLinking linker = new EntityLinking("", "");
     private final String tableEnt1 = "ent1", tableEnt2 = "ent2", tableEnt3 = "ent3";
-    private final Entity ent1 = new Entity("uri1", new Type("type1"), new Type("type2"), new Type("type3")),
-            ent2 = new Entity("uri2", new Type("type2")),
-            ent3 = new Entity("uri3", new Type("type1"), new Type("type2"));
+    private final Entity ent1 = new Entity("uri1", List.of(new Type("type1"), new Type("type2"), new Type("type3")), List.of()),
+            ent2 = new Entity("uri2", List.of(new Type("type2")), List.of()),
+            ent3 = new Entity("uri3", List.of(new Type("type1"), new Type("type2")), List.of());
 
     private final Set<Table<String>> corpus = new HashSet<>();
 
@@ -49,7 +50,7 @@ public class TypeStatsTest
     @Test
     public void testPercentileAll()
     {
-        TypeStats stats = new TypeStats(this.entTable);
+        ElementStats stats = new ElementStats(this.entTable, SetLSHIndex.EntitySet.TYPES);
         Set<String> all = stats.popularByPercentile(0.0);
         assertTrue(all.contains("type1"));
         assertTrue(all.contains("type2"));
@@ -59,7 +60,7 @@ public class TypeStatsTest
     @Test
     public void testPercentileNone()
     {
-        TypeStats stats = new TypeStats(this.entTable);
+        ElementStats stats = new ElementStats(this.entTable, SetLSHIndex.EntitySet.TYPES);
         Set<String> none = stats.popularByPercentile(1.0);
         assertTrue(none.isEmpty());
     }
@@ -67,7 +68,7 @@ public class TypeStatsTest
     @Test
     public void testPercentileSome()
     {
-        TypeStats stats = new TypeStats(this.entTable);
+        ElementStats stats = new ElementStats(this.entTable, SetLSHIndex.EntitySet.TYPES);
         Set<String> some = stats.popularByPercentile(0.6);
         assertTrue(some.contains("type1"));
         assertTrue(some.contains("type2"));
@@ -77,7 +78,7 @@ public class TypeStatsTest
     @Test
     public void testTablePercentageAll()
     {
-        TypeStats stats = new TypeStats(this.entTable);
+        ElementStats stats = new ElementStats(this.entTable, SetLSHIndex.EntitySet.TYPES);
         Set<String> types = stats.popularByTable(0.0, this.corpus, this.linker);
         assertTrue(types.contains("type1"));
         assertTrue(types.contains("type2"));
@@ -87,7 +88,7 @@ public class TypeStatsTest
     @Test
     public void testTablePercentageSome()
     {
-        TypeStats stats = new TypeStats(this.entTable);
+        ElementStats stats = new ElementStats(this.entTable, SetLSHIndex.EntitySet.TYPES);
         Set<String> types = stats.popularByTable(0.8, this.corpus, this.linker);
         assertTrue(types.contains("type1"));
         assertTrue(types.contains("type2"));
@@ -97,7 +98,7 @@ public class TypeStatsTest
     @Test
     public void testTablePercentageNone()
     {
-        TypeStats stats = new TypeStats(this.entTable);
+        ElementStats stats = new ElementStats(this.entTable, SetLSHIndex.EntitySet.TYPES);
         Set<String> types = stats.popularByTable(1.0, this.corpus, this.linker);
         assertTrue(types.contains("type1"));
         assertTrue(types.contains("type2"));
