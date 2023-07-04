@@ -451,7 +451,7 @@ public class AnalogousSearch extends AbstractSearch
         }
 
         if (this.adjustedSimilarity)
-            return ent1.equals(ent2) ? 1.0 : Math.min(0.8, sim);
+            return ent1.equals(ent2) ? 1.0 : Math.min(0.95, sim);
 
         return sim;
     }
