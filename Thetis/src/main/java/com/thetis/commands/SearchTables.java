@@ -68,7 +68,18 @@ public class SearchTables extends Command {
     }
 
     private enum SimilarityProperty {
-        TYPES, PREDICATES, EMBEDDINGS;
+        TYPES("types"), PREDICATES("predicates"), EMBEDDINGS("embeddings");
+
+        private final String prop;
+
+        SimilarityProperty(String prop) {
+            this.prop = prop;
+        }
+
+        @Override
+        public String toString() {
+            return this.prop.toLowerCase();
+        }
     }
 
     private enum EmbeddingSimFunction {
@@ -96,9 +107,6 @@ public class SearchTables extends Command {
 
     @CommandLine.Option(names = { "-scpqe", "--singleColumnPerQueryEntity"}, description = "If specified, each query tuple will be evaluated against only one entity")
     private boolean singleColumnPerQueryEntity;
-
-    @CommandLine.Option(names = { "-upe", "--usePretrainedEmbeddings"}, description = "If specified, pre-trained embeddings are used to capture the similarity between two entities whenever possible")
-    private boolean usePretrainedEmbeddings;
 
     @CommandLine.Option(names = {"-prop", "--kgProperty"}, description = "KG property to be used in entity similarity scoring", required = true)
     private SimilarityProperty simProperty;
@@ -572,14 +580,14 @@ public class SearchTables extends Command {
         // Runtime to process all tables (does not consider time to compute scores) and algorithm to compute the results
         String algorithm = (this.prefilterTechnique != null ? this.prefilterTechnique.name() + " " : "") + "brute-force with " +
                 (this.useMaxSimilarityPerColumn ? "max similarity per column aggregation" : "average similarity per column aggregation") +
-                " (" + (this.usePretrainedEmbeddings ? "embeddings - " + this.embeddingSimFunction.name() : "types - " +
+                " (" + (this.simProperty == SimilarityProperty.EMBEDDINGS ? "embeddings - " + this.embeddingSimFunction.name() : "types - " +
                 (this.adjustedSimilarity ? "with" : "without") + " adjusted entity similarity") + ")";
         jsonObj.addProperty("runtime", runtime);
         jsonObj.addProperty("reduction", reduction);
         jsonObj.addProperty("threads", this.threads);
         jsonObj.addProperty("algorithm", algorithm);
 
-        if (this.usePretrainedEmbeddings) {
+        if (this.simProperty == SimilarityProperty.EMBEDDINGS) {
             // Add the embedding statistics
             jsonObj.addProperty("numEmbeddingSimComparisons", embeddingComparisons);
             jsonObj.addProperty("numNonEmbeddingSimComparisons", nonEmbeddingComparisons);

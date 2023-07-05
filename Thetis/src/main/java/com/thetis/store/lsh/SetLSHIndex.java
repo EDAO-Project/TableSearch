@@ -37,6 +37,7 @@ public class SetLSHIndex extends BucketIndex<Id, String> implements LSHIndex<Str
     private List<PairNonComparable<Id, List<Integer>>> signature;
     private Map<String, Integer> universeElements;
     private HashFunction hash;
+    private Random randomGen;
     private transient int threads;
     private transient final Object lock = new Object();
     private transient EntityLinking linker = null;
@@ -54,7 +55,8 @@ public class SetLSHIndex extends BucketIndex<Id, String> implements LSHIndex<Str
      */
     public SetLSHIndex(File neo4jConfigFile, EntitySet set, int permutationVectors, int bandSize, int shingleSize,
                        Set<PairNonComparable<String, Table<String>>> tables, HashFunction hash, int bucketGroups,
-                       int bucketCount, int threads, EntityLinking linker, EntityTable entityTable, boolean aggregateColumns)
+                       int bucketCount, int threads, Random randomGenerator, EntityLinking linker,
+                       EntityTable entityTable, boolean aggregateColumns)
     {
         super(bucketGroups, bucketCount);
 
@@ -76,6 +78,7 @@ public class SetLSHIndex extends BucketIndex<Id, String> implements LSHIndex<Str
         this.bandSize = bandSize;
         this.hash = hash;
         this.threads = threads;
+        this.randomGen = randomGenerator;
         this.linker = linker;
         this.aggregateColumns = aggregateColumns;
 
@@ -139,7 +142,7 @@ public class SetLSHIndex extends BucketIndex<Id, String> implements LSHIndex<Str
             elementsDimension = concat(elementsDimension, this.universeElements.size());
         }
 
-        this.permutations = createPermutations(this.permutationVectors, ++elementsDimension);
+        this.permutations = createPermutations(this.permutationVectors, ++elementsDimension, this.randomGen);
 
         for (PairNonComparable<String, Table<String>> table : tables)
         {
@@ -290,7 +293,7 @@ public class SetLSHIndex extends BucketIndex<Id, String> implements LSHIndex<Str
         return new HashSet<>(this.setType == EntitySet.TYPES ? neo4j.searchTypes(entity) : neo4j.searchPredicates(entity));
     }
 
-    private static List<List<Integer>> createPermutations(int vectors, int dimension)
+    private static List<List<Integer>> createPermutations(int vectors, int dimension, Random random)
     {
         List<List<Integer>> permutations = new ArrayList<>();
         Set<Integer> indices = new HashSet<>(dimension);
@@ -302,15 +305,8 @@ public class SetLSHIndex extends BucketIndex<Id, String> implements LSHIndex<Str
 
         for (int i = 0; i < vectors; i++)
         {
-            List<Integer> permutation = new ArrayList<>(dimension);
-            List<Integer> indicesCopy = new ArrayList<>(indices);
-
-            while (!indicesCopy.isEmpty())
-            {
-                int idx = new Random().nextInt(indicesCopy.size());
-                permutation.add(indicesCopy.remove(idx));
-            }
-
+            List<Integer> permutation = new ArrayList<>(indices);
+            Collections.shuffle(permutation, random);
             permutations.add(permutation);
         }
 

@@ -174,12 +174,12 @@ public class IndexWriter implements IndexIO
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 0/3");
         this.typesLSH = new SetLSHIndex(this.neo4j.getConfigFile(), SetLSHIndex.EntitySet.TYPES, permutations, bandSize, 2,
-                this.tableEntities, HASH_FUNCTION_NUMERIC, bucketGroups, bucketsPerGroup, this.threads,
+                this.tableEntities, HASH_FUNCTION_NUMERIC, bucketGroups, bucketsPerGroup, this.threads, new Random(0),
                 (EntityLinking) this.linker.getLinker(), (EntityTable) this.entityTable.getIndex(), false);
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 1/3");
         this.predicatesLSH = new SetLSHIndex(this.neo4j.getConfigFile(), SetLSHIndex.EntitySet.PREDICATES, permutations, bandSize, 2,
-                this.tableEntities, HASH_FUNCTION_NUMERIC, bucketGroups, bucketsPerGroup, this.threads,
+                this.tableEntities, HASH_FUNCTION_NUMERIC, bucketGroups, bucketsPerGroup, this.threads, new Random(0),
                 (EntityLinking) this.linker.getLinker(), (EntityTable) this.entityTable.getIndex(), false);
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 2/3");
