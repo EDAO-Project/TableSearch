@@ -114,6 +114,9 @@ public class Configuration
         if (!props.contains("LogLevel"))
             props.setProperty("LogLevel", Logger.Level.INFO.toString());
 
+        if (!props.contains("LuceneDir"))
+            props.setProperty("LuceneDir", ".lucene/");
+
         writeProperties(props);
     }
 
@@ -325,5 +328,15 @@ public class Configuration
     public static int getBandSize()
     {
         return Integer.parseInt(readProperties().getProperty("BandSize"));
+    }
+
+    public static void setLuceneDir(String dir)
+    {
+        addProperty("LuceneDir", dir);
+    }
+
+    public static String getLuceneDir()
+    {
+        return readProperties().getProperty("LuceneDir");
     }
 }

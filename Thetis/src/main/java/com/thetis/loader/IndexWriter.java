@@ -47,6 +47,7 @@ public class IndexWriter implements IndexIO
     private Map<Integer, Integer> cellToNumLinksFrequency = Collections.synchronizedMap(new HashMap<>());
     private Map<Integer, Integer> linkToNumEntitiesFrequency = Collections.synchronizedMap(new HashMap<>());
     private Neo4jEndpoint neo4j;
+    private Linker entityLinker;
     private SynchronizedLinker<String, String> linker;
     private SynchronizedIndex<Id, Entity> entityTable;
     private SynchronizedIndex<Id, List<String>> entityTableLink;
@@ -85,7 +86,7 @@ public class IndexWriter implements IndexIO
         return sum % num;
     };
 
-    public IndexWriter(List<Path> files, File outputDir, Neo4jEndpoint neo4j, int threads, boolean logProgress,
+    public IndexWriter(List<Path> files, File outputDir, Linker entityLinker, Neo4jEndpoint neo4j, int threads, boolean logProgress,
                        DBDriverBatch<List<Double>, String> embeddingStore, String wikiPrefix, String uriPrefix, String ... disallowedEntityTypes)
     {
         if (!outputDir.exists())
@@ -107,6 +108,7 @@ public class IndexWriter implements IndexIO
         this.logProgress = logProgress;
         this.outputPath = outputDir;
         this.neo4j = neo4j;
+        this.entityLinker = entityLinker;
         this.threads = threads;
         this.embeddingsDB = embeddingStore;
         this.linker = SynchronizedLinker.wrap(new EntityLinking(wikiPrefix, uriPrefix));
@@ -224,16 +226,15 @@ public class IndexWriter implements IndexIO
 
                         else
                         {
-                            List<String> tempLinks = this.neo4j.searchLink(link.replace("http://www.", "http://en."));
+                            String entity = this.entityLinker.link(link.replace("http://www.", "http://en."));
 
-                            if (!tempLinks.isEmpty())
+                            if (entity != null)
                             {
-                                String entity = tempLinks.get(0);
                                 List<String> entityTypes = this.neo4j.searchTypes(entity);
                                 List<String> entityPredicates = this.neo4j.searchPredicates(entity);
                                 matchesUris.add(entity);
                                 this.linker.addMapping(link, entity);
-                                this.linkToNumEntitiesFrequency.merge(tempLinks.size(), 1, Integer::sum);
+                                this.linkToNumEntitiesFrequency.merge(1, 1, Integer::sum);
 
                                 for (String type : this.disallowedEntityTypes)
                                 {

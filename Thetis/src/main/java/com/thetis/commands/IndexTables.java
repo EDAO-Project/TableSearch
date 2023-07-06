@@ -10,6 +10,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.thetis.loader.IndexWriter;
+import com.thetis.loader.Linker;
+import com.thetis.loader.LuceneLinker;
+import com.thetis.loader.WikiLinker;
 import com.thetis.system.Configuration;
 import com.thetis.system.Logger;
 import com.thetis.connector.DBDriverBatch;
@@ -53,6 +56,23 @@ public class IndexTables extends Command {
         }
     }
 
+    public enum Linking
+    {
+        WIKILINK("wikilink"), LUCENE("lucene");
+
+        private final String type;
+
+        Linking(String type)
+        {
+            this.type = type;
+        }
+
+        @Override
+        public String toString()
+        {
+            return this.type;
+        }
+    }
 
     @CommandLine.Option(names = { "-tt", "--table-type" }, description = "Table types: ${COMPLETION-CANDIDATES}", required = true)
     private TableType tableType = null;
@@ -150,6 +170,30 @@ public class IndexTables extends Command {
         Configuration.setBandSize(val);
     }
 
+    @CommandLine.Option(names = {"-link", "--entity-linker"}, description = "Type of entity linking", required = true, defaultValue = "wikilinkg")
+    private Linking linking;
+
+    private File kgDir = null;
+    @CommandLine.Option(names = {"-kg", "--kg-dir"}, paramLabel = "KG_DIR", description = "Directory of KG TTL files", required = false)
+    public void setKgDir(File dir)
+    {
+        if (!dir.exists())
+        {
+            throw new CommandLine.ParameterException(spec.commandLine(),
+                    String.format("InvaRoyaltylid value '%s' for option '--table-dir': " +
+                            "the directory does not exists.", dir));
+        }
+
+        else if (!dir.isDirectory())
+        {
+            throw new CommandLine.ParameterException(spec.commandLine(),
+                    String.format("Invalid value '%s' for option '--table-dir': " +
+                            "the path does not point to a directory.", dir));
+        }
+
+        this.kgDir = dir;
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private static final String WIKI_PREFIX = "http://www.wikipedia.org/";
@@ -172,15 +216,18 @@ public class IndexTables extends Command {
             Neo4jEndpoint connector = new Neo4jEndpoint(this.configFile);
             connector.testConnection();
 
+            Logger.logNewLine(Logger.Level.INFO, "Entity linker is constructing indexes");
+            Linker linker = this.linking == Linking.LUCENE ? new LuceneLinker(this.kgDir, true) : new WikiLinker(connector);
+            Logger.logNewLine(Logger.Level.INFO, "Done");
+
             switch (this.tableType) {
-                case TT:
-                    Logger.logNewLine(Logger.Level.ERROR, "Indexing of '"+TableType.TT.getName() + "' is not supported yet!");
-                    break;
-                case WIKI:
+                case TT ->
+                        Logger.logNewLine(Logger.Level.ERROR, "Indexing of '" + TableType.TT.getName() + "' is not supported yet!");
+                case WIKI -> {
                     Logger.logNewLine(Logger.Level.INFO, "Starting indexing of '" + TableType.WIKI.getName() + "'");
-                    parsedTables = indexWikiTables(this.tableDir.toPath(), this.outputDir, connector, embeddingStore, this.threads);
+                    parsedTables = indexWikiTables(this.tableDir.toPath(), this.outputDir, connector, linker, embeddingStore, this.threads);
                     Logger.logNewLine(Logger.Level.INFO, "Indexed " + parsedTables + " tables\n");
-                    break;
+                }
             }
 
             embeddingStore.close();
@@ -229,7 +276,7 @@ public class IndexTables extends Command {
      * @param connector Neo4J connector instance
      * @return Number of successfully loaded tables
      */
-    private long indexWikiTables(Path tableDir, File outputDir, Neo4jEndpoint connector,
+    private long indexWikiTables(Path tableDir, File outputDir, Neo4jEndpoint connector, Linker linker,
                                 DBDriverBatch<List<Double>, String> embeddingStore, int threads){
 
         // Open table directory
@@ -248,7 +295,7 @@ public class IndexTables extends Command {
             Logger.logNewLine(Logger.Level.INFO, "There are " + filePaths.size() + " files to be processed.");
 
             long startTime = System.nanoTime();
-            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, connector, threads, true,
+            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, linker, connector, threads, true,
                     embeddingStore, WIKI_PREFIX, URI_PREFIX, this.disallowedEntityTypes);
             indexWriter.performIO();
 
