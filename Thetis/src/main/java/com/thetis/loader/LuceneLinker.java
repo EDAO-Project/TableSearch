@@ -78,10 +78,21 @@ public class LuceneLinker implements Linker
         }
     }
 
-    private static void prepare(Path dir) throws IOException
+    private static void prepare(Path dir)
     {
-        Files.deleteIfExists(dir);
-        Files.createDirectory(dir);
+        File folder = dir.toFile();
+
+        if (folder.exists())
+        {
+            for (File f : folder.listFiles())
+            {
+                f.delete();
+            }
+
+            folder.delete();
+        }
+
+        folder.mkdir();
     }
 
     private void loadTable(File kgFile, IndexWriter writer) throws IOException
