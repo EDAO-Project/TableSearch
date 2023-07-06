@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 
@@ -39,6 +38,7 @@ public class LuceneLinker implements Linker
     public LuceneLinker(File kgDir, boolean construct)
     {
         Path luceneDir = new File(Configuration.getLuceneDir()).toPath();
+        this.kgDir = kgDir;
 
         if (construct)
         {
