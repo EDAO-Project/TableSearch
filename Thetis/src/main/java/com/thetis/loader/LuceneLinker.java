@@ -26,12 +26,15 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Objects;
+import java.util.*;
 
+// TODO: Add literals as a field
 public class LuceneLinker implements Linker
 {
     private IndexSearcher searcher;
     private File kgDir;
+    private final QueryParser parser = new QueryParser(TEXT_FIELD, new StandardAnalyzer());
+    private final Set<String> entities = new HashSet<>(); // URIs
     public static final String URI_FIELD = "uri";
     public static final String TEXT_FIELD = "text";
 
@@ -60,9 +63,20 @@ public class LuceneLinker implements Linker
 
             for (File kgFile : Objects.requireNonNull(this.kgDir.listFiles(f -> f.getName().endsWith(".ttl"))))
             {
-                loadTable(kgFile, writer);
+                loadEntities(kgFile);
             }
 
+            this.entities.forEach(uri -> {
+                try
+                {
+                    Document doc = new Document();
+                    doc.add(new Field(URI_FIELD, uri, TextField.TYPE_STORED));
+                    doc.add(new Field(TEXT_FIELD, uriPostfix(uri), TextField.TYPE_STORED));
+                    writer.addDocument(doc);
+                }
+
+                catch (IOException ignored) {}
+            });
             writer.close();
             directory.close();
         }
@@ -95,7 +109,7 @@ public class LuceneLinker implements Linker
         folder.mkdir();
     }
 
-    private void loadTable(File kgFile, IndexWriter writer) throws IOException
+    private void loadEntities(File kgFile) throws FileNotFoundException
     {
         Model m = ModelFactory.createDefaultModel();
         m.read(new FileInputStream(kgFile), null, "TTL");
@@ -104,10 +118,7 @@ public class LuceneLinker implements Linker
         while (iter.hasNext())
         {
             Triple triple = iter.next();
-            Document doc = new Document();
-            doc.add(new Field(URI_FIELD, triple.getSubject().getURI(), TextField.TYPE_STORED));
-            doc.add(new Field(TEXT_FIELD, uriPostfix(triple.getSubject().getURI()), TextField.TYPE_STORED));
-            writer.addDocument(doc);
+            this.entities.add(triple.getSubject().getURI());
         }
     }
 
@@ -142,8 +153,7 @@ public class LuceneLinker implements Linker
 
         try
         {
-            QueryParser parser = new QueryParser(TEXT_FIELD, new StandardAnalyzer());
-            Query query = parser.parse(mention);
+            Query query = this.parser.parse(mention);
             ScoreDoc[] hits = this.searcher.search(query, 1).scoreDocs;
 
             if (hits.length == 0)
