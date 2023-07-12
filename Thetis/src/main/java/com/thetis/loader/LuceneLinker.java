@@ -35,6 +35,15 @@ public class LuceneLinker implements Linker
     private File kgDir;
     private final QueryParser parser = new QueryParser(TEXT_FIELD, new StandardAnalyzer());
     private final Set<String> entities = new HashSet<>(); // URIs
+    private static final int CACHE_MAX = 10000;
+    private final Map<String, String> cache =
+            Collections.synchronizedMap(new LinkedHashMap<>(CACHE_MAX, 0.75f, true) {
+        @Override
+        public boolean removeEldestEntry(Map.Entry eldest)
+        {
+            return size() > CACHE_MAX;
+        }
+    });
     public static final String URI_FIELD = "uri";
     public static final String TEXT_FIELD = "text";
 
@@ -151,6 +160,13 @@ public class LuceneLinker implements Linker
             mention = uriPostfix(mention);
         }
 
+        String link = this.cache.get(mention);
+
+        if (link != null)
+        {
+            return link;
+        }
+
         try
         {
             Query query = this.parser.parse(mention);
@@ -162,6 +178,8 @@ public class LuceneLinker implements Linker
             }
 
             Document doc = this.searcher.doc(hits[0].doc);
+            link = doc.get(URI_FIELD);
+            this.cache.put(uriPostfix(link), link);
             return doc.get(URI_FIELD);
         }
 
