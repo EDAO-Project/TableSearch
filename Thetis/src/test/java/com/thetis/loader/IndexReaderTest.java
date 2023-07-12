@@ -38,10 +38,11 @@ public class IndexReaderTest
         {
             Configuration.reloadConfiguration();
             DBDriverBatch<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
+            Neo4jEndpoint endpoint = new Neo4jEndpoint("config.properties");
             List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
                     Path.of("table-0782-820.json"), Path.of("table-1019-555.json"), Path.of("table-1260-258.json"));
             paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
-            IndexWriter writer = new IndexWriter(paths, this.outDir, new Neo4jEndpoint("config.properties"), 1,
+            IndexWriter writer = new IndexWriter(paths, this.outDir, new WikiLinker(endpoint), endpoint, 1,
                     true, embeddingsDB, "http://www.wikipedia.org/", "http://dbpedia.org/");
             writer.performIO();
             this.reader = new IndexReader(this.outDir, false, true);

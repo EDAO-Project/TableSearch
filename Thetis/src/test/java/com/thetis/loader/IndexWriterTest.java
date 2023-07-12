@@ -34,11 +34,12 @@ public class IndexWriterTest
         synchronized (TestUtils.lock)
         {
             Configuration.reloadConfiguration();
+            Neo4jEndpoint endpoint = new Neo4jEndpoint("config.properties");
             DBDriverBatch<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
             List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
                     Path.of("table-0782-820.json"), Path.of("table-1019-555.json"), Path.of("table-1260-258.json"));
             paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
-            this.writer = new IndexWriter(paths, this.outDir, new Neo4jEndpoint("config.properties"), 1,
+            this.writer = new IndexWriter(paths, this.outDir, new WikiLinker(endpoint), endpoint, 1,
                     true, embeddingsDB, "http://www.wikipedia.org/", "http://dbpedia.org/");
             this.writer.performIO();
         }

@@ -4,7 +4,7 @@ import com.thetis.connector.DBDriverBatch;
 import com.thetis.connector.Factory;
 import com.thetis.connector.Neo4jEndpoint;
 import com.thetis.loader.IndexWriter;
-import com.thetis.search.Prefilter;
+import com.thetis.loader.WikiLinker;
 import com.thetis.store.EmbeddingsIndex;
 import com.thetis.store.EntityLinking;
 import com.thetis.store.EntityTable;
@@ -38,12 +38,13 @@ public class PrefilterTest
     public void setup() throws IOException
     {
         Configuration.reloadConfiguration();
+        Neo4jEndpoint endpoint = new Neo4jEndpoint("config.properties");
         DBDriverBatch<List<Double>, String> embeddingsDB = Factory.fromConfig(false);
         List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
                 Path.of("table-0782-820.json"), Path.of("table-1019-555.json"),
                 Path.of("table-1260-258.json"), Path.of("table-0001-1.json"), Path.of("table-0001-2.json"));
         paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
-        IndexWriter indexWriter = new IndexWriter(paths, this.outDir, new Neo4jEndpoint("config.properties"), 1,
+        IndexWriter indexWriter = new IndexWriter(paths, this.outDir, new WikiLinker(endpoint), endpoint, 1,
                 true, embeddingsDB, "http://www.wikipedia.org/", "http://dbpedia.org/");
         indexWriter.performIO();
 
