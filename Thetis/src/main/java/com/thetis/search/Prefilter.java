@@ -6,6 +6,7 @@ import com.thetis.store.EntityTable;
 import com.thetis.store.EntityTableLink;
 import com.thetis.store.lsh.SetLSHIndex;
 import com.thetis.store.lsh.VectorLSHIndex;
+import com.thetis.structures.Id;
 import com.thetis.structures.Pair;
 import com.thetis.structures.table.DynamicTable;
 import com.thetis.structures.table.Table;
@@ -26,13 +27,13 @@ public class Prefilter extends AbstractSearch
     private static final int SPLITS_SIZE = 3;
     private static final int MIN_EXISTS_IN = 2;
 
-    private Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<String> embeddingsIndex)
+    private Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<Id> embeddingsIndex)
     {
         super(linker, entityTable, entityTableLink, embeddingsIndex);
     }
 
     public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
-                     EmbeddingsIndex<String> embeddingsIndex, SetLSHIndex setLSHIndex)
+                     EmbeddingsIndex<Id> embeddingsIndex, SetLSHIndex setLSHIndex)
     {
         this(linker, entityTable, entityTableLink, embeddingsIndex);
         this.setLSH = setLSHIndex;
@@ -41,7 +42,7 @@ public class Prefilter extends AbstractSearch
     }
 
     public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
-            EmbeddingsIndex<String> embeddingsIndex, VectorLSHIndex vectorLSHIndex)
+            EmbeddingsIndex<Id> embeddingsIndex, VectorLSHIndex vectorLSHIndex)
     {
         this(linker, entityTable, entityTableLink, embeddingsIndex);
         this.vectorsLSH = vectorLSHIndex;
@@ -50,7 +51,7 @@ public class Prefilter extends AbstractSearch
     }
 
     public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
-                     EmbeddingsIndex<String> embeddingsIndex, BM25 bm25)
+                     EmbeddingsIndex<Id> embeddingsIndex, BM25 bm25)
     {
         this(linker, entityTable, entityTableLink, embeddingsIndex);
         this.vectorsLSH = null;

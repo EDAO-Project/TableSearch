@@ -20,7 +20,7 @@ public class ExactSearch extends AbstractSearch
 {
     private long elapsed = -1;
 
-    public ExactSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<String> embeddingsIndex)
+    public ExactSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<Id> embeddingsIndex)
     {
         super(linker, entityTable, entityTableLink, embeddingsIndex);
     }

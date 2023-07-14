@@ -4,6 +4,7 @@ import com.thetis.store.EmbeddingsIndex;
 import com.thetis.store.EntityLinking;
 import com.thetis.store.EntityTable;
 import com.thetis.store.EntityTableLink;
+import com.thetis.structures.Id;
 import com.thetis.structures.table.Table;
 
 public abstract class AbstractSearch implements TableSearch
@@ -11,10 +12,10 @@ public abstract class AbstractSearch implements TableSearch
     private EntityLinking linker;
     private EntityTable entityTable;
     private EntityTableLink entityTableLink;
-    private EmbeddingsIndex<String> embeddingsIndex;
+    private EmbeddingsIndex<Id> embeddingsIndex;
 
     protected AbstractSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
-                             EmbeddingsIndex<String> embeddingIdx)
+                             EmbeddingsIndex<Id> embeddingIdx)
     {
         this.linker = linker;
         this.entityTable = entityTable;
@@ -49,7 +50,7 @@ public abstract class AbstractSearch implements TableSearch
         return this.entityTableLink;
     }
 
-    public EmbeddingsIndex<String> getEmbeddingsIndex()
+    public EmbeddingsIndex<Id> getEmbeddingsIndex()
     {
         return this.embeddingsIndex;
     }

@@ -640,9 +640,9 @@ public class IndexWriter implements IndexIO
      * Getter to embeddings index
      * @return Loaded embeddings index
      */
-    public EmbeddingsIndex<String> getEmbeddingsIndex()
+    public EmbeddingsIndex<Id> getEmbeddingsIndex()
     {
-        return (EmbeddingsIndex<String>) this.embeddingsIdx.getIndex();
+        return (EmbeddingsIndex<Id>) this.embeddingsIdx.getIndex();
     }
 
     /**

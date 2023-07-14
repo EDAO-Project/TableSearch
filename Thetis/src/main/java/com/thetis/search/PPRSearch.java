@@ -27,7 +27,7 @@ public class PPRSearch extends AbstractSearch
 
     private double elapsedTime = -1;
 
-    public PPRSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<String> embeddingsIndex,
+    public PPRSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<Id> embeddingsIndex,
                      Neo4jEndpoint neo4j, boolean weightedPPR, double minThreshold, double particles, int topK)
     {
         super(linker, entityTable, entityTableLink, embeddingsIndex);

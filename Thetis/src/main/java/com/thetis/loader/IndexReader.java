@@ -6,6 +6,7 @@ import com.thetis.store.EntityTable;
 import com.thetis.store.EntityTableLink;
 import com.thetis.store.lsh.VectorLSHIndex;
 import com.thetis.store.lsh.SetLSHIndex;
+import com.thetis.structures.Id;
 import com.thetis.system.Configuration;
 import com.thetis.system.Logger;
 
@@ -27,7 +28,7 @@ public class IndexReader implements IndexIO
     private EntityLinking linker;
     private EntityTable entityTable;
     private EntityTableLink entityTableLink;
-    private EmbeddingsIndex<String> embeddingsIdx;
+    private EmbeddingsIndex<Id> embeddingsIdx;
     private SetLSHIndex typesLSHIndex, predicatesLSHIndex;
     private VectorLSHIndex embeddingsLSHIndex;
     private static final int INDEX_COUNT = 5;
@@ -112,7 +113,7 @@ public class IndexReader implements IndexIO
 
     private void loadEmbeddingsIndex()
     {
-        this.embeddingsIdx = (EmbeddingsIndex<String>) readIndex(this.indexDir + "/" + Configuration.getEmbeddingsIndexFile());
+        this.embeddingsIdx = (EmbeddingsIndex<Id>) readIndex(this.indexDir + "/" + Configuration.getEmbeddingsIndexFile());
     }
 
     private void loadLSHIndexes()
@@ -166,7 +167,7 @@ public class IndexReader implements IndexIO
         return this.entityTableLink;
     }
 
-    public EmbeddingsIndex<String> getEmbeddingsIndex()
+    public EmbeddingsIndex<Id> getEmbeddingsIndex()
     {
         return this.embeddingsIdx;
     }

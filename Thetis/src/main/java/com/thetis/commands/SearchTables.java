@@ -16,6 +16,8 @@ import com.google.gson.JsonArray;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.thetis.connector.DBDriverBatch;
+import com.thetis.connector.Factory;
 import com.thetis.connector.Neo4jEndpoint;
 import com.thetis.loader.IndexReader;
 import com.thetis.loader.Stats;
@@ -26,6 +28,8 @@ import com.thetis.store.EntityTable;
 import com.thetis.store.EntityTableLink;
 import com.thetis.store.lsh.SetLSHIndex;
 import com.thetis.store.lsh.VectorLSHIndex;
+import com.thetis.structures.graph.Entity;
+import com.thetis.structures.graph.Type;
 import com.thetis.system.Logger;
 import com.thetis.tables.JsonTable;
 import com.thetis.commands.parser.TableParser;
@@ -262,7 +266,7 @@ public class SearchTables extends Command {
             EntityLinking linker = indexReader.getLinker();
             EntityTable entityTable = indexReader.getEntityTable();
             EntityTableLink entityTableLink = indexReader.getEntityTableLink();
-            EmbeddingsIndex embeddingsIdx = indexReader.getEmbeddingsIndex();
+            EmbeddingsIndex<Id> embeddingsIdx = indexReader.getEmbeddingsIndex();
             SetLSHIndex typesLSH = indexReader.getTypesLSHIndex();
             SetLSHIndex predicatesLSH = indexReader.getPredicatesLSHIndex();
             VectorLSHIndex embeddingsLSH = indexReader.getEmbeddingsLSHIndex();
@@ -271,6 +275,9 @@ public class SearchTables extends Command {
             predicatesLSH.useEntityLinker(linker);
             embeddingsLSH.useEntityLinker(linker);
             Prefilter prefilter = null;
+            DBDriverBatch<List<Double>, String> embeddingStore = Factory.fromConfig(false);
+            Neo4jEndpoint connector = new Neo4jEndpoint(this.configFile);
+            connector.testConnection();
 
             if (this.prefilterTechnique != null)
             {
@@ -297,7 +304,8 @@ public class SearchTables extends Command {
 
                 Logger.logNewLine(Logger.Level.INFO, "Query Entities: " + queryTable + "\n");
 
-                if (ensureQueryEntitiesMapping(queryTable, linker, entityTableLink))
+                if (ensureQueryEntitiesMapping(queryTable, linker, entityTableLink) ||
+                        !linkQueryEntities(queryTable, embeddingStore, connector, linker, entityTable, embeddingsIdx))
                     Logger.logNewLine(Logger.Level.INFO, "All query entities are mappable!\n\n");
 
                 else
@@ -363,8 +371,39 @@ public class SearchTables extends Command {
         return true;
     }
 
+    private boolean linkQueryEntities(Table<String> query, DBDriverBatch<List<Double>, String> embeddingsDB, Neo4jEndpoint neo4j,
+                                      EntityLinking linker, EntityTable entityTable, EmbeddingsIndex<Id> embeddingsIdx)
+    {
+        int rowCount = query.rowCount();
+
+        for (int row = 0; row < rowCount; row++)
+        {
+            int rowSize = query.getRow(row).size();
+
+            for (int column = 0; column < rowSize; column++)
+            {
+                String entity = query.getRow(row).get(column), link = linker.getInputPrefix() + "q" + row + column;
+                List<String> entityTypes = neo4j.searchTypes(entity);
+                List<String> entityPredicates = neo4j.searchPredicates(entity);
+                linker.addMapping(link, entity);
+
+                Id entityId = linker.kgUriLookup(entity);
+                List<Double> embeddings = embeddingsDB.select(entity.replace("'", "''"));
+                entityTable.insert(entityId,
+                        new Entity(entity, entityTypes.stream().map(Type::new).collect(Collectors.toList()), entityPredicates));
+
+                if (embeddings != null)
+                {
+                    embeddingsIdx.insert(entityId, embeddings);
+                }
+            }
+        }
+
+        return true;
+    }
+
     public void exactSearch(Table<String> query, EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
-                            EmbeddingsIndex<String> embeddingsIndex)
+                            EmbeddingsIndex<Id> embeddingsIndex)
     {
         Iterator<Id> entityIter = linker.kgUriIds();
 
@@ -431,7 +470,7 @@ public class SearchTables extends Command {
      * Given a list of entities, return a ranked list of table candidates
      */
     public void analogousSearch(Table<String> query, String queryName, EntityLinking linker, EntityTable table,
-                                EntityTableLink tableLink, EmbeddingsIndex<String> embeddingIdx, Prefilter prefilter,
+                                EntityTableLink tableLink, EmbeddingsIndex<Id> embeddingIdx, Prefilter prefilter,
                                 Path tableDir) throws IOException
     {
         AnalogousSearch search;
@@ -483,7 +522,8 @@ public class SearchTables extends Command {
                 search.getReduction());
     }
 
-    public int ppr(Table<String> query, String queryName, EntityLinking linker, EntityTable table, EntityTableLink tableLink, EmbeddingsIndex<String> embeddingsIdx) {
+    public int ppr(Table<String> query, String queryName, EntityLinking linker, EntityTable table, EntityTableLink tableLink,
+                   EmbeddingsIndex<Id> embeddingsIdx) {
         // Initialize the connector
         try {
             Neo4jEndpoint neo4j = new Neo4jEndpoint(this.configFile);

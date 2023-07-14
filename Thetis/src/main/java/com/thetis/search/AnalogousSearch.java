@@ -77,7 +77,7 @@ public class AnalogousSearch extends AbstractSearch
     private Set<String> corpus;
     private Prefilter prefilter;
 
-    public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<String> embeddingIdx,
+    public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<Id> embeddingIdx,
                            int topK, int threads, EntitySimilarity entitySimilarity, boolean singleColumnPerQueryEntity,
                            boolean weightedJaccard, boolean adjustedSimilarity, boolean useMaxSimilarityPerColumn,
                            boolean hungarianAlgorithmSameAlignmentAcrossTuples, SimilarityMeasure similarityMeasure)
@@ -96,7 +96,7 @@ public class AnalogousSearch extends AbstractSearch
         this.prefilter = null;
     }
 
-    public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<String> embeddingIdx,
+    public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<Id> embeddingIdx,
                            int topK, int threads, EntitySimilarity entitySimilarity, boolean singleColumnPerQueryEntity,
                            boolean weightedJaccard, boolean adjustedSimilarity, boolean useMaxSimilarityPerColumn,
                            boolean hungarianAlgorithmSameAlignmentAcrossTuples, SimilarityMeasure similarityMeasure,

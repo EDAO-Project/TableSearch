@@ -9,6 +9,7 @@ import com.thetis.store.EmbeddingsIndex;
 import com.thetis.store.EntityLinking;
 import com.thetis.store.EntityTable;
 import com.thetis.store.EntityTableLink;
+import com.thetis.structures.Id;
 import com.thetis.structures.Pair;
 import com.thetis.structures.PairNonComparable;
 import com.thetis.structures.table.DynamicTable;
@@ -51,7 +52,7 @@ public class PrefilterTest
         EntityLinking linker = indexWriter.getEntityLinker();
         EntityTable entityTable = indexWriter.getEntityTable();
         EntityTableLink tableLink = indexWriter.getEntityTableLinker();
-        EmbeddingsIndex<String> embeddingsIdx = indexWriter.getEmbeddingsIndex();
+        EmbeddingsIndex<Id> embeddingsIdx = indexWriter.getEmbeddingsIndex();
         this.setPrefilter = new Prefilter(linker, entityTable, tableLink, embeddingsIdx, indexWriter.getTypesLSH());
         this.embeddingsPrefilter = new Prefilter(linker, entityTable, tableLink, embeddingsIdx, indexWriter.getEmbeddingsLSH());
 

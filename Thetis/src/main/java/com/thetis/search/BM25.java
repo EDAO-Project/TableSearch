@@ -11,6 +11,7 @@ import com.thetis.store.EmbeddingsIndex;
 import com.thetis.store.EntityLinking;
 import com.thetis.store.EntityTable;
 import com.thetis.store.EntityTableLink;
+import com.thetis.structures.Id;
 import com.thetis.structures.Pair;
 import com.thetis.structures.table.Table;
 import org.apache.http.HttpHost;
@@ -25,7 +26,7 @@ public class BM25 extends AbstractSearch
     private long elapsedNs = -1;
 
     public BM25(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
-                EmbeddingsIndex<String> embeddingIdx)
+                EmbeddingsIndex<Id> embeddingIdx)
     {
         super(linker, entityTable, entityTableLink, embeddingIdx);
     }
