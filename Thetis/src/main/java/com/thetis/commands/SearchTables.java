@@ -305,7 +305,7 @@ public class SearchTables extends Command {
                 Logger.logNewLine(Logger.Level.INFO, "Query Entities: " + queryTable + "\n");
 
                 if (ensureQueryEntitiesMapping(queryTable, linker, entityTableLink) ||
-                        !linkQueryEntities(queryTable, embeddingStore, connector, linker, entityTable, embeddingsIdx))
+                        linkQueryEntities(queryTable, embeddingStore, connector, linker, entityTable, embeddingsIdx))
                     Logger.logNewLine(Logger.Level.INFO, "All query entities are mappable!\n\n");
 
                 else
