@@ -152,7 +152,7 @@ public class LuceneLinker implements Linker
                 Document doc = new Document();
                 String label = this.neo4j.searchLabel(uri);
 
-                if (uri != null)
+                if (uri != null && label != null)
                 {
                     doc.add(new Field(URI_FIELD, uri, TextField.TYPE_STORED));
                     doc.add(new Field(TEXT_FIELD, label, TextField.TYPE_STORED));

@@ -48,7 +48,7 @@ public class Neo4jEndpoint implements AutoCloseable {
         this.driver = GraphDatabase.driver(dbUri, AuthTokens.basic(dbUser, dbPassword),
                 Config.builder().withLogging(Logging.javaUtilLogging(Level.WARNING)).build());
         this.isPrimaryTopicOf_rel_type_name = getPredicate("isPrimaryTopicOf");
-        this.rdfsLabel = getPredicate("label");
+        this.rdfsLabel = "ns0__label";
         this.birthName = getPredicate("birthName");
         this.fullName = getPredicate("fullname");
         this.abbreviation = getPredicate("abbreviation");
@@ -80,36 +80,21 @@ public class Neo4jEndpoint implements AutoCloseable {
     }
 
     /**
-     * @return a string with the name of the link corresponding to the isPrimaryTopicOf in the knowledge base.
-     * Return a null string if it is not found
+     * Returns predicate that contains argument as substring
+     * @param predicateLabel Substring matching requirement
+     * @return Predicate that satisfies substring requirement
      */
-    public String get_isPrimaryTopicOf_rel_type_name() {
-        try (Session session = driver.session()) {
-            return session.readTransaction(tx -> {
-                // Get list of all relationship types (i.e. all link names)
-                Result rel_types = tx.run("CALL db.relationshipTypes() YIELD relationshipType RETURN relationshipType");
-                String isPrimaryTopicOf_link_name = null;
-                for (var r : rel_types.list()) {
-                    String rel_type = r.get("relationshipType").asString();
-                    if (rel_type.contains("isPrimaryTopicOf")) {
-                        isPrimaryTopicOf_link_name = rel_type;
-                    }
-                }
-                return isPrimaryTopicOf_link_name;
-            });
-        }
-    }
-
     public String getPredicate(String predicateLabel) {
         try (Session session = driver.session()) {
             return session.readTransaction(tx -> {
                 // Get list of all relationship types (i.e. all link names)
-                Result rel_types = tx.run("CALL db.relationshipTypes() YIELD relationshipType RETURN relationshipType");
+                Result predicates = tx.run("CALL db.relationshipTypes() YIELD relationshipType RETURN relationshipType");
                 String name = null;
-                for (var r : rel_types.list()) {
-                    String rel_type = r.get("relationshipType").asString();
-                    if (rel_type.contains(predicateLabel)) {
-                        name = rel_type;
+                for (var r : predicates.list()) {
+                    String predicate = r.get("relationshipType").asString();
+                    if (predicate.contains(predicateLabel)) {
+                        name = predicate;
+                        break;
                     }
                 }
                 return name;
