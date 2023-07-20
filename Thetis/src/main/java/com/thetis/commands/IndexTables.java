@@ -217,7 +217,7 @@ public class IndexTables extends Command {
             connector.testConnection();
 
             Logger.logNewLine(Logger.Level.INFO, "Entity linker is constructing indexes");
-            Linker linker = this.linking == Linking.LUCENE ? new LuceneLinker(this.kgDir, true) : new WikiLinker(connector);
+            Linker linker = this.linking == Linking.LUCENE ? new LuceneLinker(connector, true) : new WikiLinker(connector);
             Logger.logNewLine(Logger.Level.INFO, "Done");
 
             switch (this.tableType) {
@@ -295,8 +295,8 @@ public class IndexTables extends Command {
             Logger.logNewLine(Logger.Level.INFO, "There are " + filePaths.size() + " files to be processed.");
 
             long startTime = System.nanoTime();
-            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, linker, connector, threads, true,
-                    embeddingStore, WIKI_PREFIX, URI_PREFIX, this.disallowedEntityTypes);
+            IndexWriter indexWriter = new IndexWriter(filePaths, outputDir, linker, connector, threads, embeddingStore,
+                    WIKI_PREFIX, URI_PREFIX, this.disallowedEntityTypes);
             indexWriter.performIO();
 
             long elapsedTime = System.nanoTime() - startTime;

@@ -42,7 +42,6 @@ import java.util.stream.Collectors;
 public class IndexWriter implements IndexIO
 {
     private List<Path> files;
-    private boolean logProgress;
     private File outputPath;
     private int threads;
     private AtomicLong loadedTables = new AtomicLong(0);
@@ -91,7 +90,7 @@ public class IndexWriter implements IndexIO
         return sum % num;
     };
 
-    public IndexWriter(List<Path> files, File outputDir, Linker entityLinker, Neo4jEndpoint neo4j, int threads, boolean logProgress,
+    public IndexWriter(List<Path> files, File outputDir, Linker entityLinker, Neo4jEndpoint neo4j, int threads,
                        DBDriverBatch<List<Double>, String> embeddingStore, String wikiPrefix, String uriPrefix, String ... disallowedEntityTypes)
     {
         if (!outputDir.exists())
@@ -110,7 +109,6 @@ public class IndexWriter implements IndexIO
         }
 
         this.files = files;
-        this.logProgress = logProgress;
         this.outputPath = outputDir;
         this.neo4j = neo4j;
         this.entityLinker = entityLinker;
@@ -204,7 +202,7 @@ public class IndexWriter implements IndexIO
                 (EntityLinking) this.linker.getLinker(), (EntityTable) this.entityTable.getIndex(), false);
 
         Logger.log(Logger.Level.INFO, "Loaded LSH index 1/3");
-        this.predicatesLSH = new SetLSHIndex(this.neo4j.getConfigFile(), SetLSHIndex.EntitySet.PREDICATES, permutations, bandSize, 2,
+        this.predicatesLSH = new SetLSHIndex(this.neo4j.getConfigFile(), SetLSHIndex.EntitySet.PREDICATES, permutations, bandSize, 1,
                 this.tableEntities, HASH_FUNCTION_NUMERIC, bucketGroups, bucketsPerGroup, this.threads, new Random(0),
                 (EntityLinking) this.linker.getLinker(), (EntityTable) this.entityTable.getIndex(), false);
 

@@ -351,8 +351,9 @@ public class AnalogousSearch extends AbstractSearch
     private List<List<Integer>> getQueryToColumnMapping(Table<String> query, JsonTable table)
     {
         List<List<List<Double>>> entityToColumnScore = new ArrayList<>();
+        int queryRows = query.rowCount();
 
-        for (int row = 0; row < query.rowCount(); row++)
+        for (int row = 0; row < queryRows; row++)
         {
             int rowSize = query.getRow(row).size();
             entityToColumnScore.add(new ArrayList<>(rowSize));
@@ -385,7 +386,7 @@ public class AnalogousSearch extends AbstractSearch
 
                     if (curEntity != null)
                     {
-                        for (int queryRow = 0; queryRow < query.rowCount(); queryRow++)    // Loop over each query tuple and each entity in a tuple and compute a score between the query entity and 'curEntity'
+                        for (int queryRow = 0; queryRow < queryRows; queryRow++)    // Loop over each query tuple and each entity in a tuple and compute a score between the query entity and 'curEntity'
                         {
                             for (int queryEntityCounter = 0; queryEntityCounter < query.getRow(queryRow).size(); queryEntityCounter++)
                             {

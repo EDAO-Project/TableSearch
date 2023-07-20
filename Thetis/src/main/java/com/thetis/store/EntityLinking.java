@@ -149,4 +149,14 @@ public class EntityLinking implements Linker<String, String>, Serializable
         this.t1Ids.clear();
         this.t2Ids.clear();
     }
+
+    public String getInputPrefix()
+    {
+        return this.inputPrefix;
+    }
+
+    public String getKgEntityPrefix()
+    {
+        return this.kgEntityPrefix;
+    }
 }

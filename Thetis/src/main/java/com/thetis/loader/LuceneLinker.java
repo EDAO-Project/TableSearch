@@ -1,5 +1,6 @@
 package com.thetis.loader;
 
+import com.thetis.connector.Neo4jEndpoint;
 import com.thetis.system.Configuration;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.rdf.model.Model;
@@ -28,11 +29,11 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 
-// TODO: Add literals as a field
 public class LuceneLinker implements Linker
 {
     private IndexSearcher searcher;
     private File kgDir;
+    private Neo4jEndpoint neo4j;
     private final QueryParser parser = new QueryParser(TEXT_FIELD, new StandardAnalyzer());
     private final Set<String> entities = new HashSet<>(); // URIs
     private static final int CACHE_MAX = 10000;
@@ -49,8 +50,21 @@ public class LuceneLinker implements Linker
 
     public LuceneLinker(File kgDir, boolean construct)
     {
-        Path luceneDir = new File(Configuration.getLuceneDir()).toPath();
         this.kgDir = kgDir;
+        this.neo4j = null;
+        setup(construct);
+    }
+
+    public LuceneLinker(Neo4jEndpoint neo4j, boolean construct)
+    {
+        this.neo4j = neo4j;
+        this.kgDir = null;
+        setup(construct);
+    }
+
+    private void setup(boolean construct)
+    {
+        Path luceneDir = new File(Configuration.getLuceneDir()).toPath();
 
         if (construct)
         {
@@ -75,17 +89,16 @@ public class LuceneLinker implements Linker
                 loadEntities(kgFile);
             }
 
-            this.entities.forEach(uri -> {
-                try
-                {
-                    Document doc = new Document();
-                    doc.add(new Field(URI_FIELD, uri, TextField.TYPE_STORED));
-                    doc.add(new Field(TEXT_FIELD, uriPostfix(uri), TextField.TYPE_STORED));
-                    writer.addDocument(doc);
-                }
+            if (this.kgDir != null)
+            {
+                loadFromFiles(writer);
+            }
 
-                catch (IOException ignored) {}
-            });
+            else
+            {
+                loadFromNeo4J(writer);
+            }
+
             writer.close();
             directory.close();
         }
@@ -116,6 +129,41 @@ public class LuceneLinker implements Linker
         }
 
         folder.mkdir();
+    }
+
+    private void loadFromFiles(IndexWriter writer) throws FileNotFoundException
+    {
+        this.entities.forEach(uri -> {
+            try
+            {
+                Document doc = new Document();
+                doc.add(new Field(URI_FIELD, uri, TextField.TYPE_STORED));
+                doc.add(new Field(TEXT_FIELD, uriPostfix(uri), TextField.TYPE_STORED));
+                writer.addDocument(doc);
+            }
+
+            catch (IOException ignored) {}
+        });
+    }
+
+    private void loadFromNeo4J(IndexWriter writer)
+    {
+        this.entities.forEach(uri -> {
+            try
+            {
+                Document doc = new Document();
+                String label = this.neo4j.searchLabel(uri);
+
+                if (uri != null)
+                {
+                    doc.add(new Field(URI_FIELD, uri, TextField.TYPE_STORED));
+                    doc.add(new Field(TEXT_FIELD, label, TextField.TYPE_STORED));
+                    writer.addDocument(doc);
+                }
+            }
+
+            catch (IOException ignored) {}
+        });
     }
 
     private void loadEntities(File kgFile) throws FileNotFoundException
@@ -178,7 +226,7 @@ public class LuceneLinker implements Linker
             }
 
             Document doc = this.searcher.doc(hits[0].doc);
-            link = doc.get(URI_FIELD);
+            link = doc.get(TEXT_FIELD);
             this.cache.put(uriPostfix(link), link);
             return doc.get(URI_FIELD);
         }

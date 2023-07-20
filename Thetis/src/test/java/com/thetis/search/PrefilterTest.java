@@ -46,7 +46,7 @@ public class PrefilterTest
                 Path.of("table-1260-258.json"), Path.of("table-0001-1.json"), Path.of("table-0001-2.json"));
         paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
         IndexWriter indexWriter = new IndexWriter(paths, this.outDir, new WikiLinker(endpoint), endpoint, 1,
-                true, embeddingsDB, "http://www.wikipedia.org/", "http://dbpedia.org/");
+                embeddingsDB, "http://www.wikipedia.org/", "http://dbpedia.org/");
         indexWriter.performIO();
 
         EntityLinking linker = indexWriter.getEntityLinker();

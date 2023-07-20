@@ -39,8 +39,8 @@ public class IndexWriterTest
             List<Path> paths = List.of(Path.of("table-0072-223.json"), Path.of("table-0314-885.json"),
                     Path.of("table-0782-820.json"), Path.of("table-1019-555.json"), Path.of("table-1260-258.json"));
             paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
-            this.writer = new IndexWriter(paths, this.outDir, new WikiLinker(endpoint), endpoint, 1,
-                    true, embeddingsDB, "http://www.wikipedia.org/", "http://dbpedia.org/");
+            this.writer = new IndexWriter(paths, this.outDir, new WikiLinker(endpoint), endpoint, 1, embeddingsDB,
+                    "http://www.wikipedia.org/", "http://dbpedia.org/");
             this.writer.performIO();
         }
     }

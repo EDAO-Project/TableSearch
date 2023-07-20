@@ -18,6 +18,13 @@ public class Neo4jEndpoint implements AutoCloseable {
     private final String dbUser;
     private final String dbPassword;
     private final String isPrimaryTopicOf_rel_type_name;
+    private final String rdfsLabel;
+    private final String birthName;
+    private final String fullName;
+    private final String abbreviation;
+    private final String nativeName;
+    private final String display;
+    private final String officialName;
     private File configFile;
 
     public Neo4jEndpoint(final String pathToConfigurationFile) throws IOException {
@@ -40,7 +47,14 @@ public class Neo4jEndpoint implements AutoCloseable {
         this.dbPassword = prop.getProperty("neo4j.password", "admin");
         this.driver = GraphDatabase.driver(dbUri, AuthTokens.basic(dbUser, dbPassword),
                 Config.builder().withLogging(Logging.javaUtilLogging(Level.WARNING)).build());
-        this.isPrimaryTopicOf_rel_type_name = this.get_isPrimaryTopicOf_rel_type_name();
+        this.isPrimaryTopicOf_rel_type_name = getPredicate("isPrimaryTopicOf");
+        this.rdfsLabel = getPredicate("label");
+        this.birthName = getPredicate("birthName");
+        this.fullName = getPredicate("fullname");
+        this.abbreviation = getPredicate("abbreviation");
+        this.nativeName = getPredicate("nativeName");
+        this.display = getPredicate("display");
+        this.officialName = getPredicate("officialName");
         this.configFile = confFile;
     }
 
@@ -66,7 +80,7 @@ public class Neo4jEndpoint implements AutoCloseable {
     }
 
     /**
-     * @return a string with the name of the link corresponding to the isPrimaryTopicOf in the knowledgebase.
+     * @return a string with the name of the link corresponding to the isPrimaryTopicOf in the knowledge base.
      * Return a null string if it is not found
      */
     public String get_isPrimaryTopicOf_rel_type_name() {
@@ -86,6 +100,22 @@ public class Neo4jEndpoint implements AutoCloseable {
         }
     }
 
+    public String getPredicate(String predicateLabel) {
+        try (Session session = driver.session()) {
+            return session.readTransaction(tx -> {
+                // Get list of all relationship types (i.e. all link names)
+                Result rel_types = tx.run("CALL db.relationshipTypes() YIELD relationshipType RETURN relationshipType");
+                String name = null;
+                for (var r : rel_types.list()) {
+                    String rel_type = r.get("relationshipType").asString();
+                    if (rel_type.contains(predicateLabel)) {
+                        name = rel_type;
+                    }
+                }
+                return name;
+            });
+        }
+    }
 
     /**
      *
@@ -112,8 +142,6 @@ public class Neo4jEndpoint implements AutoCloseable {
                 return entityUris;
             });
         }
-
-
     }
 
     /**
@@ -166,6 +194,45 @@ public class Neo4jEndpoint implements AutoCloseable {
                 }
 
                 return entity_types;
+            });
+        }
+    }
+
+    /**
+     * Search for any entity label using a set of properties
+     * @param entity Entity to find labels for
+     * @return One of the labels
+     */
+    public String searchLabel(String entity) {
+        List<String> predicates = List.of(this.rdfsLabel, this.birthName, this.fullName, this.abbreviation, this.nativeName,
+                this.display, this.officialName);
+
+        for (String predicate : predicates) {
+            String label = searchLabelWithPredicate(entity, predicate);
+
+            if (label != null) {
+                return label;
+            }
+        }
+
+        return null;
+    }
+
+    private String searchLabelWithPredicate(String entity, String predicate) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("entity", entity);
+
+        try (Session session = this.driver.session()) {
+            return session.readTransaction(tx -> {
+                Result result = tx.run("MATCH (a:Resource) -[l:" + predicate + "]-> (b)" + "\n" +
+                        "WHERE a.uri in [$entity]" + "\n" +
+                        "RETURN b as label", params);
+
+                if (result.hasNext()) {
+                    return result.next().get("label").asString();
+                }
+
+                return null;
             });
         }
     }

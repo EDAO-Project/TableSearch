@@ -43,7 +43,7 @@ public class IndexReaderTest
                     Path.of("table-0782-820.json"), Path.of("table-1019-555.json"), Path.of("table-1260-258.json"));
             paths = paths.stream().map(t -> Path.of("testing/data/" + t.toString())).collect(Collectors.toList());
             IndexWriter writer = new IndexWriter(paths, this.outDir, new WikiLinker(endpoint), endpoint, 1,
-                    true, embeddingsDB, "http://www.wikipedia.org/", "http://dbpedia.org/");
+                    embeddingsDB, "http://www.wikipedia.org/", "http://dbpedia.org/");
             writer.performIO();
             this.reader = new IndexReader(this.outDir, false, true);
             this.reader.performIO();
