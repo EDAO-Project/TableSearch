@@ -217,7 +217,7 @@ public class IndexTables extends Command {
             connector.testConnection();
 
             Logger.logNewLine(Logger.Level.INFO, "Entity linker is constructing indexes");
-            Linker linker = this.linking == Linking.LUCENE ? new LuceneLinker(connector, true) : new WikiLinker(connector);
+            Linker linker = this.linking == Linking.LUCENE ? new LuceneLinker(connector, this.kgDir, true) : new WikiLinker(connector);
             Logger.logNewLine(Logger.Level.INFO, "Done");
 
             switch (this.tableType) {

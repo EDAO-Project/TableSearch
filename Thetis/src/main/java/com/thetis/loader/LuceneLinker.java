@@ -50,15 +50,13 @@ public class LuceneLinker implements Linker
 
     public LuceneLinker(File kgDir, boolean construct)
     {
-        this.kgDir = kgDir;
-        this.neo4j = null;
-        setup(construct);
+        this(null, kgDir, construct);
     }
 
-    public LuceneLinker(Neo4jEndpoint neo4j, boolean construct)
+    public LuceneLinker(Neo4jEndpoint neo4j, File kgDir, boolean construct)
     {
         this.neo4j = neo4j;
-        this.kgDir = null;
+        this.kgDir = kgDir;
         setup(construct);
     }
 
@@ -89,7 +87,7 @@ public class LuceneLinker implements Linker
                 loadEntities(kgFile);
             }
 
-            if (this.kgDir != null)
+            if (this.neo4j == null)
             {
                 loadFromFiles(writer);
             }
