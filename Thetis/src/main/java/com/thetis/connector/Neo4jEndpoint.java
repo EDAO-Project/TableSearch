@@ -48,7 +48,7 @@ public class Neo4jEndpoint implements AutoCloseable {
         this.driver = GraphDatabase.driver(dbUri, AuthTokens.basic(dbUser, dbPassword),
                 Config.builder().withLogging(Logging.javaUtilLogging(Level.WARNING)).build());
         this.isPrimaryTopicOf_rel_type_name = getPredicate("isPrimaryTopicOf");
-        this.rdfsLabel = "ns0__label";
+        this.rdfsLabel = "rdfs__label";
         this.birthName = getPredicate("birthName");
         this.fullName = getPredicate("fullname");
         this.abbreviation = getPredicate("abbreviation");
@@ -209,9 +209,9 @@ public class Neo4jEndpoint implements AutoCloseable {
 
         try (Session session = this.driver.session()) {
             return session.readTransaction(tx -> {
-                Result result = tx.run("MATCH (a:Resource) -[l:" + predicate + "]-> (b)" + "\n" +
+                Result result = tx.run("MATCH (a:Resource) -[l]-> (b)" + "\n" +
                         "WHERE a.uri in [$entity]" + "\n" +
-                        "RETURN b as label", params);
+                        "RETURN DISTINCT a." + predicate + " as label", params);
 
                 if (result.hasNext()) {
                     return result.next().get("label").asString();

@@ -28,6 +28,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 
 public class LuceneLinker implements Linker
 {
@@ -35,7 +36,6 @@ public class LuceneLinker implements Linker
     private File kgDir;
     private Neo4jEndpoint neo4j;
     private final QueryParser parser = new QueryParser(TEXT_FIELD, new StandardAnalyzer());
-    private final Set<String> entities = new HashSet<>(); // URIs
     private static final int CACHE_MAX = 10000;
     private final Map<String, String> cache =
             Collections.synchronizedMap(new LinkedHashMap<>(CACHE_MAX, 0.75f, true) {
@@ -81,20 +81,54 @@ public class LuceneLinker implements Linker
             Directory directory = FSDirectory.open(luceneDir);
             IndexWriterConfig config = new IndexWriterConfig(analyzer);
             IndexWriter writer = new IndexWriter(directory, config);
-
-            for (File kgFile : Objects.requireNonNull(this.kgDir.listFiles(f -> f.getName().endsWith(".ttl"))))
-            {
-                loadEntities(kgFile);
-            }
+            Consumer<String> loader;
 
             if (this.neo4j == null)
             {
-                loadFromFiles(writer);
+                loader = (uri) -> {
+                    try
+                    {
+                        Document doc = new Document();
+                        doc.add(new Field(URI_FIELD, uri, TextField.TYPE_STORED));
+                        doc.add(new Field(TEXT_FIELD, uriPostfix(uri), TextField.TYPE_STORED));
+                        writer.addDocument(doc);
+                    }
+
+                    catch (IOException e)
+                    {
+                        throw new RuntimeException(e);
+                    }
+                };
             }
 
             else
             {
-                loadFromNeo4J(writer);
+                loader = (uri) -> {
+                    try
+                    {
+                        Document doc = new Document();
+                        String label = this.neo4j.searchLabel(uri);
+
+                        if (label == null)
+                        {
+                            label = uriPostfix(uri);
+                        }
+
+                        doc.add(new Field(URI_FIELD, uri, TextField.TYPE_STORED));
+                        doc.add(new Field(TEXT_FIELD, label, TextField.TYPE_STORED));
+                        writer.addDocument(doc);
+                    }
+
+                    catch (IOException e)
+                    {
+                        throw new RuntimeException(e);
+                    }
+                };
+            }
+
+            for (File kgFile : Objects.requireNonNull(this.kgDir.listFiles(f -> f.getName().endsWith(".ttl"))))
+            {
+                loadEntities(kgFile, loader);
             }
 
             writer.close();
@@ -129,42 +163,7 @@ public class LuceneLinker implements Linker
         folder.mkdir();
     }
 
-    private void loadFromFiles(IndexWriter writer) throws FileNotFoundException
-    {
-        this.entities.forEach(uri -> {
-            try
-            {
-                Document doc = new Document();
-                doc.add(new Field(URI_FIELD, uri, TextField.TYPE_STORED));
-                doc.add(new Field(TEXT_FIELD, uriPostfix(uri), TextField.TYPE_STORED));
-                writer.addDocument(doc);
-            }
-
-            catch (IOException ignored) {}
-        });
-    }
-
-    private void loadFromNeo4J(IndexWriter writer)
-    {
-        this.entities.forEach(uri -> {
-            try
-            {
-                Document doc = new Document();
-                String label = this.neo4j.searchLabel(uri);
-
-                if (uri != null && label != null)
-                {
-                    doc.add(new Field(URI_FIELD, uri, TextField.TYPE_STORED));
-                    doc.add(new Field(TEXT_FIELD, label, TextField.TYPE_STORED));
-                    writer.addDocument(doc);
-                }
-            }
-
-            catch (IOException ignored) {}
-        });
-    }
-
-    private void loadEntities(File kgFile) throws FileNotFoundException
+    private void loadEntities(File kgFile, Consumer<String> loader) throws FileNotFoundException
     {
         Model m = ModelFactory.createDefaultModel();
         m.read(new FileInputStream(kgFile), null, "TTL");
@@ -173,7 +172,7 @@ public class LuceneLinker implements Linker
         while (iter.hasNext())
         {
             Triple triple = iter.next();
-            this.entities.add(triple.getSubject().getURI());
+            loader.accept(triple.getSubject().getURI());
         }
     }
 
@@ -224,9 +223,9 @@ public class LuceneLinker implements Linker
             }
 
             Document doc = this.searcher.doc(hits[0].doc);
-            link = doc.get(TEXT_FIELD);
+            link = doc.get(URI_FIELD);
             this.cache.put(uriPostfix(link), link);
-            return doc.get(URI_FIELD);
+            return link;
         }
 
         catch (ParseException | IOException e)
