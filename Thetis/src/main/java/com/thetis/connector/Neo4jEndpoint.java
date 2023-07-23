@@ -2,6 +2,7 @@ package com.thetis.connector;
 
 import com.thetis.structures.Pair;
 import org.neo4j.driver.*;
+import org.neo4j.driver.Record;
 
 import java.nio.file.Paths;
 
@@ -184,40 +185,15 @@ public class Neo4jEndpoint implements AutoCloseable {
     }
 
     /**
-     * Search for any entity label using a set of properties
-     * @param entity Entity to find labels for
-     * @return One of the labels
+     * Returns all entities and their labels (labels can be null)
+     * @return Result of all entities and their labels. Entities are return as 'uri' and labels as 'label'.
      */
-    public String searchLabel(String entity) {
-        List<String> predicates = List.of(this.rdfsLabel, this.birthName, this.fullName, this.abbreviation, this.nativeName,
-                this.display, this.officialName);
-
-        for (String predicate : predicates) {
-            String label = searchLabelWithPredicate(entity, predicate);
-
-            if (label != null) {
-                return label;
-            }
-        }
-
-        return null;
-    }
-
-    private String searchLabelWithPredicate(String entity, String predicate) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("entity", entity);
-
+    public List<Record> entityLabels() {
         try (Session session = this.driver.session()) {
             return session.readTransaction(tx -> {
-                Result result = tx.run("MATCH (a:Resource) -[l]-> (b)" + "\n" +
-                        "WHERE a.uri in [$entity]" + "\n" +
-                        "RETURN DISTINCT a." + predicate + " as label", params);
-
-                if (result.hasNext()) {
-                    return result.next().get("label").asString();
-                }
-
-                return null;
+                Result result = tx.run("MATCH (a:Resource)" + "\n"
+                        + "RETURN DISTINCT a.uri as uri, a." + this.rdfsLabel + " as label");
+                return result.list();
             });
         }
     }

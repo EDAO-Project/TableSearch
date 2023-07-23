@@ -21,6 +21,8 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.index.IndexWriter;
+import org.neo4j.driver.Record;
+import org.neo4j.driver.Result;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,7 +30,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.Consumer;
 
 public class LuceneLinker implements Linker
 {
@@ -81,54 +82,15 @@ public class LuceneLinker implements Linker
             Directory directory = FSDirectory.open(luceneDir);
             IndexWriterConfig config = new IndexWriterConfig(analyzer);
             IndexWriter writer = new IndexWriter(directory, config);
-            Consumer<String> loader;
 
             if (this.neo4j == null)
             {
-                loader = (uri) -> {
-                    try
-                    {
-                        Document doc = new Document();
-                        doc.add(new Field(URI_FIELD, uri, TextField.TYPE_STORED));
-                        doc.add(new Field(TEXT_FIELD, uriPostfix(uri), TextField.TYPE_STORED));
-                        writer.addDocument(doc);
-                    }
-
-                    catch (IOException e)
-                    {
-                        throw new RuntimeException(e);
-                    }
-                };
+                loadFromDir(writer);
             }
 
             else
             {
-                loader = (uri) -> {
-                    try
-                    {
-                        Document doc = new Document();
-                        String label = this.neo4j.searchLabel(uri);
-
-                        if (label == null)
-                        {
-                            label = uriPostfix(uri);
-                        }
-
-                        doc.add(new Field(URI_FIELD, uri, TextField.TYPE_STORED));
-                        doc.add(new Field(TEXT_FIELD, label, TextField.TYPE_STORED));
-                        writer.addDocument(doc);
-                    }
-
-                    catch (IOException e)
-                    {
-                        throw new RuntimeException(e);
-                    }
-                };
-            }
-
-            for (File kgFile : Objects.requireNonNull(this.kgDir.listFiles(f -> f.getName().endsWith(".ttl"))))
-            {
-                loadEntities(kgFile, loader);
+                loadFromNeo4J(writer);
             }
 
             writer.close();
@@ -163,16 +125,57 @@ public class LuceneLinker implements Linker
         folder.mkdir();
     }
 
-    private void loadEntities(File kgFile, Consumer<String> loader) throws FileNotFoundException
+    private void loadFromDir(IndexWriter writer) throws FileNotFoundException
     {
-        Model m = ModelFactory.createDefaultModel();
-        m.read(new FileInputStream(kgFile), null, "TTL");
-        ExtendedIterator<Triple> iter = m.getGraph().find();
-
-        while (iter.hasNext())
+        for (File kgFile : Objects.requireNonNull(this.kgDir.listFiles(f -> f.getName().endsWith(".ttl"))))
         {
-            Triple triple = iter.next();
-            loader.accept(triple.getSubject().getURI());
+            Model m = ModelFactory.createDefaultModel();
+            m.read(new FileInputStream(kgFile), null, "TTL");
+            ExtendedIterator<Triple> iter = m.getGraph().find();
+
+            while (iter.hasNext())
+            {
+                try
+                {
+                    Triple triple = iter.next();
+                    String uri = triple.getSubject().getURI();
+                    Document doc = new Document();
+                    doc.add(new Field(URI_FIELD, uri, TextField.TYPE_STORED));
+                    doc.add(new Field(TEXT_FIELD, uriPostfix(uri), TextField.TYPE_STORED));
+                    writer.addDocument(doc);
+                }
+
+                catch (IOException ignored) {}
+            }
+        }
+    }
+
+    private void loadFromNeo4J(IndexWriter writer)
+    {
+        List<Record> records = this.neo4j.entityLabels();
+
+        for (Record record : records)
+        {
+            try
+            {
+                Document doc = new Document();
+                String uri = record.get("uri").asString();
+                doc.add(new Field(URI_FIELD, uri, TextField.TYPE_STORED));
+
+                if (record.get("label").isNull())
+                {
+                    doc.add(new Field(TEXT_FIELD, uriPostfix(uri), TextField.TYPE_STORED));
+                }
+
+                else
+                {
+                    doc.add(new Field(TEXT_FIELD, record.get("label").asString(), TextField.TYPE_STORED));
+                }
+
+                writer.addDocument(doc);
+            }
+
+            catch (IOException ignored) {}
         }
     }
 
