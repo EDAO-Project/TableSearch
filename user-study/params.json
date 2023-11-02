@@ -1,0 +1,8 @@
+{
+    "queries": [
+        {
+            "filename": "path/to/query/file",
+            "table-directory": "path/to/tables/to/annotate"
+        }
+    ]
+}
