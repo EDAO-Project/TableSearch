@@ -1,12 +1,11 @@
 from django.db import models
 
-class Score(models.Model):
-    score = models.IntegerField()
-    table_id = models.CharField(max_length = 255)
-    id = models.IntegerField(primary_key = True)
-    username = models.CharField(max_length = 255)
+class User(models.Model):
+    id = models.AutoField(primary_key = True, auto_created = True)       # Referential ID
+    username = models.CharField(max_length = 255, db_index = True)   # Username
 
-class Table(models.Model):
-    table_id = models.CharField(max_length = 255, primary_key = True)
-    query_id = models.CharField(max_length = 255)
-    scores = models.ForeignKey(Score, to_field = 'id', on_delete = models.CASCADE)
+class Annotation(models.Model):
+    query_id = models.CharField(max_length = 255, db_index = True)   # ID of query
+    table_id = models.CharField(max_length = 255)   # ID of table
+    score = models.IntegerField()                   # Annotation score
+    user = models.ForeignKey(User, to_field = 'id', on_delete = models.CASCADE, default = -1)

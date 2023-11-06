@@ -2,12 +2,31 @@
 <html>
     <head>
         <title>Semantic Table Search Annotator</title>
+        <style>
+            .tips-box {
+                border: 2px solid #008CBA;
+                padding: 10px;
+                margin: 20px 0;
+                background-color: #e8f8f5;
+            }
+        </style>
+        <style>
+            h4 {
+                text-align: center;
+            }
+            p {
+                text-align: center;
+            }
+        </style>
     </head>
-<body>
+    <body>
+        <div class="container" style="text-align: center;">
+            <h2>Hello, {{ username }}!</h2>
+        </div>
 
-<div class="container" style="text-align: center;">
-    <h2>Hello, {{ username }}!</h2>
-</div>
-
-</body>
+        <div class="tips-box">
+            <h4>DBpedia prefix of query and table entities:</h4>
+            <p>http://dbpedia.org/resource/</p>
+        </div>
+    </body>
 </html>
