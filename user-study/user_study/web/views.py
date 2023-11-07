@@ -4,6 +4,7 @@ from django.template import loader
 from web.models import Annotation, User
 import json
 import os
+import random
 
 # Login page
 def login(request):
@@ -50,8 +51,8 @@ def get_annotation_data(params_file):
                     table_row = list()
 
                     for column in row:
-                        if len(column['links']):
-                            table_row.append(column['links'][0])
+                        if len(column['links']) > 0:
+                            table_row.append(column['links'][0].split('/')[-1])
 
                         else:
                             table_row.append(column['text'])
@@ -110,20 +111,21 @@ def annotate(request):
         usernames_for_query = get_annotated_query(query_id)
 
         if len(usernames_for_query) == 0:
-            query_for_annotation = query_id
+            query_for_annotation = query
             break
 
         elif username not in usernames_for_query and query_for_annotation is None:
-            query_for_annotation = query_id
+            query_for_annotation = query
 
     if query_for_annotation is None:    # In this case, the user has annotated everything
         template = loader.get_template('all_annotated.html')
         return HttpResponse(template.render())
 
     # TODO: Let the user iterate queries and its set of tables one by one, and save the scores of all the tables before moving on to the next query.
-    
+    random.shuffle(query_for_annotation['tables'])
+
     template = loader.get_template('annotate.html')
-    context = {
-        'username': username
-    }
+    context = query_for_annotation
+    context['query_id'] = context['query_id'].split('/')[-1]
+    context['username'] = username
     return HttpResponse(template.render(context, request))
