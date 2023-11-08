@@ -45,7 +45,7 @@ def get_annotation_data(params_file):
         for table_filename in os.listdir(table_dir):
             with open(table_dir + table_filename, 'r') as file:
                 obj = json.load(file)
-                table = list()
+                table = {'id': table_filename.replace('.json', ''), 'table': list()}
 
                 for row in obj['rows']:
                     table_row = list()
@@ -57,11 +57,11 @@ def get_annotation_data(params_file):
                         else:
                             table_row.append(column['text'])
 
-                    table.append(table_row)
+                    table['table'].append(table_row)
 
                 tables.append(table)
 
-        data.append({'query': query_table, 'query_id': query_id, 'tables': tables})
+        data.append({'query': query_table, 'query_id': query_id.split('/')[-1].replace('.json', ''), 'tables': tables})
 
     return data
 
@@ -83,7 +83,7 @@ def get_annotated_query(query_id):
         usernames = list()
 
         for result in rs:
-            user = User.objects.get(id = result.user)
+            user = User.objects.get(id = result.user.id)
             usernames.append(user.username)
 
         return usernames
@@ -98,12 +98,23 @@ def annotate(request):
         return HttpResponse(template.render())
     
     username = request.POST['uname']
+    user = get_user_and_add(username)
+    annotated_tables = list(request.POST.keys())
+    annotated_tables.remove('uname')
+
+    if 'query_id' in annotated_tables:
+        annotated_tables.remove('query_id')
+
     annotation_data = get_annotation_data('../params-debug.json')
+
+    for annotated_table in annotated_tables:
+        score = int(request.POST[annotated_table])
+        annotation = Annotation(query_id = request.POST['query_id'], table_id = annotated_table, score = score, user = user)
+        annotation.save()
 
     if annotation_data is None:
         return HttpResponse("Failed reading annotationd data")
-
-    user = get_user_and_add(username)    
+    
     query_for_annotation = None
 
     for query in annotation_data:
@@ -121,11 +132,10 @@ def annotate(request):
         template = loader.get_template('all_annotated.html')
         return HttpResponse(template.render())
 
-    # TODO: Let the user iterate queries and its set of tables one by one, and save the scores of all the tables before moving on to the next query.
     random.shuffle(query_for_annotation['tables'])
 
     template = loader.get_template('annotate.html')
     context = query_for_annotation
-    context['query_id'] = context['query_id'].split('/')[-1]
+    context['query_id'] = context['query_id']
     context['username'] = username
     return HttpResponse(template.render(context, request))

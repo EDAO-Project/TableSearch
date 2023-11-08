@@ -16,3 +16,11 @@ def is_link(cell):
         return '1'
     
     return '0'
+
+@register.filter
+def get_table(map):
+    return map['table']
+
+@register.filter
+def get_table_id(map):
+    return map['id']

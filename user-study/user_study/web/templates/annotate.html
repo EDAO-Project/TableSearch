@@ -9,7 +9,7 @@
                 margin: 20px 0;
                 background-color: #e8f8f5;
             }
-            h4 {
+            h3, h4 {
                 text-align: center;
             }
             p {
@@ -48,37 +48,61 @@
                 overflow: hidden;
                 background-color: #f1f1f1;
             }
+            .big-button {
+                font-size: 20px;
+                padding: 10px 24px;
+                background-color: #87e211;
+            }
         </style>
     </head>
     <body>
         <div class="container" style="text-align: center;">
-            <h2>Hello, {{ username }}!</h2>
+            <h1>Hello, {{ username }}!</h1>
         </div>
 
         <div class="tips-box">
-            <h4>DBpedia prefix of query and table entities:</h4>
+            <h3>Assign a score 1-4 to each table, where 1 is least relevant and 4 is most relevant, and click 'Save' in the bottom.</h3>
+            <br>
+            <h4>DBpedia prefix of query entities:</h4>
             <p>http://dbpedia.org/resource/</p>
+            <h4>Wikipedia prefix of table entities:</h4>
+            <p>http://www.wikipedia.org/wiki/</p>
         </div>
 
-        <div style="text-align: center;">
-            <h2>Query {{ query_id }}</h2>
-            <table class="center">
-                {% for tuple in query %}
-                <tr>
-                    {% for entity in tuple %}
-                        <td><a href="http://dbpedia.org/resource/{{ entity }}">{{ entity }}</a></td>
-                    {% endfor %}
-                </tr>
-            {% endfor %}
-            </table>
-            <h3>Tables</h3>
-            {% load filters %}
-            {% for table in tables %}
+        <form id="form" action="/annotate/" method="post">
+            <input type="hidden" name="uname" value="{{ username }}">
+            <input type="hidden" name="query_id" value="{{ query_id }}">
+            <div style="text-align: center;">
+                <h2>Query <i>{{ query_id }}</i></h2>
+                <table class="center">
+                    {% for tuple in query %}
+                    <tr>
+                        {% for entity in tuple %}
+                            <td><a href="http://dbpedia.org/resource/{{ entity }}">{{ entity }}</a></td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+                </table>
+                <h3>Tables</h3>
+                {% load filters %}
+                {% for table in tables %}
+                <h4>Assign a score to <i>{{ table|get_table_id }}</i></h4>
+                <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
+                    <input type="radio" id="{{ table|get_table_id }}_score_1" name="{{ table|get_table_id }}_score" value="1">
+                    <label for="1">1</label><br>
+                    <input type="radio" id="{{ table|get_table_id }}_score_2" name="{{ table|get_table_id }}_score" value="2">
+                    <label for="2">2</label><br>
+                    <input type="radio" id="{{ table|get_table_id }}_score_3" name="{{ table|get_table_id }}_score" value="3">
+                    <label for="3">3</label>
+                    <input type="radio" id="{{ table|get_table_id }}_score_4" name="{{ table|get_table_id }}_score" value="4">
+                    <label for="4">4</label>
+                </div>
+                <br>
                 <button type="button" class="collapsible">
                     <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
                         <table class="center">
                             <tr>
-                                {% for column in table|index:0 %}
+                                {% for column in table|get_table|index:0 %}
                                     <td>{{ column|display }}</td>
                                 {% endfor %}
                             </tr>
@@ -88,7 +112,7 @@
                 </button>
                 <div class="content">
                     <table class="center">
-                        {% for row in table %}
+                        {% for row in table|get_table %}
                             <tr>
                                 {% for column in row %}
                                     {% if column|is_link == '1' %}
@@ -102,8 +126,11 @@
                     </table>
                 </div>
                 <br>
-            {% endfor %}
-        </div>
+                {% endfor %}
+                <br>
+                <button id="save" type="submit" onclick="window.location='/annotate'" class="big-button">Save</button>
+                </div>
+            </form>
         <script>
             var coll = document.getElementsByClassName("collapsible");
             var i;
