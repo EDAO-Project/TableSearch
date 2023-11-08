@@ -11,7 +11,7 @@ def login(request):
     template = loader.get_template('login.html')
     return HttpResponse(template.render())
 
-# Returns list of maps query, query ID, and list of tables
+# Returns list of maps of query, query ID, and list of tables
 def get_annotation_data(params_file):
     data = list()
     params = None
@@ -65,6 +65,14 @@ def get_annotation_data(params_file):
 
     return data
 
+# Returns a query from the list of queries and their tables to be annotated
+def get_query(query_list, query_id):
+    for query in query_list:
+        if query_id == query['query_id']:
+            return query
+
+    return None
+
 # Looks for user in DB and returns it. Otherwise, it created a new entry and returns it.
 def get_user_and_add(username):
     try:
@@ -99,36 +107,46 @@ def annotate(request):
     
     username = request.POST['uname']
     user = get_user_and_add(username)
+    annotation_data = get_annotation_data('../params-debug.json')
     annotated_tables = list(request.POST.keys())
     annotated_tables.remove('uname')
+
+    if annotation_data is None:
+        return HttpResponse("Failed reading annotationd data")
 
     if 'query_id' in annotated_tables:
         annotated_tables.remove('query_id')
 
-    annotation_data = get_annotation_data('../params-debug.json')
-
+    # Save annotation scores
     for annotated_table in annotated_tables:
         score = int(request.POST[annotated_table])
         annotation = Annotation(query_id = request.POST['query_id'], table_id = annotated_table, score = score, user = user)
         annotation.save()
-
-    if annotation_data is None:
-        return HttpResponse("Failed reading annotationd data")
     
     query_for_annotation = None
+    not_annotated = list()
+    partially_annotated = list()
 
+    # Find query to be annotated
+    # Prioritizes queries that have not been annotated by anyone
     for query in annotation_data:
         query_id = query['query_id']
         usernames_for_query = get_annotated_query(query_id)
 
         if len(usernames_for_query) == 0:
-            query_for_annotation = query
-            break
+            not_annotated.append(query)
 
-        elif username not in usernames_for_query and query_for_annotation is None:
-            query_for_annotation = query
+        elif username not in usernames_for_query:
+            partially_annotated.append(query)
 
-    if query_for_annotation is None:    # In this case, the user has annotated everything
+    if len(not_annotated) > 0:
+        query_for_annotation = not_annotated[random.random.randrange(0, len(not_annotated))]
+
+    elif len(partially_annotated) > 0:
+        query_for_annotation = partially_annotated[random.randrange(0, len(partially_annotated))]
+
+    # In this case, the user has annotated everything
+    if query_for_annotation is None:
         template = loader.get_template('all_annotated.html')
         return HttpResponse(template.render())
 
@@ -136,6 +154,5 @@ def annotate(request):
 
     template = loader.get_template('annotate.html')
     context = query_for_annotation
-    context['query_id'] = context['query_id']
     context['username'] = username
     return HttpResponse(template.render(context, request))

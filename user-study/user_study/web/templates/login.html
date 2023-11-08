@@ -2,13 +2,156 @@
 <html>
     <head>
         <title>Semantic Table Search Annotator</title>
+        <style>
+            h1, h2, h3, h4, p {
+                text-align: center;
+            }
+            .center {
+                margin-left: auto;
+                margin-right: auto;
+            }
+            table {
+                width: 50%;
+                border-collapse: collapse;
+            }
+            th, td {
+                border: 1px solid black;
+                padding: 15px;
+                text-align: left;
+            }
+            .box {
+                border: 2px solid #008CBA;
+                padding: 10px;
+                margin: 20px 0;
+                background-color: #e8f8f5;
+            }
+        </style>
     </head>
     <body>
-        <form action="/annotate/" method="post">      
+        <form action="/annotate/" method="post">
+            <h2>Login</h2>
             <div class="container" style="text-align: center;">
                 <label for="uname"><b>Username</b></label>
                 <input type="text" placeholder="Enter Username" name="uname" required>
                 <button type="submit" onclick="window.location='/annotate'">Login</button>
+            </div>
+            <br>
+            <div>
+                <h3>Instructions</h3>
+                <p>
+                    You will be presented with a tabular query and a set of tables from Wikipedia.<br>
+                    The task is to annotate the tables with a relevance score between 1 and 4 given a table query based on the tables' <b>semantic relevance</b> to the query.<br>
+                    For example, a table query containing american presidents and the state they are born in is relevant to tables describing presidents, prime ministers, politicians, celebreties, etc., as well as tables describing cities, states, countries, geographical localtions, etc.<br>
+                    Therefore, a table does not need to contain keyword matches with the query in order to be semantically relevant.<br>
+                    Some examples of relevant and irrelevant tables are shown in the bottom of this page.<br><br>
+                    
+                    To login, use a name you like and remember it.<br>
+                    If you choose to stop annotating tables and return later, simply use the same username to login again.<br><br>
+
+                    Contact Martin Pekár for questions.<br><br>
+
+                    <b>Thank you for your help!</b><br>
+                    I promise to bring cake some day or something similar to those who participate. ;-)
+                </p>
+            </div>
+            <br>
+            <div class="box" style="display:flex; flex-direction: row; justify-content: center; align-items: center">
+                <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
+                    <h4>Query</h4>
+                    <table class="center">
+                        <tr>
+                            <td>Barack Obama</td>
+                            <td>Hawaii</td>
+                        </tr>
+                        <tr>
+                            <td>Joe Biden</td>
+                            <td>Pennsylvania</td>
+                        </tr>
+                        <tr>
+                            <td>George Bush</td>
+                            <td>Connecticut</td>
+                        </tr>
+                    </table>
+                </div>
+                <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
+                    <h4>Semantically relevant table</h4>
+                    <table class="center">
+                        <tr>
+                            <td>Rishi Sunak</td>
+                            <td>Conservative Party</td>
+                            <td>25 Oct 2022</td>
+                        </tr>
+                        <tr>
+                            <td>Liz Truss</td>
+                            <td>Conservative Party</td>
+                            <td>6 Sep 2022</td>
+                        </tr>
+                        <tr>
+                            <td>Theresa May</td>
+                            <td>Conservative Party</td>
+                            <td>13 Jul 2016</td>
+                        </tr>
+                    </table>
+                </div>
+                <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
+                    <h4>Semantically relevant table</h4>
+                    <table class="center">
+                        <tr>
+                            <td>Spain</td>
+                            <td>F.C. Barcelona</td>
+                            <td>Lionel Messi</td>
+                        </tr>
+                        <tr>
+                            <td>Portugal</td>
+                            <td>Real Madrid</td>
+                            <td>Cristiano Ronaldo</td>
+                        </tr>
+                        <tr>
+                            <td>France</td>
+                            <td>Real Madrid</td>
+                            <td>Zinedine Zidane</td>
+                        </tr>
+                        <tr>
+                            <td>Denmark</td>
+                            <td>Arsenal F.C.</td>
+                            <td>Nicklas Bendtner</td>
+                        </tr>
+                    </table>
+                </div>
+                <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
+                    <h4>Semantically relevant table</h4>
+                    <table class="center">
+                        <tr>
+                            <td>Will Ferrell</td>
+                            <td>Step Brothers</td>
+                            <td>Adam McKay</td>
+                            <td>English</td>
+                        </tr>
+                        <tr>
+                            <td>Elijah Wood</td>
+                            <td>Lord of the Rings</td>
+                            <td>Peter Jackson</td>
+                            <td>English</td>
+                        </tr>
+                    </table>
+                </div>
+                <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
+                    <h4><u>Not</u> semantically relevant table</h4>
+                    <table class="center">
+                        <tr>
+                            <td>Microsoft</td>
+                            <td>Windows</td>
+                        </tr>
+                        <tr>
+                            <td>IBM</td>
+                            <td>AIX</td>
+                        </tr>
+                        <tr>
+                            <td>Apple</td>
+                            <td>IOS</td>
+                        </tr>
+                    </table>
+                </div>
             </div>
         </form>
     </body>
