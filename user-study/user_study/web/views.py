@@ -114,6 +114,16 @@ def get_annotated_tables(query_id, user):
     except Exception as e:
         return set()
 
+# Returns the total amount of tables to annotate
+def progress(data, user):
+    count = 0
+
+    for query in data:
+        count += len(query['tables'])
+    
+    annotation_count = len(Annotation.objects.filter(user = user))
+    return str(annotation_count) + '/' + str(count)
+
 # Annotation page
 def annotate(request):
     if request.method == 'GET':
@@ -122,7 +132,7 @@ def annotate(request):
     
     username = request.POST['uname']
     user = get_user_and_add(username)
-    annotation_data = get_annotation_data('../params-debug.json')
+    annotation_data = get_annotation_data('params.json')
     annotated_tables = list(request.POST.keys())
     annotated_tables.remove('uname')
 
@@ -164,6 +174,7 @@ def annotate(request):
         'query_id' : query_for_annotation['query_id'],
         'table': table_for_annotation['table'],
         'table_id': table_for_annotation['id'],
-        'username': username
+        'username': username,
+        'progress': progress(annotation_data, user)
     }
     return HttpResponse(template.render(context, request))

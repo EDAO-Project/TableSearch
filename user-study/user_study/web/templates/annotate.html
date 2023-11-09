@@ -61,7 +61,8 @@
         </div>
 
         <div class="tips-box">
-            <h3>Assign a score 1-4 to each table, where 1 is least relevant and 4 is most relevant, and click 'Save' in the bottom.</h3>
+            <h3>Assign a score 1-4 to each table, where 1 is not relevant and 4 is most relevant, and click 'Save' in the bottom.</h3>
+            <p><b>Progress: </b>{{ progress }}</p>
         </div>
 
         <form id="form" action="/annotate/" method="post">
@@ -122,7 +123,7 @@
                 </div>
                 <br>
                 <br>
-                <button id="save" type="submit" onclick="window.location='/annotate'" class="big-button">Save</button>
+                <button id="save" type="submit" onclick="window.location='/annotate'" class="big-button">Next</button>
                 </div>
             </form>
         <script>
