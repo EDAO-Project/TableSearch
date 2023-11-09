@@ -26,6 +26,8 @@ def get_annotation_data(params_file):
         if 'query' not in query.keys() or 'table-directory' not in query.keys():
             return None
 
+        #query_id = '/home/' + query['query']
+        #table_dir = '/home' + query['table-directory']
         query_id = query['query']
         table_dir = query['table-directory']
         query_table = list()

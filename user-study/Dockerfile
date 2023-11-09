@@ -2,6 +2,8 @@ FROM python:3.9
 
 WORKDIR /home/user_study
 RUN mkdir /home/data
+RUN mkdir /home/${DATA}
+RUN add ${DATA} /home/${DATA}
 ADD params-debug.json .
 ADD user_study/ .
 ADD requirements.txt .

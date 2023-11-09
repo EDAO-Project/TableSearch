@@ -9,10 +9,10 @@ Build the Docker image
 docker build -t user-study .
 ```
 
-You now need to specify the queries and tables to annotate.
-This information should be in `params.json`.
-Open the file, and generate your own with your data with the same file name.
-You can remove template `params.json`.
+The annotation data should be organized in a single folder and added to the root of this user study project folder.
+You now need to specify the queries and tables to annotate in `params.json`.
+Open the file, and insert your own with your data in the same file name.
+Filename directories start from the name of the folder containing the annotation data.
 
 A query file should be on the same format as in the example below:
 
@@ -48,9 +48,11 @@ Create a container for the user study website
 
 ```bash
 mkdir -p data/
-docker build -t user-study .
+docker build -t user-study --build-arg DATA=<ANNOTATION_DATA> .
 docker run --rm -v ${PWD}/data:/home/data -p 8000:8000 user-study
 ```
+
+Substitute `<ANNOTATION_DATA>` witht the name of the folder containing the annotation data.
 
 Users can now open `http://localhost:8000/` to start annotating tables.
 To annotate remotely, retrieve the IP address of the server by running `hostname -I` on the server, and substitute `localhost` with the IP address in your browser.

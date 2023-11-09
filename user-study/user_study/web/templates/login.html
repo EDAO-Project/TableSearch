@@ -19,11 +19,17 @@
                 padding: 15px;
                 text-align: left;
             }
-            .box {
+            .box1 {
                 border: 2px solid #008CBA;
                 padding: 10px;
                 margin: 20px 0;
                 background-color: #e8f8f5;
+            }
+            .box2 {
+                border: 2px solid #003bba;
+                padding: 10px;
+                margin: 20px 0;
+                background-color: #85f7d3;
             }
         </style>
     </head>
@@ -41,6 +47,7 @@
                 <p>
                     You will be presented with a tabular query and a set of tables from Wikipedia.<br>
                     The task is to annotate the tables with a relevance score between 1 and 4 given a table query based on the tables' <b>semantic relevance</b> to the query.<br>
+                    1 means not relevant and 4 means highly relevant.<br>
                     For example, a table query containing american presidents and the state they are born in is relevant to tables describing presidents, prime ministers, politicians, celebreties, etc., as well as tables describing cities, states, countries, geographical localtions, etc.<br>
                     Therefore, a table does not need to contain keyword matches with the query in order to be semantically relevant.<br>
                     Some examples of relevant and irrelevant tables are shown in the bottom of this page.<br><br>
@@ -55,7 +62,7 @@
                 </p>
             </div>
             <br>
-            <div class="box" style="display:flex; flex-direction: row; justify-content: center; align-items: center">
+            <div class="box1" style="display:flex; flex-direction: row; justify-content: center; align-items: center">
                 <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
                     <h4>Query</h4>
                     <table class="center">
@@ -73,84 +80,89 @@
                         </tr>
                     </table>
                 </div>
-                <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
-                    <h4>Semantically relevant table</h4>
-                    <table class="center">
-                        <tr>
-                            <td>Rishi Sunak</td>
-                            <td>Conservative Party</td>
-                            <td>25 Oct 2022</td>
-                        </tr>
-                        <tr>
-                            <td>Liz Truss</td>
-                            <td>Conservative Party</td>
-                            <td>6 Sep 2022</td>
-                        </tr>
-                        <tr>
-                            <td>Theresa May</td>
-                            <td>Conservative Party</td>
-                            <td>13 Jul 2016</td>
-                        </tr>
-                    </table>
-                </div>
-                <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
-                    <h4>Semantically relevant table</h4>
-                    <table class="center">
-                        <tr>
-                            <td>Spain</td>
-                            <td>F.C. Barcelona</td>
-                            <td>Lionel Messi</td>
-                        </tr>
-                        <tr>
-                            <td>Portugal</td>
-                            <td>Real Madrid</td>
-                            <td>Cristiano Ronaldo</td>
-                        </tr>
-                        <tr>
-                            <td>France</td>
-                            <td>Real Madrid</td>
-                            <td>Zinedine Zidane</td>
-                        </tr>
-                        <tr>
-                            <td>Denmark</td>
-                            <td>Arsenal F.C.</td>
-                            <td>Nicklas Bendtner</td>
-                        </tr>
-                    </table>
-                </div>
-                <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
-                    <h4>Semantically relevant table</h4>
-                    <table class="center">
-                        <tr>
-                            <td>Will Ferrell</td>
-                            <td>Step Brothers</td>
-                            <td>Adam McKay</td>
-                            <td>English</td>
-                        </tr>
-                        <tr>
-                            <td>Elijah Wood</td>
-                            <td>Lord of the Rings</td>
-                            <td>Peter Jackson</td>
-                            <td>English</td>
-                        </tr>
-                    </table>
-                </div>
-                <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
-                    <h4><u>Not</u> semantically relevant table</h4>
-                    <table class="center">
-                        <tr>
-                            <td>Microsoft</td>
-                            <td>Windows</td>
-                        </tr>
-                        <tr>
-                            <td>IBM</td>
-                            <td>AIX</td>
-                        </tr>
-                        <tr>
-                            <td>Apple</td>
-                            <td>MacOS</td>
-                        </tr>
-                    </table>
+                <div class="box2" style="display:flex; flex-direction: column; justify-content: center; align-items: center">
+                    <h2>Database tables</h2>
+                    <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
+                        <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
+                            <h4>Semantic relevance score: 4</h4>
+                            <table class="center">
+                                <tr>
+                                    <td>Rishi Sunak</td>
+                                    <td>United Kingdom</td>
+                                    <td>25 Oct 2022</td>
+                                </tr>
+                                <tr>
+                                    <td>Liz Truss</td>
+                                    <td>United Kingdom</td>
+                                    <td>6 Sep 2022</td>
+                                </tr>
+                                <tr>
+                                    <td>Theresa May</td>
+                                    <td>United Kingdom</td>
+                                    <td>13 Jul 2016</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
+                            <h4>Semantic relevance score: 3</h4>
+                            <table class="center">
+                                <tr>
+                                    <td>Spain</td>
+                                    <td>F.C. Barcelona</td>
+                                    <td>Lionel Messi</td>
+                                </tr>
+                                <tr>
+                                    <td>Portugal</td>
+                                    <td>Real Madrid</td>
+                                    <td>Cristiano Ronaldo</td>
+                                </tr>
+                                <tr>
+                                    <td>France</td>
+                                    <td>Real Madrid</td>
+                                    <td>Zinedine Zidane</td>
+                                </tr>
+                                <tr>
+                                    <td>Denmark</td>
+                                    <td>Arsenal F.C.</td>
+                                    <td>Nicklas Bendtner</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
+                            <h4>Semantic relevance score: 2</h4>
+                            <table class="center">
+                                <tr>
+                                    <td>Will Ferrell</td>
+                                    <td>Step Brothers</td>
+                                    <td>Adam McKay</td>
+                                    <td>English</td>
+                                </tr>
+                                <tr>
+                                    <td>Elijah Wood</td>
+                                    <td>Lord of the Rings</td>
+                                    <td>Peter Jackson</td>
+                                    <td>English</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
+                            <h4>Semantic relevance score: 1</h4>
+                            <table class="center">
+                                <tr>
+                                    <td>Microsoft</td>
+                                    <td>Windows</td>
+                                </tr>
+                                <tr>
+                                    <td>IBM</td>
+                                    <td>AIX</td>
+                                </tr>
+                                <tr>
+                                    <td>Apple</td>
+                                    <td>MacOS</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </form>

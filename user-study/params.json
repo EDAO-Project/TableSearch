@@ -1,8 +1,8 @@
 {
     "queries": [
         {
-            "query": "path/to/query/file",
-            "table-directory": "path/to/tables/to/annotate"
+            "query": "annotation_data/queries/query_file",
+            "table-directory": "annotation_data//tables/to/annotate"
         }
     ]
 }

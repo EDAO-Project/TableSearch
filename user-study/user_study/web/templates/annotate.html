@@ -62,23 +62,18 @@
 
         <div class="tips-box">
             <h3>Assign a score 1-4 to each table, where 1 is least relevant and 4 is most relevant, and click 'Save' in the bottom.</h3>
-            <br>
-            <h4>DBpedia prefix of query entities:</h4>
-            <p>http://dbpedia.org/resource/</p>
-            <h4>Wikipedia prefix of table entities:</h4>
-            <p>http://www.wikipedia.org/wiki/</p>
         </div>
 
         <form id="form" action="/annotate/" method="post">
             <input type="hidden" name="uname" value="{{ username }}">
             <input type="hidden" name="query_id" value="{{ query_id }}">
             <div style="text-align: center;">
-                <h2>Query <i>{{ query_id }}</i></h2>
+                <h2>Query (ID: <i>{{ query_id }}</i>)</h2>
                 <table class="center">
                     {% for tuple in query %}
                     <tr>
                         {% for entity in tuple %}
-                            <td><a href="http://dbpedia.org/resource/{{ entity }}">{{ entity }}</a></td>
+                            <td><a href="http://dbpedia.org/resource/{{ entity }}" target="_blank" rel="noopener noreferrer">{{ entity }}</a></td>
                         {% endfor %}
                     </tr>
                 {% endfor %}
@@ -86,7 +81,7 @@
                 <h3>Tables</h3>
                 {% load filters %}
                 {% for table in tables %}
-                <h4>Assign a score to <i>{{ table|get_table_id }}</i></h4>
+                <h4>Assign a score (ID: <i>{{ table|get_table_id }}</i>)</h4>
                 <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
                     <input type="radio" id="{{ table|get_table_id }}_score_1" name="{{ table|get_table_id }}_score" value="1">
                     <label for="1">1</label><br>
@@ -116,7 +111,7 @@
                             <tr>
                                 {% for column in row %}
                                     {% if column|is_link == '1' %}
-                                        <td><a href="http://www.wikipedia.org/wiki/{{ column }}">{{ column|display }}</a></td>
+                                        <td><a href="http://www.wikipedia.org/wiki/{{ column }}" target="_blank" rel="noopener noreferrer">{{ column|display }}</a></td>
                                     {% else %}
                                         <td>{{ column|display }}</td>
                                     {% endif %}
