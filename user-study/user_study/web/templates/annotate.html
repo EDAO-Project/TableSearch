@@ -80,24 +80,24 @@
                 </table>
                 <h3>Tables</h3>
                 {% load filters %}
-                {% for table in tables %}
-                <h4>Assign a score (ID: <i>{{ table|get_table_id }}</i>)</h4>
+                <h4>Assign a score (ID: <i>{{ table_id }}</i>)</h4>
                 <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
-                    <input type="radio" id="{{ table|get_table_id }}_score_1" name="{{ table|get_table_id }}_score" value="1">
+                    <input type="radio" id="{{ table_id }}_score_1" name="{{ table_id }}_score" value="1">
                     <label for="1">1</label><br>
-                    <input type="radio" id="{{ table|get_table_id }}_score_2" name="{{ table|get_table_id }}_score" value="2">
+                    <input type="radio" id="{{ table_id }}_score_2" name="{{ table_id }}_score" value="2">
                     <label for="2">2</label><br>
-                    <input type="radio" id="{{ table|get_table_id }}_score_3" name="{{ table|get_table_id }}_score" value="3">
+                    <input type="radio" id="{{ table_id }}_score_3" name="{{ table_id }}_score" value="3">
                     <label for="3">3</label>
-                    <input type="radio" id="{{ table|get_table_id }}_score_4" name="{{ table|get_table_id }}_score" value="4">
+                    <input type="radio" id="{{ table_id }}_score_4" name="{{ table_id }}_score" value="4">
                     <label for="4">4</label>
                 </div>
                 <br>
                 <button type="button" class="collapsible">
                     <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
+                        <p><b>1st row</b></p>
                         <table class="center">
                             <tr>
-                                {% for column in table|get_table|index:0 %}
+                                {% for column in table|index:0 %}
                                     <td>{{ column|display }}</td>
                                 {% endfor %}
                             </tr>
@@ -107,7 +107,7 @@
                 </button>
                 <div class="content">
                     <table class="center">
-                        {% for row in table|get_table %}
+                        {% for row in table %}
                             <tr>
                                 {% for column in row %}
                                     {% if column|is_link == '1' %}
@@ -121,7 +121,6 @@
                     </table>
                 </div>
                 <br>
-                {% endfor %}
                 <br>
                 <button id="save" type="submit" onclick="window.location='/annotate'" class="big-button">Save</button>
                 </div>
