@@ -26,10 +26,8 @@ def get_annotation_data(params_file):
         if 'query' not in query.keys() or 'table-directory' not in query.keys():
             return None
 
-        #query_id = '/home/' + query['query']
-        #table_dir = '/home' + query['table-directory']
-        query_id = query['query']
-        table_dir = query['table-directory']
+        query_id = '/home/' + query['query']
+        table_dir = '/home/' + query['table-directory']
         query_table = list()
         tables = list()
 
@@ -63,6 +61,7 @@ def get_annotation_data(params_file):
 
                 tables.append(table)
 
+        random.shuffle(tables)
         data.append({'query': query_table, 'query_id': query_id.split('/')[-1].replace('.json', ''), 'tables': tables})
 
     return data
@@ -140,39 +139,18 @@ def annotate(request):
         annotation.save()
     
     query_for_annotation = None
-    not_annotated = list()
-    others_annotated = list()
-    partially_annotated = list()
+    table_for_annotation = None
+    random.shuffle(annotation_data)
 
     # Find query to be annotated
-    # Prioritizes queries that have not been annotated by anyone
     for query in annotation_data:
-        query_id = query['query_id']
-        usernames_for_query = get_annotated_query(query_id)
+        query = annotation_data[random.randrange(0, len(annotation_data))]
+        table_ids_annotated = get_annotated_tables(query['query_id'], user)
 
-        if len(usernames_for_query) == 0:
-            not_annotated.append(query)
-
-        elif username not in usernames_for_query:
-            others_annotated.append(query)
-
-        elif username in usernames_for_query:
-            partially_annotated.append(query)
-
-    if len(not_annotated) > 0:
-        query_for_annotation = not_annotated[random.random.randrange(0, len(not_annotated))]
-
-    elif len(others_annotated) > 0:
-        query_for_annotation = others_annotated[random.randrange(0, len(others_annotated))]
-
-    # This is the case when there are queries where some tables were not annotated
-    elif len(partially_annotated) > 0:
-        for query in partially_annotated:
-            table_ids = get_annotated_tables(query['query_id'], user)
-
-            if len(table_ids) < len(query['tables']):
+        for table in query['tables']:
+            if table['id'] not in table_ids_annotated:
+                table_for_annotation = table
                 query_for_annotation = query
-                query_for_annotation['tables'] = list(filter(lambda t: t['id'] not in table_ids, query_for_annotation['tables']))
                 break
 
     # In this case, the user has annotated everything
@@ -180,9 +158,12 @@ def annotate(request):
         template = loader.get_template('all_annotated.html')
         return HttpResponse(template.render())
 
-    random.shuffle(query_for_annotation['tables'])
-
     template = loader.get_template('annotate.html')
-    context = query_for_annotation
-    context['username'] = username
+    context = {
+        'query': query_for_annotation['query'],
+        'query_id' : query_for_annotation['query_id'],
+        'table': table_for_annotation['table'],
+        'table_id': table_for_annotation['id'],
+        'username': username
+    }
     return HttpResponse(template.render(context, request))

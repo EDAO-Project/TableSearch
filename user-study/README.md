@@ -11,7 +11,7 @@ docker build -t user-study .
 
 The annotation data should be organized in a single folder and added to the root of this user study project folder.
 You now need to specify the queries and tables to annotate in `params.json`.
-Open the file, and insert your own with your data in the same file name.
+Open the file, and insert your own values.
 Filename directories start from the name of the folder containing the annotation data.
 
 A query file should be on the same format as in the example below:
@@ -20,8 +20,7 @@ A query file should be on the same format as in the example below:
 {
     "queries": [
         ["http://dbpedia.org/resource/1996_in_sports", "http://dbpedia.org/resource/Jerry_D._Bailey", "http://dbpedia.org/resource/United_States"],
-        [
-            "http://dbpedia.org/resource/1985_Formula_One_season", "http://dbpedia.org/resource/Niki_Lauda", "http://dbpedia.org/resource/McLaren"]
+        ["http://dbpedia.org/resource/1985_Formula_One_season", "http://dbpedia.org/resource/Niki_Lauda", "http://dbpedia.org/resource/McLaren"]
     ]
 }
 ```
