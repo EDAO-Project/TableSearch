@@ -2,9 +2,8 @@
 
 set -e
 
-if [ ! -d /home/data ]
+if [ ! -f /home/data/db.sqlite3 ]
 then
-    mkdir /home/data
     python manage.py makemigrations web
     python manage.py migrate
 fi
