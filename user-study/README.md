@@ -49,7 +49,7 @@ Create a container for the user study website
 ```bash
 mkdir -p data/
 docker build -t user-study .
-docker run -v ${PWD}/data:/data -p 8000:8000 user-study
+docker run -v ${PWD}/data:/home/data -p 8000:8000 user-study
 ```
 
 Users can now open `http://localhost:8000/` to start annotating tables.
