@@ -98,6 +98,20 @@ def get_annotated_query(query_id):
 
     except Exception as e:
         return list()
+    
+# Retrieves tables that have been annotated by a user for a query
+def get_annotated_tables(query_id, user):
+    try:
+        rs = Annotation.objects.filter(query_id = query_id, user = user)
+        table_ids = set()
+        
+        for result in rs:
+            table_ids.add(result.table_id.replace('_score', ''))
+
+        return table_ids
+
+    except Exception as e:
+        return set()
 
 # Annotation page
 def annotate(request):
@@ -125,6 +139,7 @@ def annotate(request):
     
     query_for_annotation = None
     not_annotated = list()
+    others_annotated = list()
     partially_annotated = list()
 
     # Find query to be annotated
@@ -137,13 +152,26 @@ def annotate(request):
             not_annotated.append(query)
 
         elif username not in usernames_for_query:
+            others_annotated.append(query)
+
+        elif username in usernames_for_query:
             partially_annotated.append(query)
 
     if len(not_annotated) > 0:
         query_for_annotation = not_annotated[random.random.randrange(0, len(not_annotated))]
 
+    elif len(others_annotated) > 0:
+        query_for_annotation = others_annotated[random.randrange(0, len(others_annotated))]
+
+    # This is the case when there are queries where some tables were not annotated
     elif len(partially_annotated) > 0:
-        query_for_annotation = partially_annotated[random.randrange(0, len(partially_annotated))]
+        for query in partially_annotated:
+            table_ids = get_annotated_tables(query['query_id'], user)
+
+            if len(table_ids) < len(query['tables']):
+                query_for_annotation = query
+                query_for_annotation['tables'] = list(filter(lambda t: t['id'] not in table_ids, query_for_annotation['tables']))
+                break
 
     # In this case, the user has annotated everything
     if query_for_annotation is None:
