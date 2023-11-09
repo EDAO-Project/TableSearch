@@ -1,12 +1,12 @@
 FROM python:3.9
 
 WORKDIR /home/user_study
-ADD params.json .
+RUN mkdir /home/data
+ADD params-debug.json .
 ADD user_study/ .
 ADD requirements.txt .
-ADD run.sh .
 
 RUN pip install -r requirements.txt
 RUN pip install Django
 
-ENTRYPOINT [ "run.sh" ]
+ENTRYPOINT if [ ! -f /home/data/db.sqlite3 ] ; then python manage.py makemigrations web ; python manage.py migrate ; fi && python manage.py runserver 0.0.0.0:8000
