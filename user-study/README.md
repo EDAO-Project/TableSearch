@@ -48,6 +48,7 @@ Create a container for the user study website
 
 ```bash
 mkdir -p data/
+docker build -t user-study .
 docker run -v ${PWD}/data:/data -p 8000:8000 user-study
 ```
 
