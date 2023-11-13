@@ -24,3 +24,7 @@ def get_table(map):
 @register.filter
 def get_table_id(map):
     return map['id']
+
+@register.filter
+def sub_table(table, rows):
+    return table[:rows]

@@ -61,13 +61,15 @@
         </div>
 
         <div class="tips-box">
-            <h3>Assign a score 1-4 to each table, where 1 is not relevant and 4 is most relevant, and click 'Save' in the bottom.</h3>
+            <h3>Provide a relevance assessment to each table, and click 'Next' in the bottom.</h3>
+            <h3>Click on a table to expand it.</h3>
             <p><b>Progress: </b>{{ progress }}</p>
         </div>
 
         <form id="form" action="/annotate/" method="post">
             <input type="hidden" name="uname" value="{{ username }}">
             <input type="hidden" name="query_id" value="{{ query_id }}">
+            <input type="hidden" name="work_id" value="{{ work_id }}">
             <div style="text-align: center;">
                 <h2>Query (ID: <i>{{ query_id }}</i>)</h2>
                 <table class="center">
@@ -81,46 +83,50 @@
                 </table>
                 <h3>Tables</h3>
                 {% load filters %}
-                <h4>Assign a score (ID: <i>{{ table_id }}</i>)</h4>
-                <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
-                    <input type="radio" id="{{ table_id }}_score_1" name="{{ table_id }}_score" value="1">
-                    <label for="1">1</label><br>
-                    <input type="radio" id="{{ table_id }}_score_2" name="{{ table_id }}_score" value="2">
-                    <label for="2">2</label><br>
-                    <input type="radio" id="{{ table_id }}_score_3" name="{{ table_id }}_score" value="3">
-                    <label for="3">3</label>
-                    <input type="radio" id="{{ table_id }}_score_4" name="{{ table_id }}_score" value="4">
-                    <label for="4">4</label>
-                </div>
-                <br>
-                <button type="button" class="collapsible">
+                {% for table in tables %}
+                    <h4>Assign a score (ID: <i>{{ table|get_table_id }}</i>)</h4>
                     <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
-                        <p><b>1st row</b></p>
-                        <table class="center">
-                            <tr>
-                                {% for column in table|index:0 %}
-                                    <td>{{ column|display }}</td>
-                                {% endfor %}
-                            </tr>
-                        </table>
-                        <p>Click to expand table</p>
+                        <input type="radio" id="{{ table|get_table_id }}_score_1" name="{{ table|get_table_id }}" value="1">
+                        <label for="1">Not relevant</label><br>
+                        <input type="radio" id="{{ table|get_table_id }}_score_2" name="{{ table|get_table_id }}" value="2">
+                        <label for="2">Slightly relevant</label><br>
+                        <input type="radio" id="{{ table|get_table_id }}_score_3" name="{{ table|get_table_id }}" value="3">
+                        <label for="3">Somewhat relevant</label>
+                        <input type="radio" id="{{ table|get_table_id }}_score_4" name="{{ table|get_table_id }}" value="4">
+                        <label for="4">Very relevant</label>
                     </div>
-                </button>
-                <div class="content">
-                    <table class="center">
-                        {% for row in table %}
-                            <tr>
-                                {% for column in row %}
-                                    {% if column|is_link == '1' %}
+                    <br>
+                    <button type="button" class="collapsible">
+                        <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
+                            <p><b>3 rows</b></p>
+                            <table class="center">
+                                {% for row in table|get_table|sub_table:3 %}
+                                <tr>
+                                    {% for column in row %}
                                         <td><a href="http://www.wikipedia.org/wiki/{{ column }}" target="_blank" rel="noopener noreferrer">{{ column|display }}</a></td>
-                                    {% else %}
-                                        <td>{{ column|display }}</td>
-                                    {% endif %}
+                                    {% endfor %}
+                                </tr>
                                 {% endfor %}
-                            </tr>
-                        {% endfor %}
-                    </table>
-                </div>
+                            </table>
+                            <p>Click to expand table</p>
+                        </div>
+                    </button>
+                    <div class="content">
+                        <table class="center">
+                            {% for row in table|get_table %}
+                                <tr>
+                                    {% for column in row %}
+                                        {% if column|is_link == '1' %}
+                                            <td><a href="http://www.wikipedia.org/wiki/{{ column }}" target="_blank" rel="noopener noreferrer">{{ column|display }}</a></td>
+                                        {% else %}
+                                            <td>{{ column|display }}</td>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                {% endfor %}
                 <br>
                 <br>
                 <button id="save" type="submit" onclick="window.location='/annotate'" class="big-button">Next</button>
