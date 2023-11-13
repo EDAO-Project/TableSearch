@@ -67,10 +67,10 @@
                 <div class="instructions-box">
                     <div class="instructions-content">
                         <p>
-                            The task is to find tables that are <b>semantically relevant</b> to a table query.<br><br>
+                            The task is to find tables that are <b>relevant</b> to a given table query.<br><br>
 
                             You will be presented with a tabular query containing DBpedia entities and a set of tables from Wikipedia.<br>
-                            The task is to annotate these tables according to their <b>semantic relevance</b> to the table query.<br><br>
+                            The task is to annotate these tables according to their <b>relevance</b> to the table query.<br>
 
                             To login, use a name you like and remember it.<br>
                             If you choose to stop annotating tables and return later, simply use the same username to login again.<br><br>
@@ -85,7 +85,10 @@
             </div>
             <br>
             <div class="example-box" style="display:flex; flex-direction: column; justify-content: center; align-items: center">
+                <h3>Example</h3>
                 <p>
+                    For example, president Joe Biden and very similar to prime minister Mette Frederiksen, and therefore relevant, whereas Bill Gates and Copenhagen Airport are not similar, and therefore irrelevant.<br>
+                    Two entities can also be (to a smaller degree) relevant to each other without being in the same domain, such as Jeff Bezos and Ed Sheeran (both are famous people), Grand Canyon and Aalborg University meeting room 0.2.13 (both are geographical locations), and Coca Cola and Nutella (both are consumables).<br><br>
                     As an example, a table query containing american presidents and the state they are born in is relevant to tables describing presidents, prime ministers, politicians, celebreties, etc., as well as tables describing cities, states, countries, geographical localtions, etc.<br>
                     Therefore, a table does not need to contain keyword matches with the query in order to be semantically relevant.<br>
                     Some examples of relevant and irrelevant tables are shown in the bottom of this page.
@@ -111,7 +114,7 @@
                         </div>
                     </div>
                     <div class="tables-box" style="display:flex; flex-direction: column; justify-content: center; align-items: center">
-                        <h2>Database tables</h2>
+                        <h3>Database tables</h3>
                         <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
                             <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
                                 <h4>Relevance score: <i>Very relevant</i></h4>
