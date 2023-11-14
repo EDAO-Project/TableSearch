@@ -2,6 +2,9 @@
 <html>
     <head>
         <title>Semantic Table Search Annotator</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css" integrity="sha384-X38yfunGUhNzHpBaEBsWLO+A0HDYOQi8ufWDkZ0k9e0eXz/tH3II7uKZ9msv++Ls" crossorigin="anonymous">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css">
         <style>
             .tips-box {
                 border: 2px solid #008CBA;
@@ -46,12 +49,53 @@
                 padding: 0 18px;
                 display: none;
                 overflow: hidden;
+            }
+            .table-content-color {
                 background-color: #f1f1f1;
+            }
+            input[type="radio"] {
+                margin: 0 10px 0 10px;
             }
             .big-button {
                 font-size: 20px;
                 padding: 10px 24px;
                 background-color: #87e211;
+            }
+            .button-success,
+            .button-error,
+            .button-warning,
+            .button-secondary {
+                color: white;
+                border-radius: 4px;
+                text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+            }
+            .button-success {
+                background: rgb(28, 184, 65);
+                /* this is a green */
+            }
+            .button-error {
+                background: rgb(202, 60, 60);
+                /* this is a maroon */
+            }
+            .button-warning {
+                background: rgb(223, 117, 20);
+                /* this is an orange */
+            }
+            .button-secondary {
+                background: rgb(66, 184, 221);
+                /* this is a light blue */
+            }
+            .button-xsmall {
+                font-size: 70%;
+            }
+            .button-small {
+                font-size: 85%;
+            }
+            .button-large {
+                font-size: 110%;
+            }
+            .button-xlarge {
+                font-size: 125%;
             }
         </style>
     </head>
@@ -61,7 +105,7 @@
         </div>
 
         <div class="tips-box">
-            <h3>Provide a relevance assessment to each table, and click 'Next' in the bottom.</h3>
+            <h3>Provide a relevance assessment to each table, and click '<i>Next</i>' in the bottom.</h3>
             <h3>Click on a table to expand it.</h3>
             <p><b>Progress: </b>{{ progress }}</p>
         </div>
@@ -70,6 +114,8 @@
             <input type="hidden" name="uname" value="{{ username }}">
             <input type="hidden" name="query_id" value="{{ query_id }}">
             <input type="hidden" name="work_id" value="{{ work_id }}">
+            <input type="hidden" name="start_time" value="{{ start_time }}">
+            <input type="hidden" name="expected_annotations" value="{{ expected_annotations }}">
             <div style="text-align: center;">
                 <h2>Query (ID: <i>{{ query_id }}</i>)</h2>
                 <table class="center">
@@ -99,38 +145,48 @@
                     <button type="button" class="collapsible">
                         <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
                             <p><b>3 rows</b></p>
-                            <table class="center">
-                                {% for row in table|get_table|sub_table:3 %}
-                                <tr>
-                                    {% for column in row %}
-                                        <td><a href="http://www.wikipedia.org/wiki/{{ column }}" target="_blank" rel="noopener noreferrer">{{ column|display }}</a></td>
-                                    {% endfor %}
-                                </tr>
+                            <table class="pure-table pure-table-bordered center">
+                                <tbody>
+                                    {% for row in table|get_table|sub_table:3 %}
+                                    <tr>
+                                        {% for column in row %}
+                                            {% if column|is_link == '1' %}
+                                                <td><a href="http://www.wikipedia.org/wiki/{{ column }}" target="_blank" rel="noopener noreferrer">{{ column|display }}</a></td>
+                                            {% else %}
+                                                <td>{{ column|display }}</td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tr>
                                 {% endfor %}
+                                </tbody>
                             </table>
-                            <p>Click to expand table</p>
+                            <p><b>Click to expand table</b></p>
                         </div>
                     </button>
-                    <div class="content">
-                        <table class="center">
-                            {% for row in table|get_table %}
-                                <tr>
-                                    {% for column in row %}
-                                        {% if column|is_link == '1' %}
-                                            <td><a href="http://www.wikipedia.org/wiki/{{ column }}" target="_blank" rel="noopener noreferrer">{{ column|display }}</a></td>
-                                        {% else %}
-                                            <td>{{ column|display }}</td>
-                                        {% endif %}
-                                    {% endfor %}
-                                </tr>
-                            {% endfor %}
+                    <div class="content pure-g">
+                        <table class="pure-table pure-table-bordered center">
+                            <tbody>
+                                {% for row in table|get_table %}
+                                    <tr>
+                                        {% for column in row %}
+                                            {% if column|is_link == '1' %}
+                                                <td><a href="http://www.wikipedia.org/wiki/{{ column }}" target="_blank" rel="noopener noreferrer">{{ column|display }}</a></td>
+                                            {% else %}
+                                                <td>{{ column|display }}</td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
                         </table>
                     </div>
                 {% endfor %}
                 <br>
                 <br>
-                <button id="save" type="submit" onclick="window.location='/annotate'" class="big-button">Next</button>
-                </div>
+                <button class="button-xlarge button-success pure-button" id="save" type="submit" onclick="window.location='/annotate'" class="big-button">
+                    Next
+                </button>
+            </div>
             </form>
         <script>
             var coll = document.getElementsByClassName("collapsible");

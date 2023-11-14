@@ -2,8 +2,11 @@
 <html>
     <head>
         <title>Semantic Table Search Annotator</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css" integrity="sha384-X38yfunGUhNzHpBaEBsWLO+A0HDYOQi8ufWDkZ0k9e0eXz/tH3II7uKZ9msv++Ls" crossorigin="anonymous">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css">
         <style>
-            h1, h2, h3, h4 {
+            h1, h2, h3, h4, legend, fieldset {
                 text-align: center;
             }
             .center {
@@ -29,7 +32,7 @@
                 border: 2px solid #000000;
                 padding: 10px;
                 margin: 20px 0;
-                background-color: #c4fae9;
+                background-color: #e4faf3;
             }
             .query-box {
                 border: 2px solid #000000;
@@ -51,16 +54,19 @@
             .instructions-content {
                 text-align: left;
             }
+            tbody {
+                background-color: #f7f3f3;
+            }
         </style>
     </head>
     <body>
-        <form action="/annotate/" method="post">
-            <h2>Login</h2>
-            <div class="container" style="text-align: center;">
+        <form action="/annotate/" method="post" class="pure-form">
+            <fieldset>
+                <legend><h2>Login</h2></legend>
                 <label for="uname"><b>Username</b></label>
                 <input type="text" placeholder="Enter Username" name="uname" required>
-                <button type="submit" onclick="window.location='/annotate'">Login</button>
-            </div>
+                <button type="submit" class="pure-button pure-button-primary" onclick="window.location='/annotate'">Login</button>
+            </fieldset>
             <br>
             <div>
                 <h3>Instructions</h3>
@@ -96,10 +102,10 @@
                     Some examples of relevant and irrelevant tables are shown in the bottom of this page.
                 </p>
                 <div class="box" style="display:flex; flex-direction: row; justify-content: center; align-items: center">
-                    <div class="query-box">
-                        <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
-                            <h4>Query table</h4>
-                            <table class="center">
+                    <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
+                        <h4>Query table</h4>
+                        <table class="pure-table pure-table-bordered">
+                            <tbody>
                                 <tr>
                                     <td>Barack Obama</td>
                                     <td>Hawaii</td>
@@ -112,89 +118,97 @@
                                     <td>George Bush</td>
                                     <td>Connecticut</td>
                                 </tr>
-                            </table>
-                        </div>
+                            </tbody>
+                        </table>
                     </div>
                     <div class="tables-box" style="display:flex; flex-direction: column; justify-content: center; align-items: center">
                         <h3>Database tables</h3>
                         <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
                             <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
                                 <h4>Relevance score: <i>Very relevant</i></h4>
-                                <table class="center">
-                                    <tr>
-                                        <td>Rishi Sunak</td>
-                                        <td>United Kingdom</td>
-                                        <td>25 Oct 2022</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Liz Truss</td>
-                                        <td>United Kingdom</td>
-                                        <td>6 Sep 2022</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Theresa May</td>
-                                        <td>United Kingdom</td>
-                                        <td>13 Jul 2016</td>
-                                    </tr>
+                                <table class="pure-table pure-table-bordered">
+                                    <tbody>
+                                        <tr>
+                                            <td>Rishi Sunak</td>
+                                            <td>United Kingdom</td>
+                                            <td>25 Oct 2022</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Liz Truss</td>
+                                            <td>United Kingdom</td>
+                                            <td>6 Sep 2022</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Theresa May</td>
+                                            <td>United Kingdom</td>
+                                            <td>13 Jul 2016</td>
+                                        </tr>
+                                    </tbody>
                                 </table>
                             </div>
                             <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
                                 <h4>Relevance score: <i>Somewhat relevant</i></h4>
                                 <table class="center">
-                                    <tr>
-                                        <td>Spain</td>
-                                        <td>F.C. Barcelona</td>
-                                        <td>Lionel Messi</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Portugal</td>
-                                        <td>Real Madrid</td>
-                                        <td>Cristiano Ronaldo</td>
-                                    </tr>
-                                    <tr>
-                                        <td>France</td>
-                                        <td>Real Madrid</td>
-                                        <td>Zinedine Zidane</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Denmark</td>
-                                        <td>Arsenal F.C.</td>
-                                        <td>Nicklas Bendtner</td>
-                                    </tr>
+                                    <tbody>
+                                        <tr>
+                                            <td>Spain</td>
+                                            <td>F.C. Barcelona</td>
+                                            <td>Lionel Messi</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Portugal</td>
+                                            <td>Real Madrid</td>
+                                            <td>Cristiano Ronaldo</td>
+                                        </tr>
+                                        <tr>
+                                            <td>France</td>
+                                            <td>Real Madrid</td>
+                                            <td>Zinedine Zidane</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Denmark</td>
+                                            <td>Arsenal F.C.</td>
+                                            <td>Nicklas Bendtner</td>
+                                        </tr>
+                                    </tbody>
                                 </table>
                             </div>
                             <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
                                 <h4>Relevance score: <i>Probably relevant</i></h4>
                                 <table class="center">
-                                    <tr>
-                                        <td>Will Ferrell</td>
-                                        <td>Step Brothers</td>
-                                        <td>Adam McKay</td>
-                                        <td>English</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Elijah Wood</td>
-                                        <td>Lord of the Rings</td>
-                                        <td>Peter Jackson</td>
-                                        <td>English</td>
-                                    </tr>
+                                    <tbody>
+                                        <tr>
+                                            <td>Will Ferrell</td>
+                                            <td>Step Brothers</td>
+                                            <td>Adam McKay</td>
+                                            <td>English</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Elijah Wood</td>
+                                            <td>Lord of the Rings</td>
+                                            <td>Peter Jackson</td>
+                                            <td>English</td>
+                                        </tr>
+                                    </tbody>
                                 </table>
                             </div>
                             <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
                                 <h4>Relevance score: <i>Not relevant</i></h4>
                                 <table class="center">
-                                    <tr>
-                                        <td>Microsoft</td>
-                                        <td>Windows</td>
-                                    </tr>
-                                    <tr>
-                                        <td>IBM</td>
-                                        <td>AIX</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Apple</td>
-                                        <td>MacOS</td>
-                                    </tr>
+                                    <tbody>
+                                        <tr>
+                                            <td>Microsoft</td>
+                                            <td>Windows</td>
+                                        </tr>
+                                        <tr>
+                                            <td>IBM</td>
+                                            <td>AIX</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Apple</td>
+                                            <td>MacOS</td>
+                                        </tr>
+                                    </tbody>
                                 </table>
                             </div>
                         </div>

@@ -6,6 +6,7 @@ import json
 import os
 import random
 import math
+import time
 
 params_filename = 'debug.json'
 agreement_count = 3
@@ -61,10 +62,9 @@ def create_tasks(data):
         table_split = list()
         tables = list()
         i = 0
-        split_size = math.floor(len(query['tables']) / tables_per_page)
 
         for table in query['tables']:
-            if i == split_size and len(table_split) < math.floor(len(query['tables']) / split_size):
+            if i == tables_per_page:
                 table_split.append(tables)
                 tables = list()
                 i = 0
@@ -285,17 +285,21 @@ def annotate(request):
     if 'query_id' in annotated_tables:
         annotated_tables.remove('query_id')
         annotated_tables.remove('work_id')
+        annotated_tables.remove('start_time')
+        annotated_tables.remove('expected_annotations')
 
     # Save annotation scores
-    for annotated_table in annotated_tables:
-        score = int(request.POST[annotated_table])
-        query = Query.objects.get(name = request.POST['query_id'])
-        table = Table.objects.get(name = annotated_table)
-        annotation = Annotation(query = query, table = table, score = score, user = user)
-        annotation.save()
+    if 'expected_annotations' in request.POST.keys() and len(annotated_tables) == int(request.POST['expected_annotations']):
+        for annotated_table in annotated_tables:
+            score = int(request.POST[annotated_table])
+            query = Query.objects.get(name = request.POST['query_id'])
+            table = Table.objects.get(name = annotated_table)
+            annotation = Annotation(query = query, table = table, score = score, user = user)
+            annotation.save()
 
-        work = Work.objects.get(id = request.POST['work_id'])
-        CompletedWork(work = work).save()
+            elapsed_time = time.time() - float(request.POST['start_time'])
+            work = Work.objects.get(id = request.POST['work_id'])
+            CompletedWork(work = work, elapsed_time = elapsed_time).save()
     
     annotation_task = next_task(user, annotation_data)
 
@@ -307,5 +311,7 @@ def annotate(request):
     context = annotation_task
     context['username'] = username
     context['progress'] = progress(annotation_data, user)
+    context['start_time'] = time.time()
+    context['expected_annotations'] = len(annotation_task['tables'])
 
     return HttpResponse(template.render(context, request))

@@ -38,3 +38,4 @@ class Work(models.Model):
 # Work that has already been completed
 class CompletedWork(models.Model):
     work = models.ForeignKey(Work, to_field = 'id', on_delete = models.CASCADE, default = -1)   # Reference to user
+    elapsed_time = models.FloatField(default = -1.0)                                            # Elapsed time in seconds to complete assigned task
