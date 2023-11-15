@@ -51,7 +51,7 @@
                 justify-content: center;
                 align-items: center;
             }
-            .instructions-content {
+            .paragraph-content {
                 text-align: left;
             }
             tbody {
@@ -71,7 +71,7 @@
             <div>
                 <h3>Instructions</h3>
                 <div class="instructions-box">
-                    <div class="instructions-content">
+                    <div class="paragraph-content">
                         <p>
                             The task is to find tables that are <b>relevant</b> to a given table query.<br><br>
 
@@ -94,13 +94,17 @@
             <br>
             <div class="example-box" style="display:flex; flex-direction: column; justify-content: center; align-items: center">
                 <h3>Example</h3>
-                <p>
-                    For example, president Joe Biden and very similar to prime minister Mette Frederiksen, and therefore relevant, whereas Bill Gates and Copenhagen Airport are not similar, and therefore irrelevant.<br>
-                    Two entities can also be (to a smaller degree) relevant to each other without being in the same domain, such as Jeff Bezos and Ed Sheeran (both are famous people), Grand Canyon and Aalborg University meeting room 0.2.13 (both are geographical locations), and Coca Cola and Nutella (both are consumables).<br><br>
-                    As an example, a table query containing american presidents and the state they are born in is relevant to tables describing presidents, prime ministers, politicians, celebreties, etc., as well as tables describing cities, states, countries, geographical localtions, etc.<br>
-                    Therefore, a table does not need to contain keyword matches with the query in order to be semantically relevant.<br>
-                    Some examples of relevant and irrelevant tables are shown in the bottom of this page.
-                </p>
+                <div class="pure-g paragraph-content instructions-box">
+                    <div class="pure-u-2-5">
+                        <p>
+                            For example, president Joe Biden and very similar to prime minister Mette Frederiksen, and therefore relevant, whereas Bill Gates and Copenhagen Airport are not similar, and therefore irrelevant.<br>
+                            Two entities can also be (to a smaller degree) relevant to each other without being in the same domain, such as Jeff Bezos and Ed Sheeran (both are famous people), Grand Canyon and Aalborg University meeting room 0.2.13 (both are geographical locations), and Coca Cola and Nutella (both are consumables).<br><br>
+                            As an example, a table query containing american presidents and the state they are born in is relevant to tables describing presidents, prime ministers, politicians, celebreties, etc., as well as tables describing cities, states, countries, geographical localtions, etc.<br>
+                            Therefore, a table does not need to contain keyword matches with the query in order to be semantically relevant.<br>
+                            Some examples of relevant and irrelevant tables are shown in the bottom of this page.
+                        </p>
+                    </div>
+                </div>
                 <div class="box" style="display:flex; flex-direction: row; justify-content: center; align-items: center">
                     <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
                         <h4>Query table</h4>
@@ -126,7 +130,7 @@
                         <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
                             <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
                                 <h4>Relevance score: <i>Very relevant</i></h4>
-                                <table class="pure-table pure-table-bordered">
+                                <table class="center">
                                     <tbody>
                                         <tr>
                                             <td>Rishi Sunak</td>

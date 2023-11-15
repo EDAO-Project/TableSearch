@@ -36,7 +36,7 @@
                 color: #444;
                 cursor: pointer;
                 padding: 18px;
-                width: 40%;
+                display: inline-block;
                 border: none;
                 text-align: left;
                 outline: solid;
@@ -130,55 +130,57 @@
                 <h3>Tables</h3>
                 {% load filters %}
                 {% for table in tables %}
-                    <h4>Assign a score (ID: <i>{{ table|get_table_id }}</i>)</h4>
-                    <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
-                        <input type="radio" id="{{ table|get_table_id }}_score_1" name="{{ table|get_table_id }}" value="1">
-                        <label for="1">Not relevant</label><br>
-                        <input type="radio" id="{{ table|get_table_id }}_score_2" name="{{ table|get_table_id }}" value="2">
-                        <label for="2">Slightly relevant</label><br>
-                        <input type="radio" id="{{ table|get_table_id }}_score_3" name="{{ table|get_table_id }}" value="3">
-                        <label for="3">Somewhat relevant</label>
-                        <input type="radio" id="{{ table|get_table_id }}_score_4" name="{{ table|get_table_id }}" value="4">
-                        <label for="4">Very relevant</label>
-                    </div>
-                    <br>
-                    <button type="button" class="collapsible">
-                        <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
-                            <p><b>3 rows</b></p>
-                            <table class="pure-table pure-table-bordered center">
-                                <tbody>
-                                    {% for row in table|get_table|sub_table:3 %}
-                                    <tr>
-                                        {% for column in row %}
-                                            {% if column|is_link == '1' %}
-                                                <td><a href="http://www.wikipedia.org/wiki/{{ column }}" target="_blank" rel="noopener noreferrer">{{ column|display }}</a></td>
-                                            {% else %}
-                                                <td>{{ column|display }}</td>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </tr>
-                                {% endfor %}
-                                </tbody>
-                            </table>
-                            <p><b>Click to expand table</b></p>
+                    <h4>Table ID: <i>{{ table|get_table_id }}</i></h4>
+                    <div style="display:flex; flex-direction: row; justify-content: center; align-items: start">
+                        <div style="display:flex; flex-direction: column; justify-content: center; align-items: top; margin-right: 20px;">
+                            <p><b>Relevance</b></p>
+                            <input type="radio" id="{{ table|get_table_id }}_score_1" name="{{ table|get_table_id }}" value="1">
+                            <label for="1">Not relevant</label><br>
+                            <input type="radio" id="{{ table|get_table_id }}_score_2" name="{{ table|get_table_id }}" value="2">
+                            <label for="2">Slightly relevant</label><br>
+                            <input type="radio" id="{{ table|get_table_id }}_score_3" name="{{ table|get_table_id }}" value="3">
+                            <label for="3">Quite relevant</label>
+                            <input type="radio" id="{{ table|get_table_id }}_score_4" name="{{ table|get_table_id }}" value="4">
+                            <label for="4">Very relevant</label>
                         </div>
-                    </button>
-                    <div class="content pure-g">
-                        <table class="pure-table pure-table-bordered center">
-                            <tbody>
-                                {% for row in table|get_table %}
-                                    <tr>
-                                        {% for column in row %}
-                                            {% if column|is_link == '1' %}
-                                                <td><a href="http://www.wikipedia.org/wiki/{{ column }}" target="_blank" rel="noopener noreferrer">{{ column|display }}</a></td>
-                                            {% else %}
-                                                <td>{{ column|display }}</td>
-                                            {% endif %}
+                        <div style="display:flex; flex-direction: column; justify-content: center; align-items: center">
+                            <button type="button" class="collapsible">
+                                <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
+                                    <table class="pure-table pure-table-bordered center">
+                                        <tbody>
+                                            {% for row in table|get_table|sub_table:3 %}
+                                            <tr>
+                                                {% for column in row %}
+                                                    {% if column|is_link == '1' %}
+                                                        <td><a href="http://www.wikipedia.org/wiki/{{ column }}" target="_blank" rel="noopener noreferrer">{{ column|display }}</a></td>
+                                                    {% else %}
+                                                        <td>{{ column|display }}</td>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </tr>
                                         {% endfor %}
-                                    </tr>
-                                {% endfor %}
-                                </tbody>
-                        </table>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </button>
+                            <div class="content pure-g">
+                                <table class="pure-table pure-table-bordered center">
+                                    <tbody>
+                                        {% for row in table|get_table %}
+                                            <tr>
+                                                {% for column in row %}
+                                                    {% if column|is_link == '1' %}
+                                                        <td><a href="http://www.wikipedia.org/wiki/{{ column }}" target="_blank" rel="noopener noreferrer">{{ column|display }}</a></td>
+                                                    {% else %}
+                                                        <td>{{ column|display }}</td>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 {% endfor %}
                 <br>
