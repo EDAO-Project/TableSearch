@@ -8,9 +8,8 @@ import random
 import math
 import time
 
-params_filename = 'debug.json'
+params_filename = 'params.json'
 agreement_count = 3
-assignment_factor = 0.4     # Factor of number of tasks to be assigned 
 tables_per_page = 5
 expected_workers = 15
 lock_init_file = '.init.lock'
@@ -140,6 +139,8 @@ def get_annotation_data(params_file):
 
         query_id = '/home/' + query['query']
         table_dir = '/home/' + query['table-directory']
+        #query_id = query['query']
+        #table_dir = query['table-directory']
         query_table = list()
         tables = list()
 

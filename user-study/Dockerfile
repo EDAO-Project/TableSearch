@@ -1,12 +1,13 @@
 FROM python:3.9
 
+ARG DATA
+
 WORKDIR /home/user_study
 RUN mkdir -p /home/data
 RUN mkdir -p /home/${DATA}
 ADD ${DATA} /home/${DATA}
 ADD params.json .
 ADD user_study/ .
-ADD requirements.txt .
 
 RUN pip install Django psycopg2
 
