@@ -6,8 +6,10 @@ Users can create a username and annotate a set of tables for a given set of quer
 Build the Docker image
 
 ```bash
-docker build -t user-study .
+docker build -t user-study --build-arg DATA=<ANNOTATION_DATA> .
 ```
+
+Substitute `<ANNOTATION_DATA>` with the name of the folder containing the annotation data.
 
 The annotation data should be organized in a single folder and added to the root of this user study project folder.
 You now need to specify the queries and tables to annotate in `params.json`.
@@ -47,11 +49,8 @@ Create a container for the user study website
 
 ```bash
 mkdir -p data/
-docker build -t user-study --build-arg DATA=<ANNOTATION_DATA> .
 docker run --rm -v ${PWD}/data:/home/data -p 8000:8000 user-study
 ```
-
-Substitute `<ANNOTATION_DATA>` witht the name of the folder containing the annotation data.
 
 Users can now open `http://localhost:8000/` to start annotating tables.
 To annotate remotely, retrieve the IP address of the server by running `hostname -I` on the server, and substitute `localhost` with the IP address in your browser.
