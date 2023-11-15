@@ -298,9 +298,9 @@ def annotate(request):
             annotation = Annotation(query = query, table = table, score = score, user = user)
             annotation.save()
 
-            elapsed_time = time.time() - float(request.POST['start_time'])
-            work = Work.objects.get(id = request.POST['work_id'])
-            CompletedWork(work = work, elapsed_time = elapsed_time).save()
+        elapsed_time = time.time() - float(request.POST['start_time'])
+        work = Work.objects.get(id = request.POST['work_id'])
+        CompletedWork(work = work, elapsed_time = elapsed_time).save()
     
     annotation_task = next_task(user, annotation_data)
 
