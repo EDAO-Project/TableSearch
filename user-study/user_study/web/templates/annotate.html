@@ -156,17 +156,19 @@
             <input type="hidden" name="start_time" value="{{ start_time }}">
             <input type="hidden" name="expected_annotations" value="{{ expected_annotations }}">
             <div class="pure-g">
-                <div class="pure-u-1-3 center">
+                <div class="table-wrapper pure-u-3-3 center">
                     <h2>Query (ID: <i>{{ query_id }}</i>)</h2>
-                    <table class="center">
-                        {% for tuple in query %}
-                        <tr>
-                            {% for entity in tuple %}
-                                <td><a href="http://dbpedia.org/resource/{{ entity }}" target="_blank" rel="noopener noreferrer">{{ entity }}</a></td>
-                            {% endfor %}
-                        </tr>
-                    {% endfor %}
-                    </table>
+                    <div class="table-wrapper">
+                        <table class="center">
+                            {% for tuple in query %}
+                            <tr>
+                                {% for entity in tuple %}
+                                    <td><a href="http://dbpedia.org/resource/{{ entity }}" target="_blank" rel="noopener noreferrer">{{ entity }}</a></td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                        </table>
+                    </div>
                 </div>
             </div>
 
