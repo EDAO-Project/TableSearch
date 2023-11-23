@@ -2,15 +2,15 @@ from django.db import models
 
 # Represents a user
 class User(models.Model):
-    username = models.CharField(max_length = 255, default = None)       # Username
+    username = models.CharField(max_length = 255, default = '')       # Username
 
 # Represents a table for annotation
 class Table(models.Model):
-    name = models.CharField(max_length = 255, default = None)    # Name of query
+    name = models.CharField(max_length = 255, default = '')    # Name of query
 
 # Represents an input query
 class Query(models.Model):
-    name = models.CharField(max_length = 255, default = None)            # Name of query
+    name = models.CharField(max_length = 255, default = '')            # Name of query
 
 # Represents an annotation for a query and table
 class Annotation(models.Model):
@@ -22,7 +22,7 @@ class Annotation(models.Model):
 # Represents a table annotation task
 class Task(models.Model):
     query = models.ForeignKey(Query, to_field = 'id', on_delete = models.CASCADE, default = -1) # Reference to Query
-    tables = models.CharField(max_length = 1024, default = None)                                # Array of table names for this task
+    tables = models.CharField(max_length = 1024, default = '')                                # Array of table names for this task
 
 # Represents some work, where a user has been assigned a query and a table to annotate
 class Work(models.Model):
