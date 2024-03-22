@@ -122,7 +122,7 @@ Now, exit the Docker interactive mode and start inserting embeddings into Postgr
 docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17
 cd /src
 mvn package
-java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -db postgres -h <IP> -p 5432 -dbn embeddings -u <USERNAME> -pw <PASSWORD>
+java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -db postgres -h $(docker exec -it db hostname -I) -p 5432 -dbn embeddings -u <USERNAME> -pw <PASSWORD>
 ```
 
 Insert the IP address from the previous step instead of `<IP>`.

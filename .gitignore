@@ -1,3 +1,7 @@
+# Custom Ignores
+data/
+env/
+
 # Compiled class file
 *.class
 
@@ -50,6 +54,7 @@ data/tables/gittables/tables/
 
 table_analysis/env/
 Thetis/eval/data-2021ZB/
+Thetis/lsh-eval/
 
 Neo4j-ParticleFiltering/
 
@@ -74,6 +79,8 @@ evaluation/wikipages/eval_over_search_output/
 evaluation/wikipages/figures/
 
 Web-Table-Retrieval-Benchmark/data/
+Web-Table-Retrieval-Benchmark/queries/
+Web-Table-Retrieval-Benchmark/tables/
 Web-Table-Retrieval-Benchmark/elasticsearch-5.3.3
 
 

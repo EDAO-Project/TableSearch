@@ -1,8 +1,8 @@
 import json
 from tqdm import tqdm
 
-input_wikipage_to_links_path = 'wikipage_relevance_scores/wikipages_expanded_dataset/wikipage_to_links.json'
-output_wikipage_to_links_path = 'wikipage_relevance_scores/wikipages_expanded_dataset/wikipage_to_links.json'
+input_wikipage_to_links_path = 'wikipage_relevance_scores/wikipages_2019_dataset_2023_3_29_navigation_links/wikipage_to_links.json'
+output_wikipage_to_links_path = 'wikipage_relevance_scores/wikipages_2019_dataset_2023_3_29_navigation_links/wikipage_to_links.json'
 prefixes_to_remove = ('Template:', 'File:', 'Wikipedia:', 'Portal:', 'Help:')
 
 
