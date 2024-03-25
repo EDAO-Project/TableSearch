@@ -147,7 +147,8 @@ def get_scores_over_output(full_df, query_df, scores_path, groundtruth_relevance
             # A table not found in the `table_id_to_pred_score` dictionary is set to a default score of 0 
             pred_tables_to_relevance_scores_dict = {table:0 for table in gt_tables_to_relevance_scores_dict}
             for table in table_id_to_pred_score:
-                pred_tables_to_relevance_scores_dict[table] = table_id_to_pred_score[table]
+                if table in gt_tables_to_relevance_scores_dict:
+                    pred_tables_to_relevance_scores_dict[table] = table_id_to_pred_score[table]
 
             # Compute the number of relevant tables in the top-k of the `table_id_to_pred_score` dictionary
             num_relevant_tables_at_k = utils.evaluation_helpers.get_num_relevant_tables_at_k(gt_tables_to_relevance_scores_dict, table_id_to_pred_score, k)

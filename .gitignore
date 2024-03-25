@@ -1,6 +1,11 @@
 # Custom Ignores
 data/
 env/
+Thetis/debug/
+Thetis/performance-eval/
+
+evaluation/wikipages/evaluation_dataframes/
+evaluation/wikipages/TURL_evaluation/
 
 # Compiled class file
 *.class
