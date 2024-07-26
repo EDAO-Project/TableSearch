@@ -76,7 +76,7 @@ Add the option `-dp` or `--disable-parsing` to skip pre-parsing the embeddings f
 
 We use the WikiTables provided in the 
 
-The WikiTables corpus originates from the TabEL paper
+The WikiTables corpus originates from the semantic table search benchmark paper
 > Aristotelis Leventidis, Martin Pekár Christensen, Matteo Lissandrini, Laura Di Rocco, Katja Hose, and Renée J. Miller. 2024. A Large Scale Test Corpus for Semantic Table Search. IIn Proceedings of the 47th International ACM SIGIR Conference on Research and Development in Information Retrieval (SIGIR '24). Association for Computing Machinery, New York, NY, USA, 1142–1151.
 
 1. Download the benchmark and unzip the corpus
@@ -124,20 +124,17 @@ Table search is only possible if the table corpus has been fully indexed.
 
 ```bash
    docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17
-   java -Xms25g -jar target/Thetis.0.1.jar search -prop types -topK 10 -q /data/SemanticTableSearchDataset/queries/2013/1_tuples_per_query/ \
-      -td /data/SemanticTableSearchDataset/table_corpus/tables_2013/ -i /data/index/wikitables/ -od /data/results/ --singleColumnPerQueryEntity \
-      --adjustedSimilarity --useMaxSimilarityPerColumn
+   java -Xms25g -jar target/Thetis.0.1.jar search -prop types -topK 10 -q /data/SemanticTableSearchDataset/queries/2013/1_tuples_per_query/ -td /data/SemanticTableSearchDataset/table_corpus/tables_2013/ -i /data/index/wikitables/ -od /data/results/ --singleColumnPerQueryEntity --adjustedSimilarity --useMaxSimilarityPerColumn
 ```
 
-Instead of `types` for the parameter `-prop`, you can use `predicates` or `embeddings` instead for entity similarity measurements.
-If you use `embeddings`, then you must specify the cosine similarity function: `--embeddingSimilarityFunction norm_cos`, `--embeddingSimilarityFunction abs_cos`, or `--embeddingSimilarityFunction ang_cos`.
-You can use any value greater than 0 for the `-topK` parameter, which specifies the result set size.
-The `-q` parameter specifies the directory containing the queries.
-The `-td` parameter specifies the directory of the tables to search among.
-The `-i` parameter specifies the directory containing the indexes.
-The `-od` parameter specifies the directory in which to write the result sets.
-
-You can additionally add a `-pf HNSW` option to use HNSW search space pre-filtering to scale the table search algorithm.
+- Instead of `types` for the parameter `-prop`, you can use `predicates` or `embeddings` instead for entity similarity measurements.
+-   If you use `embeddings`, then you must specify the cosine similarity function: `--embeddingSimilarityFunction norm_cos`, `--embeddingSimilarityFunction abs_cos`, or `--embeddingSimilarityFunction ang_cos`.
+- You can use any value greater than 0 for the `-topK` parameter, which specifies the result set size.
+- The `-q` parameter specifies the directory containing the queries.
+- The `-td` parameter specifies the directory of the tables to search among.
+- The `-i` parameter specifies the directory containing the indexes.
+- The `-od` parameter specifies the directory in which to write the result sets.
+- You can additionally add a `-pf HNSW` option to use HNSW search space pre-filtering to scale the table search algorithm.
 
 2. Find the query results in `data/results/`.
 
@@ -149,10 +146,9 @@ The table search will be performed over partially constructed indexes, and the i
 
 ```bash
    docker run -v $(pwd)/queries:/queries -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17
-   java -Xms25g -jar target/Thetis.0.1.jar progressive -topK 10 -prop types --table-dir /data/SemanticTableSearchDataset/table_corpus/tables_2013/ --output-dir /data/index/wikitables/ --result-dir /data/results/ --indexing-time 10 \
-      --singleColumnPerQueryEntity --adjustedSimilarity --useMaxSimilarityPerColumn
+   java -Xms25g -jar target/Thetis.0.1.jar progressive -topK 10 -prop types --table-dir /data/SemanticTableSearchDataset/table_corpus/tables_2013/ --output-dir /data/index/wikitables/ --result-dir /data/results/ --indexing-time 10 --singleColumnPerQueryEntity --adjustedSimilarity --useMaxSimilarityPerColumn
 ```
 
-You can additionally add a `-pf HNSW` option to use HNSW search space pre-filtering to scale the table search algorithm.
-The parameter `--indexing-time` allows to specify the amount of time to spend on indexing before a query is executed.
-To execute queries, add the query file(s) to the `queries/` directory.
+- You can additionally add a `-pf HNSW` option to use HNSW search space pre-filtering to scale the table search algorithm.
+- The parameter `--indexing-time` allows to specify the amount of time to spend on indexing before a query is executed.
+- To execute queries, add the query file(s) to the `queries/` directory.
