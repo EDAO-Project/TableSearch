@@ -81,7 +81,7 @@ public class EntityTableLink implements Index<Id, List<String>>, Externalizable
     }
 
     @Override
-    public int size()
+    public long size()
     {
         return this.idx.size();
     }

@@ -47,7 +47,7 @@ public class SynchronizedIndex<K, V> implements Index<K, V>, Serializable
     }
 
     @Override
-    public int size()
+    public long size()
     {
         return this.index.size();
     }

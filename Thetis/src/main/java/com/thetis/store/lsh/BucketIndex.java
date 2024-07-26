@@ -31,7 +31,7 @@ public abstract class BucketIndex<K, V> implements Serializable
      * Getter to number of bucket groups
      * @return Number of bucket groups
      */
-    public int size()
+    public long size()
     {
         return this.groups.size();
     }

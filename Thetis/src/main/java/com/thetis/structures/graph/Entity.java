@@ -14,7 +14,7 @@ public class Entity implements Comparable<Entity>, Serializable
     private String uri;
     private List<Type> types;
     private List<String> predicates;
-    private double idf = -1;
+    private double idf = 1;
 
     public Entity(String uri)
     {

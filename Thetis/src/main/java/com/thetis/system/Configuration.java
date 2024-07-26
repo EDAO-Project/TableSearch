@@ -117,6 +117,12 @@ public class Configuration
         if (!props.contains("LuceneDir"))
             props.setProperty("LuceneDir", ".lucene/");
 
+        if (!props.contains("HNSWParams"))
+            props.setProperty("HNSWParams", "hnsw_params.ser");
+
+        if (!props.contains("HNSW"))
+            props.setProperty("HNSW", "hnsw.ser");
+
         writeProperties(props);
     }
 
@@ -338,5 +344,15 @@ public class Configuration
     public static String getLuceneDir()
     {
         return readProperties().getProperty("LuceneDir");
+    }
+
+    public static String getHNSWParamsFile()
+    {
+        return readProperties().getProperty("HNSWParams");
+    }
+
+    public static String getHNSWFile()
+    {
+        return readProperties().getProperty("HNSW");
     }
 }

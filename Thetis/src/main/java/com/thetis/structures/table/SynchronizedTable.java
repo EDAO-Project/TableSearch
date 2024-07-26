@@ -62,6 +62,12 @@ public class SynchronizedTable<T> extends SimpleTable<T> implements Table<T>
     }
 
     @Override
+    public synchronized void removeRow(int index)
+    {
+        super.removeRow(index);
+    }
+
+    @Override
     public String toString()
     {
         return toStr();

@@ -6,6 +6,6 @@ public interface Index<K, V>
     boolean remove(K key);
     V find(K key);
     boolean contains(K key);
-    int size();
+    long size();
     void clear();
 }

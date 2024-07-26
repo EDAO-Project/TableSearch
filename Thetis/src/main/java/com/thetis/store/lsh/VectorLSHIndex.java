@@ -245,7 +245,7 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
     }
 
     @Override
-    public boolean insert(String entity, String table)
+    public void insert(String entity, String table)
     {
         if (this.linker == null)
         {
@@ -265,14 +265,12 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
 
         if (embedding == null)
         {
-            return false;
+            return;
         }
 
         List<Integer> bitVector = bitVector(embedding);
         List<Integer> keys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
         insertEntity(entityId, keys, table);
-
-        return true;
     }
 
     @Override
@@ -325,5 +323,30 @@ public class VectorLSHIndex extends BucketIndex<Id, String> implements LSHIndex<
         List<Integer> bandKeys = createKeys(this.projections.size(), this.bandSize, bitVector, groupSize(), this.hash);
         embeddingsDB.close();
         return super.search(bandKeys, vote);
+    }
+
+    @Override
+    public boolean remove(String key)
+    {
+        throw new UnsupportedOperationException("Operation not supported in LSH");
+    }
+
+    @Override
+    public String find(String key)
+    {
+        throw new UnsupportedOperationException("Operation not supported in LSH");
+    }
+
+    @Override
+    public boolean contains(String key)
+    {
+        throw new UnsupportedOperationException("Operation not supported in LSH");
+    }
+
+    @Override
+    public void clear()
+    {
+        this.cache.cleanUp();
+        this.projections.clear();
     }
 }

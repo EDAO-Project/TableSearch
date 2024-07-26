@@ -2,6 +2,7 @@ package com.thetis;
 
 import com.thetis.commands.IndexTables;
 import com.thetis.commands.LoadEmbedding;
+import com.thetis.commands.ProgressiveIndexing;
 import com.thetis.commands.SearchTables;
 
 import picocli.CommandLine;
@@ -25,6 +26,7 @@ import org.apache.commons.cli.*;
 
 @CommandLine.Command(name = "thetis", version = "1.0-SNAPSHOT", subcommands = {
         IndexTables.class,
+        ProgressiveIndexing.class,
         SearchTables.class,
         LoadEmbedding.class
 })

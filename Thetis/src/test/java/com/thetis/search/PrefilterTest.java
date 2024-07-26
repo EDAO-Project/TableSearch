@@ -32,7 +32,6 @@ public class PrefilterTest
 {
     private final File outDir = new File("testing/output");
     private Prefilter setPrefilter;
-    private Prefilter embeddingsPrefilter;
     private PairNonComparable<Table<String>, String> singleQuery, nQuery;
 
     @Before
@@ -53,8 +52,7 @@ public class PrefilterTest
         EntityTable entityTable = indexWriter.getEntityTable();
         EntityTableLink tableLink = indexWriter.getEntityTableLinker();
         EmbeddingsIndex<Id> embeddingsIdx = indexWriter.getEmbeddingsIndex();
-        this.setPrefilter = new Prefilter(linker, entityTable, tableLink, embeddingsIdx, indexWriter.getTypesLSH());
-        this.embeddingsPrefilter = new Prefilter(linker, entityTable, tableLink, embeddingsIdx, indexWriter.getEmbeddingsLSH());
+        this.setPrefilter = new Prefilter(linker, entityTable, tableLink, embeddingsIdx, indexWriter.getHNSW());
 
         String singleUri = linker.mapTo("http://www.wikipedia.org/wiki/WebOS");
         this.singleQuery = new PairNonComparable<>(new DynamicTable<>(List.of(List.of(singleUri))), "table-0001-2.json");
@@ -68,7 +66,7 @@ public class PrefilterTest
     }
 
     @Test
-    public void testOneEntityTableTypesLSH()
+    public void testOneEntityTable()
     {
         Iterator<Pair<String, Double>> results = this.setPrefilter.search(this.singleQuery.getFirst()).getResults();
         boolean foundQueryTable = false;
@@ -87,26 +85,7 @@ public class PrefilterTest
     }
 
     @Test
-    public void testOneEntityTableEmbeddingsLSH()
-    {
-        Iterator<Pair<String, Double>> results = this.embeddingsPrefilter.search(this.singleQuery.getFirst()).getResults();
-        boolean foundQueryTable = false;
-
-        while (results.hasNext())
-        {
-            Pair<String, Double> result = results.next();
-
-            if (result.getFirst().equals(this.singleQuery.getSecond()))
-            {
-                foundQueryTable = true;
-            }
-        }
-
-        assertTrue("Query table was not returned", foundQueryTable);
-    }
-
-    @Test
-    public void testNEntityTableWithRemovalTypesLSH()
+    public void testNEntityTableWithRemoval()
     {
         List<List<String>> queryMatrix = new ArrayList<>();
 
@@ -122,36 +101,6 @@ public class PrefilterTest
 
         Table<String> query = new DynamicTable<>(queryMatrix);
         Iterator<Pair<String, Double>> results = this.setPrefilter.search(query).getResults();
-        boolean foundQueryTable = false;
-
-        while (results.hasNext())
-        {
-            if (results.next().getFirst().equals(this.nQuery.getSecond()))
-            {
-                foundQueryTable = true;
-            }
-        }
-
-        assertTrue("Query table was not returned", foundQueryTable);
-    }
-
-    @Test
-    public void testNEntityTableWithRemovalEmbeddingsLSH()
-    {
-        List<List<String>> queryMatrix = new ArrayList<>();
-
-        for (int i = 0; i < this.nQuery.getFirst().rowCount(); i++)
-        {
-            queryMatrix.add(new ArrayList<>(this.nQuery.getFirst().getRow(i).size()));
-
-            for (int j = 0; j < this.nQuery.getFirst().getRow(i).size(); j++)
-            {
-                queryMatrix.get(i).add(this.nQuery.getFirst().getRow(i).get(j));
-            }
-        }
-
-        Table<String> query = new DynamicTable<>(queryMatrix);
-        Iterator<Pair<String, Double>> results = this.embeddingsPrefilter.search(query).getResults();
         boolean foundQueryTable = false;
 
         while (results.hasNext())

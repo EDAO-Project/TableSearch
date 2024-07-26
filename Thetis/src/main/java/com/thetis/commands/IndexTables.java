@@ -13,7 +13,6 @@ import com.thetis.loader.IndexWriter;
 import com.thetis.loader.Linker;
 import com.thetis.loader.LuceneLinker;
 import com.thetis.loader.WikiLinker;
-import com.thetis.system.Configuration;
 import com.thetis.system.Logger;
 import com.thetis.connector.DBDriverBatch;
 import com.thetis.connector.Factory;
@@ -34,28 +33,6 @@ public class IndexTables extends Command {
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec; // injected by picocli
 
-    /**
-     * java -jar Thetis.1.0.jar  index --config ./config.properties --table-type wikitables --table-dir  data/tables/wikitables --output-dir data/index/wikitables
-     */
-    public enum TableType {
-        WIKI("wikitables"),
-        TT("toughtables");
-
-        private final String name;
-        TableType(String name){
-            this.name = name;
-        }
-
-        public final String getName(){
-            return this.name;
-        }
-
-        @Override
-        public String toString() {
-            return this.name;
-        }
-    }
-
     public enum Linking
     {
         WIKILINK("wikilink"), LUCENE("lucene");
@@ -73,9 +50,6 @@ public class IndexTables extends Command {
             return this.type;
         }
     }
-
-    @CommandLine.Option(names = { "-tt", "--table-type" }, description = "Table types: ${COMPLETION-CANDIDATES}", required = true)
-    private TableType tableType = null;
 
     @CommandLine.Option(names = {"-t", "--threads"}, description = "Number of threads", required = false, defaultValue = "1")
     private int threads;
@@ -148,29 +122,7 @@ public class IndexTables extends Command {
         this.disallowedEntityTypes = argument.split(",");
     }
 
-    @CommandLine.Option(names = {"-pv", "--permutation-vectors"}, paramLabel = "PERMUTATION-VECTORS", description = "Number of permutation vectors to build entity signatures in LSH index", defaultValue = "15")
-    public void setPermutationVectors(int value)
-    {
-        if (value <= 0)
-        {
-            throw new CommandLine.ParameterException(spec.commandLine(), "Number of permutation vectors must be positive");
-        }
-
-        Configuration.setPermutationVectors(value);
-    }
-
-    @CommandLine.Option(names = {"-bs", "--band-size"}, paramLabel = "BAND-SIZE", description = "Size of bands in LSH index of entity types", defaultValue = "4")
-    public void setBandSize(int val)
-    {
-        if (val <= 1)
-        {
-            throw new CommandLine.ParameterException(spec.commandLine(), "Band size must be greater than 0");
-        }
-
-        Configuration.setBandSize(val);
-    }
-
-    @CommandLine.Option(names = {"-link", "--entity-linker"}, description = "Type of entity linking", required = true, defaultValue = "wikilinkg")
+    @CommandLine.Option(names = {"-link", "--entity-linker"}, description = "Type of entity linking", required = true, defaultValue = "wikilink")
     private Linking linking;
 
     private File kgDir = null;
@@ -196,11 +148,12 @@ public class IndexTables extends Command {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private static final String WIKI_PREFIX = "http://www.wikipedia.org/";
-    private static final String URI_PREFIX = "http://dbpedia.org/";
+    public static final String WIKI_PREFIX = "http://www.wikipedia.org/";
+    public static final String URI_PREFIX = "http://dbpedia.org/";
 
     @Override
-    public Integer call() {
+    public Integer call()
+    {
         if (!embeddingsAreLoaded())
         {
             Logger.logNewLine(Logger.Level.ERROR, "Load embeddings before using this command");
@@ -211,7 +164,8 @@ public class IndexTables extends Command {
         Logger.logNewLine(Logger.Level.INFO, "Input Directory: " + this.tableDir.getAbsolutePath());
         Logger.logNewLine(Logger.Level.INFO, "Output Directory: " + this.outputDir.getAbsolutePath());
 
-        try {
+        try
+        {
             DBDriverBatch<List<Double>, String> embeddingStore = Factory.fromConfig(false);
             Neo4jEndpoint connector = new Neo4jEndpoint(this.configFile);
             connector.testConnection();
@@ -219,31 +173,36 @@ public class IndexTables extends Command {
             Logger.logNewLine(Logger.Level.INFO, "Entity linker is constructing indexes");
             Linker linker = this.linking == Linking.LUCENE ? new LuceneLinker(connector, this.kgDir, true) : new WikiLinker(connector);
             Logger.logNewLine(Logger.Level.INFO, "Done");
+            Logger.logNewLine(Logger.Level.INFO, "Starting indexing of tables");
 
-            switch (this.tableType) {
-                case TT ->
-                        Logger.logNewLine(Logger.Level.ERROR, "Indexing of '" + TableType.TT.getName() + "' is not supported yet!");
-                case WIKI -> {
-                    Logger.logNewLine(Logger.Level.INFO, "Starting indexing of '" + TableType.WIKI.getName() + "'");
-                    parsedTables = indexWikiTables(this.tableDir.toPath(), this.outputDir, connector, linker, embeddingStore, this.threads);
-                    Logger.logNewLine(Logger.Level.INFO, "Indexed " + parsedTables + " tables\n");
-                }
-            }
-
+            parsedTables = indexWikiTables(this.tableDir.toPath(), this.outputDir, connector, linker, embeddingStore, this.threads);
+            Logger.logNewLine(Logger.Level.INFO, "Indexed " + parsedTables + " tables\n");
             embeddingStore.close();
-        } catch(AuthenticationException ex){
+        }
+
+        catch(AuthenticationException ex)
+        {
             Logger.logNewLine(Logger.Level.ERROR, "Could not Login to Neo4j Server (user or password do not match)");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
             return 1;
-        }catch (ServiceUnavailableException ex){
+        }
+
+        catch (ServiceUnavailableException ex)
+        {
             Logger.logNewLine(Logger.Level.ERROR, "Could not connect to Neo4j Server");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
             return 1;
-        } catch (FileNotFoundException ex){
+        }
+
+        catch (FileNotFoundException ex)
+        {
             Logger.logNewLine(Logger.Level.ERROR, "Configuration file for Neo4j connector not found");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
             return 1;
-        } catch (IOException ex){
+        }
+
+        catch (IOException ex)
+        {
             Logger.logNewLine(Logger.Level.ERROR, "Error in reading configuration for Neo4j connector");
             Logger.logNewLine(Logger.Level.ERROR, ex.getMessage());
             return 1;
@@ -253,7 +212,7 @@ public class IndexTables extends Command {
         return 0;
     }
 
-    private boolean embeddingsAreLoaded()
+    public static boolean embeddingsAreLoaded()
     {
         try
         {
@@ -287,8 +246,7 @@ public class IndexTables extends Command {
 
         try
         {
-            Stream<Path> fileStream = Files.find(tableDir,
-                    Integer.MAX_VALUE,
+            Stream<Path> fileStream = Files.find(tableDir, Integer.MAX_VALUE,
                     (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.getFileName().toString().endsWith(".json"));
             List<Path> filePaths = fileStream.collect(Collectors.toList());
             Collections.sort(filePaths);

@@ -83,6 +83,17 @@ public class DynamicTable<T> implements Table<T>
     }
 
     @Override
+    public void removeRow(int index)
+    {
+        if (index < 0 || index >= this.table.size())
+        {
+            throw new IllegalArgumentException("Index out of bounds");
+        }
+
+        this.table.remove(index);
+    }
+
+    @Override
     public int rowCount()
     {
         return this.table.size();

@@ -1,16 +1,17 @@
 package com.thetis.loader;
 
+import com.thetis.connector.DBDriverBatch;
 import com.thetis.store.EmbeddingsIndex;
 import com.thetis.store.EntityLinking;
 import com.thetis.store.EntityTable;
 import com.thetis.store.EntityTableLink;
-import com.thetis.store.lsh.VectorLSHIndex;
-import com.thetis.store.lsh.SetLSHIndex;
+import com.thetis.store.hnsw.HNSW;
 import com.thetis.structures.Id;
 import com.thetis.system.Configuration;
 import com.thetis.system.Logger;
 
 import java.io.*;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,11 +30,11 @@ public class IndexReader implements IndexIO
     private EntityTable entityTable;
     private EntityTableLink entityTableLink;
     private EmbeddingsIndex<Id> embeddingsIdx;
-    private SetLSHIndex typesLSHIndex, predicatesLSHIndex;
-    private VectorLSHIndex embeddingsLSHIndex;
+    private DBDriverBatch<List<Double>, String> embeddingStore;
+    private HNSW hnsw;
     private static final int INDEX_COUNT = 5;
 
-    public IndexReader(File indexDir, boolean isMultithreaded, boolean logProgress)
+    public IndexReader(File indexDir, DBDriverBatch<List<Double>, String> embeddingStore, boolean isMultithreaded, boolean logProgress)
     {
         if (!indexDir.isDirectory())
         {
@@ -46,6 +47,7 @@ public class IndexReader implements IndexIO
         }
 
         this.indexDir = indexDir;
+        this.embeddingStore = embeddingStore;
         this.multithreaded = isMultithreaded;
         this.logProgress = logProgress;
     }
@@ -61,7 +63,7 @@ public class IndexReader implements IndexIO
         Future<?> f1 = threadPoolService.submit(this::loadEntityLinker);
         Future<?> f2 = threadPoolService.submit(this::loadEntityTable);
         Future<?> f3 = threadPoolService.submit(this::loadEntityTableLink);
-        Future<?> f4 = threadPoolService.submit(this::loadLSHIndexes);
+        Future<?> f4 = threadPoolService.submit(this::loadHNSW);
         Future<?> f5 = threadPoolService.submit(this::loadEmbeddingsIndex);
         int completed = -1;
 
@@ -116,11 +118,10 @@ public class IndexReader implements IndexIO
         this.embeddingsIdx = (EmbeddingsIndex<Id>) readIndex(this.indexDir + "/" + Configuration.getEmbeddingsIndexFile());
     }
 
-    private void loadLSHIndexes()
+    private void loadHNSW()
     {
-        this.typesLSHIndex = (SetLSHIndex) readIndex(this.indexDir + "/" + Configuration.getTypesLSHIndexFile());
-        this.predicatesLSHIndex = (SetLSHIndex) readIndex(this.indexDir + "/" + Configuration.getPredicatesLSHIndexFile());
-        this.embeddingsLSHIndex = (VectorLSHIndex) readIndex(this.indexDir + "/" + Configuration.getEmbeddingsLSHFile());
+        this.hnsw = readHNSW();
+        this.hnsw.load();
     }
 
     private Object readIndex(String file)
@@ -152,6 +153,26 @@ public class IndexReader implements IndexIO
         }
     }
 
+    private HNSW readHNSW()
+    {
+        try (ObjectInputStream stream = new ObjectInputStream(new FileInputStream(this.indexDir + "/" + Configuration.getHNSWParamsFile())))
+        {
+            int embeddingsDimension = stream.readInt();
+            long capacity = stream.readLong();
+            int neighborhoodSize = stream.readInt();
+            String indexPath = stream.readUTF();
+
+            return new HNSW((entity -> this.embeddingStore.select(entity.getUri().replace("'", "''"))),
+                    embeddingsDimension, capacity, neighborhoodSize, null, null, null, indexPath);
+        }
+
+        catch (IOException e)
+        {
+            Logger.log(Logger.Level.ERROR, "IO error when reading HNSW index");
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
     public EntityLinking getLinker()
     {
         return this.linker;
@@ -172,18 +193,8 @@ public class IndexReader implements IndexIO
         return this.embeddingsIdx;
     }
 
-    public SetLSHIndex getTypesLSHIndex()
+    public HNSW getHNSW()
     {
-        return this.typesLSHIndex;
-    }
-
-    public SetLSHIndex getPredicatesLSHIndex()
-    {
-        return this.predicatesLSHIndex;
-    }
-
-    public VectorLSHIndex getEmbeddingsLSHIndex()
-    {
-        return this.embeddingsLSHIndex;
+        return this.hnsw;
     }
 }

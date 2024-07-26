@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.util.*;
 
 /**
- * Indexing of entities containing types
+ * Hash index of entities containing types
  */
 public class EntityTable implements Index<Id, Entity>, Serializable
 {
@@ -39,7 +39,7 @@ public class EntityTable implements Index<Id, Entity>, Serializable
     }
 
     @Override
-    public int size()
+    public long size()
     {
         return this.idx.size();
     }

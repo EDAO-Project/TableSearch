@@ -9,7 +9,7 @@ import java.io.Serializable;
 public class Type implements Comparable<Type>, Serializable
 {
     private String type;
-    private double idf = -1;
+    private double idf = 1;
 
     public Type(String type)
     {

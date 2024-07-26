@@ -4,6 +4,7 @@ import com.thetis.store.EmbeddingsIndex;
 import com.thetis.store.EntityLinking;
 import com.thetis.store.EntityTable;
 import com.thetis.store.EntityTableLink;
+import com.thetis.store.hnsw.HNSW;
 import com.thetis.store.lsh.SetLSHIndex;
 import com.thetis.store.lsh.VectorLSHIndex;
 import com.thetis.structures.Id;
@@ -22,6 +23,7 @@ public class Prefilter extends AbstractSearch
     private long elapsed = -1;
     private SetLSHIndex setLSH;
     private VectorLSHIndex vectorsLSH;
+    private HNSW hnsw;
     private BM25 bm25;
     private static final int SIZE_THRESHOLD = 8;
     private static final int SPLITS_SIZE = 3;
@@ -39,6 +41,7 @@ public class Prefilter extends AbstractSearch
         this.setLSH = setLSHIndex;
         this.vectorsLSH = null;
         this.bm25 = null;
+        this.hnsw = null;
     }
 
     public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
@@ -48,6 +51,7 @@ public class Prefilter extends AbstractSearch
         this.vectorsLSH = vectorLSHIndex;
         this.setLSH = null;
         this.bm25 = null;
+        this.hnsw = null;
     }
 
     public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
@@ -56,7 +60,18 @@ public class Prefilter extends AbstractSearch
         this(linker, entityTable, entityTableLink, embeddingsIndex);
         this.vectorsLSH = null;
         this.setLSH = null;
+        this.hnsw = null;
         this.bm25 = bm25;
+    }
+
+    public Prefilter(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
+                     EmbeddingsIndex<Id> embeddingsIndex, HNSW hnsw)
+    {
+        this(linker, entityTable, entityTableLink, embeddingsIndex);
+        this.vectorsLSH = null;
+        this.setLSH = null;
+        this.bm25 = null;
+        this.hnsw = hnsw;
     }
 
     @Override
@@ -125,9 +140,14 @@ public class Prefilter extends AbstractSearch
                 candidates.addAll(searchBM25(entities));
             }
 
-            else
+            else if (this.setLSH != null || this.vectorsLSH != null)
             {
                 candidates.addAll(searchLSH(entities));
+            }
+
+            else
+            {
+                candidates.addAll(searchHNSW(entities));
             }
         }
 
@@ -185,6 +205,18 @@ public class Prefilter extends AbstractSearch
         }
 
         return resultSet;
+    }
+
+    private Set<String> searchHNSW(Set<String> entities)
+    {
+        Set<String> tables = new HashSet<>();
+
+        for (String entity : entities)
+        {
+            tables.addAll(this.hnsw.find(entity));
+        }
+
+        return tables;
     }
 
     @Override

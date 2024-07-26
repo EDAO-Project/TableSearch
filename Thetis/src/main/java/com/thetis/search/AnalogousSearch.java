@@ -77,10 +77,11 @@ public class AnalogousSearch extends AbstractSearch
     private Set<String> corpus;
     private Prefilter prefilter;
 
-    public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<Id> embeddingIdx,
-                           int topK, int threads, EntitySimilarity entitySimilarity, boolean singleColumnPerQueryEntity,
-                           boolean weightedJaccard, boolean adjustedSimilarity, boolean useMaxSimilarityPerColumn,
-                           boolean hungarianAlgorithmSameAlignmentAcrossTuples, SimilarityMeasure similarityMeasure)
+    public AnalogousSearch(Set<String> tableFiles, EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
+                           EmbeddingsIndex<Id> embeddingIdx, int topK, int threads, EntitySimilarity entitySimilarity,
+                           boolean singleColumnPerQueryEntity, boolean weightedJaccard, boolean adjustedSimilarity,
+                           boolean useMaxSimilarityPerColumn, boolean hungarianAlgorithmSameAlignmentAcrossTuples,
+                           SimilarityMeasure similarityMeasure)
     {
         super(linker, entityTable, entityTableLink, embeddingIdx);
         this.topK = topK;
@@ -94,15 +95,16 @@ public class AnalogousSearch extends AbstractSearch
         this.measure = similarityMeasure;
         this.corpus = distinctTables();
         this.prefilter = null;
+        setCorpus(tableFiles);
     }
 
-    public AnalogousSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<Id> embeddingIdx,
-                           int topK, int threads, EntitySimilarity entitySimilarity, boolean singleColumnPerQueryEntity,
-                           boolean weightedJaccard, boolean adjustedSimilarity, boolean useMaxSimilarityPerColumn,
-                           boolean hungarianAlgorithmSameAlignmentAcrossTuples, SimilarityMeasure similarityMeasure,
-                           Prefilter prefilter)
+    public AnalogousSearch(Set<String> tableFiles, EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
+                           EmbeddingsIndex<Id> embeddingIdx, int topK, int threads, EntitySimilarity entitySimilarity,
+                           boolean singleColumnPerQueryEntity, boolean weightedJaccard, boolean adjustedSimilarity,
+                           boolean useMaxSimilarityPerColumn, boolean hungarianAlgorithmSameAlignmentAcrossTuples,
+                           SimilarityMeasure similarityMeasure, Prefilter prefilter)
     {
-        this(linker, entityTable, entityTableLink, embeddingIdx, topK, threads, entitySimilarity, singleColumnPerQueryEntity,
+        this(tableFiles, linker, entityTable, entityTableLink, embeddingIdx, topK, threads, entitySimilarity, singleColumnPerQueryEntity,
                 weightedJaccard, adjustedSimilarity, useMaxSimilarityPerColumn, hungarianAlgorithmSameAlignmentAcrossTuples,
                 similarityMeasure);
         this.prefilter = prefilter;

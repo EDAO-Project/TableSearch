@@ -45,7 +45,7 @@ public class IndexReaderTest
             IndexWriter writer = new IndexWriter(paths, this.outDir, new WikiLinker(endpoint), endpoint, 1,
                     embeddingsDB, "http://www.wikipedia.org/", "http://dbpedia.org/");
             writer.performIO();
-            this.reader = new IndexReader(this.outDir, false, true);
+            this.reader = new IndexReader(this.outDir, embeddingsDB, false, true);
             this.reader.performIO();
         }
     }
