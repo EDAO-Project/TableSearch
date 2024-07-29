@@ -38,7 +38,7 @@ public class EmbeddingsIndex<C> implements ClusteredIndex<C, Id, List<Double>>, 
     }
 
     @Override
-    public int size()
+    public long size()
     {
         return this.embeddingsMap.size();
     }
