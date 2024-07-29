@@ -162,7 +162,7 @@ public class IndexReader implements IndexIO
             int neighborhoodSize = stream.readInt();
             String indexPath = stream.readUTF();
 
-            return new HNSW((entity -> this.embeddingStore.select(entity.getUri().replace("'", "''"))),
+            return new HNSW((entity -> this.embeddingStore.select(entity.replace("'", "''"))),
                     embeddingsDimension, capacity, neighborhoodSize, null, null, null, indexPath);
         }
 
