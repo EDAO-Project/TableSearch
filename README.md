@@ -23,6 +23,12 @@ Semantically Augmented Table Search.
 
 ## Data Preparation
 
+First, setup the Thetis Docker environment
+
+```bash
+docker build -t thetis .
+```
+
 ### KG
 
 The reference KG is DBpedia.
@@ -63,7 +69,7 @@ With the command `docker exec -it db psql -U thetis embeddings`, you can connect
 Now, exit the Docker interactive mode and start inserting embeddings into Postgres
 
 ```
-docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17
+docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm thetis bash
 cd /src
 mvn package
 java -jar target/Thetis.0.1.jar embedding -f /data/embeddings/vectors.txt -db postgres -h <POSTGRES IP> -p 5432 -dbn embeddings -u <USERNAME> -pw <PASSWORD>
@@ -90,7 +96,7 @@ The WikiTables corpus originates from the semantic table search benchmark paper
 3. Run preprocessing script for indexing. Notice that we first create a docker container and then run all commands within it
 
    ```bash
-   docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17
+   docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data --network="host" -it --rm thetis bash
    cd /src
    mvn package
    
@@ -123,7 +129,7 @@ Table search is only possible if the table corpus has been fully indexed.
 1. Run the Docker container and execute a query from within
 
 ```bash
-   docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17
+   docker run -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm thetis bash
    java -Xms25g -jar target/Thetis.0.1.jar search -prop types -topK 10 -q /data/SemanticTableSearchDataset/queries/2013/1_tuples_per_query/ -td /data/SemanticTableSearchDataset/table_corpus/tables_2013/ -i /data/index/wikitables/ -od /data/results/ --singleColumnPerQueryEntity --adjustedSimilarity --useMaxSimilarityPerColumn
 ```
 
@@ -145,7 +151,7 @@ The table search will be performed over partially constructed indexes, and the i
 1. Run the Docker container and start the progressive indexing from within the container
 
 ```bash
-   docker run -v $(pwd)/queries:/queries -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm --entrypoint /bin/bash maven:3.8.4-openjdk-17
+   docker run -v $(pwd)/queries:/queries -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm thetis bash
    java -Xms25g -jar target/Thetis.0.1.jar progressive -topK 10 -prop types --table-dir /data/SemanticTableSearchDataset/table_corpus/tables_2013/ --output-dir /data/index/wikitables/ --result-dir /data/results/ --indexing-time 10 --singleColumnPerQueryEntity --adjustedSimilarity --useMaxSimilarityPerColumn
 ```
 
