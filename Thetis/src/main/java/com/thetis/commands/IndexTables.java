@@ -55,67 +55,89 @@ public class IndexTables extends Command {
     private int threads;
 
     private File configFile = null;
-    @CommandLine.Option(names = { "-cf", "--config"}, paramLabel = "CONF", description = "configuration file", required = true, defaultValue = "./config.properties" )
-    public void setConfigFile(File value) {
 
-        if(!value.exists()){
+    @CommandLine.Option(names = { "-cf", "--config"}, paramLabel = "CONF", description = "configuration file", required = true, defaultValue = "./config.properties" )
+    public void setConfigFile(File value)
+    {
+        if(!value.exists())
+        {
             throw new CommandLine.ParameterException(spec.commandLine(),
                     String.format("Invalid value '%s' for option '--config': " +
                             "the file does not exists.", value));
         }
 
-        if (value.isDirectory()) {
+        if (value.isDirectory())
+        {
             throw new CommandLine.ParameterException(spec.commandLine(),
                     String.format("Invalid value '%s' for option '--config': " +
                             "the path should point to a file not to a directory.", value));
         }
-        configFile = value;
+
+        this.configFile = value;
     }
 
-    private File tableDir = null;
-    @CommandLine.Option(names = { "-td", "--table-dir"}, paramLabel = "TABLE_DIR", description = "Directory containing the input tables", required = true)
-    public void setTableDirectory(File value) {
+    @CommandLine.Option(names = {"-nuri", "--neo4j-uri"}, description = "URI for Neo4J", required = false)
+    private String neo4jUri = null;
 
-        if(!value.exists()){
+    @CommandLine.Option(names = {"-nuser", "--neo4j-user"}, description = "User for Neo4J", required = false)
+    private String neo4jUser = null;
+
+    @CommandLine.Option(names = {"-npassword", "--neo4j-password"}, description = "Password for Neo4J", required = false)
+    private String neo4jPassword = null;
+
+    private File tableDir = null;
+
+    @CommandLine.Option(names = { "-td", "--table-dir"}, paramLabel = "TABLE_DIR", description = "Directory containing the input tables", required = true)
+    public void setTableDirectory(File value)
+    {
+        if (!value.exists())
+        {
             throw new CommandLine.ParameterException(spec.commandLine(),
                     String.format("InvaRoyaltylid value '%s' for option '--table-dir': " +
                             "the directory does not exists.", value));
         }
 
-        if (!value.isDirectory()) {
+        if (!value.isDirectory())
+        {
             throw new CommandLine.ParameterException(spec.commandLine(),
                     String.format("Invalid value '%s' for option '--table-dir': " +
                             "the path does not point to a directory.", value));
         }
-        tableDir = value;
+
+        this.tableDir = value;
     }
 
     private File outputDir = null;
-    @CommandLine.Option(names = { "-od", "--output-dir" }, paramLabel = "OUT_DIR", description = "Directory where the index and it metadata are saved", required = true)
-    public void setOutputDirectory(File value) {
 
-        if(!value.exists()){
+    @CommandLine.Option(names = { "-od", "--output-dir" }, paramLabel = "OUT_DIR", description = "Directory where the index and it metadata are saved", required = true)
+    public void setOutputDirectory(File value)
+    {
+        if (!value.exists())
+        {
             throw new CommandLine.ParameterException(spec.commandLine(),
                     String.format("Invalid value '%s' for option '--output-dir': " +
                             "the directory does not exists.", value));
         }
 
-        if (!value.isDirectory()) {
+        if (!value.isDirectory())
+        {
             throw new CommandLine.ParameterException(spec.commandLine(),
                     String.format("Invalid value '%s' for option '--table-dir': " +
                             "the path does not point to a directory.", value));
         }
 
-        if (!value.canWrite()) {
+        if (!value.canWrite())
+        {
             throw new CommandLine.ParameterException(spec.commandLine(),
                     String.format("Invalid value '%s' for option '--table-dir': " +
                             "the directory is not writable.", value));
         }
 
-        outputDir = value;
+        this.outputDir = value;
     }
 
     private String[] disallowedEntityTypes;
+
     @CommandLine.Option(names = {"-det", "--disallowed-types"}, paramLabel = "DISALLOWED-TYPES", description = "Disallowed entity types - use comma (',') as separator", defaultValue = "http://www.w3.org/2002/07/owl#Thing,http://www.wikidata.org/entity/Q5")
     public void setDisallowedEntityTypes(String argument)
     {
@@ -126,6 +148,7 @@ public class IndexTables extends Command {
     private Linking linking;
 
     private File kgDir = null;
+
     @CommandLine.Option(names = {"-kg", "--kg-dir"}, paramLabel = "KG_DIR", description = "Directory of KG TTL files", required = false)
     public void setKgDir(File dir)
     {
@@ -167,7 +190,7 @@ public class IndexTables extends Command {
         try
         {
             DBDriverBatch<List<Double>, String> embeddingStore = Factory.fromConfig(false);
-            Neo4jEndpoint connector = new Neo4jEndpoint(this.configFile);
+            Neo4jEndpoint connector = this.neo4jUri != null ? new Neo4jEndpoint(this.neo4jUri, this.neo4jUser, this.neo4jPassword) : new Neo4jEndpoint(this.configFile);
             connector.testConnection();
 
             Logger.logNewLine(Logger.Level.INFO, "Entity linker is constructing indexes");

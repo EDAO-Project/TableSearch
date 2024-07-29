@@ -170,7 +170,7 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = {"-td", "--table-dir"}, paramLabel = "TABLE_DIR", description = "Directory containing tables", required = true)
     public void setTableDirectory(File value)
     {
-        if(!value.exists())
+        if (!value.exists())
         {
             throw new CommandLine.ParameterException(spec.commandLine(),
                     String.format("Invalid value '%s' for option '--table-dir': " + "the directory does not exists.", value));
@@ -182,7 +182,7 @@ public class SearchTables extends Command {
                     String.format("Invalid value '%s' for option '--table-dir': " + "the path does not point to a directory.", value));
         }
 
-        tableDir = value;
+        this.tableDir = value;
     }
 
     private File outputDir = null;
@@ -196,21 +196,33 @@ public class SearchTables extends Command {
     private File configFile = null;
 
     @CommandLine.Option(names = {"-cf", "--config"}, paramLabel = "CONF", description = "configuration file", required = true, defaultValue = "./config.properties" )
-    public void setConfigFile(File value) {
-
-        if(!value.exists()){
+    public void setConfigFile(File value)
+    {
+        if (!value.exists())
+        {
             throw new CommandLine.ParameterException(spec.commandLine(),
                     String.format("Invalid value '%s' for option '--config': " +
                             "the file does not exists.", value));
         }
 
-        if (value.isDirectory()) {
+        if (value.isDirectory())
+        {
             throw new CommandLine.ParameterException(spec.commandLine(),
                     String.format("Invalid value '%s' for option '--config': " +
                             "the path should point to a file not to a directory.", value));
         }
-        configFile = value;
+
+        this.configFile = value;
     }
+
+    @CommandLine.Option(names = {"-nuri", "--neo4j-uri"}, description = "URI for Neo4J", required = false)
+    private String neo4jUri = null;
+
+    @CommandLine.Option(names = {"-nuser", "--neo4j-user"}, description = "User for Neo4J", required = false)
+    private String neo4jUser = null;
+
+    @CommandLine.Option(names = {"-npassword", "--neo4j-password"}, description = "Password for Neo4J", required = false)
+    private String neo4jPassword = null;
 
     @CommandLine.Option(names = {"-t", "--threads"}, description = "Number of threads", required = true, defaultValue = "1")
     private int threads;
@@ -239,10 +251,10 @@ public class SearchTables extends Command {
         {
             long startTime = System.nanoTime();
             DBDriverBatch<List<Double>, String> embeddingStore = Factory.fromConfig(false);
-            Neo4jEndpoint connector = new Neo4jEndpoint(this.configFile);
+            Neo4jEndpoint connector = this.neo4jUri != null ? new Neo4jEndpoint(this.neo4jUri, this.neo4jUser, this.neo4jPassword) : new Neo4jEndpoint(this.configFile);
             IndexReader indexReader = new IndexReader(this.indexDir, embeddingStore, true, true);
-            indexReader.performIO();
             connector.testConnection();
+            indexReader.performIO();
 
             long elapsedTime = System.nanoTime() - startTime;
             Logger.logNewLine(Logger.Level.INFO, "Indexes loaded from disk in " + elapsedTime / 1e9 + " seconds\n");

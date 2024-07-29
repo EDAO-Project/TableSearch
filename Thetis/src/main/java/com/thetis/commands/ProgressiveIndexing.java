@@ -52,6 +52,15 @@ public class ProgressiveIndexing extends Command
         this.configFile = value;
     }
 
+    @CommandLine.Option(names = {"-nuri", "--neo4j-uri"}, description = "URI for Neo4J", required = false)
+    private String neo4jUri = null;
+
+    @CommandLine.Option(names = {"-nuser", "--neo4j-user"}, description = "User for Neo4J", required = false)
+    private String neo4jUser = null;
+
+    @CommandLine.Option(names = {"-npassword", "--neo4j-password"}, description = "Password for Neo4J", required = false)
+    private String neo4jPassword = null;
+
     private File tableDir = null;
 
     @CommandLine.Option(names = {"-td", "--table-dir"}, paramLabel = "TABLE_DIR", description = "Directory containing the input tables", required = true)
@@ -196,7 +205,7 @@ public class ProgressiveIndexing extends Command
             File queryDir = new File("/queries/");
             long start = System.currentTimeMillis();
             DBDriverBatch<List<Double>, String> embeddingStore = Factory.fromConfig(false);
-            Neo4jEndpoint connector = new Neo4jEndpoint(this.configFile);
+            Neo4jEndpoint connector = this.neo4jUri != null ? new Neo4jEndpoint(this.neo4jUri, this.neo4jUser, this.neo4jPassword) : new Neo4jEndpoint(this.configFile);
             connector.testConnection();
 
             Logger.logNewLine(Logger.Level.INFO, "Entity linker is constructing indexes");

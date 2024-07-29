@@ -28,11 +28,13 @@ public class Neo4jEndpoint implements AutoCloseable {
     private final String officialName;
     private File configFile;
 
-    public Neo4jEndpoint(final String pathToConfigurationFile) throws IOException {
+    public Neo4jEndpoint(final String pathToConfigurationFile) throws IOException
+    {
         this(new File(pathToConfigurationFile));
     }
 
-    public Neo4jEndpoint(final File confFile) throws IOException {
+    public Neo4jEndpoint(final File confFile) throws IOException
+    {
         Properties prop = new Properties();
         InputStream inputStream;
 
@@ -46,7 +48,7 @@ public class Neo4jEndpoint implements AutoCloseable {
         this.dbUri = prop.getProperty("neo4j.uri", "bolt://localhost:7687");
         this.dbUser = prop.getProperty("neo4j.user", "neo4j");
         this.dbPassword = prop.getProperty("neo4j.password", "admin");
-        this.driver = GraphDatabase.driver(dbUri, AuthTokens.basic(dbUser, dbPassword),
+        this.driver = GraphDatabase.driver(this.dbUri, AuthTokens.basic(this.dbUser, this.dbPassword),
                 Config.builder().withLogging(Logging.javaUtilLogging(Level.WARNING)).build());
         this.isPrimaryTopicOf_rel_type_name = getPredicate("isPrimaryTopicOf");
         this.rdfsLabel = "rdfs__label";
@@ -57,6 +59,24 @@ public class Neo4jEndpoint implements AutoCloseable {
         this.display = getPredicate("display");
         this.officialName = getPredicate("officialName");
         this.configFile = confFile;
+    }
+
+    public Neo4jEndpoint(String uri, String user, String password)
+    {
+        this.dbUri = uri;
+        this.dbUser = user;
+        this.dbPassword = password;
+        this.driver = GraphDatabase.driver(this.dbUri, AuthTokens.basic(this.dbUser, this.dbPassword),
+                Config.builder().withLogging(Logging.javaUtilLogging(Level.WARNING)).build());
+        this.isPrimaryTopicOf_rel_type_name = getPredicate("isPrimaryTopicOf");
+        this.rdfsLabel = "rdfs__label";
+        this.birthName = getPredicate("birthName");
+        this.fullName = getPredicate("fullname");
+        this.abbreviation = getPredicate("abbreviation");
+        this.nativeName = getPredicate("nativeName");
+        this.display = getPredicate("display");
+        this.officialName = getPredicate("officialName");
+        this.configFile = null;
     }
 
     public File getConfigFile()
