@@ -84,7 +84,7 @@ public class IndexTable implements Indexable, Comparable<IndexTable>
     @Override
     public boolean isIndexed()
     {
-        return this.table != null && !this.table.rows.isEmpty();
+        return this.table != null && this.table.rows.isEmpty();
     }
 
     public Path getFilePath()
