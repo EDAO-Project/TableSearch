@@ -277,6 +277,7 @@ public class SearchTables extends Command {
                 {
                     case HNSW -> new Prefilter(linker, entityTable, entityTableLink, embeddingsIdx, hnsw);
                     case BM25 -> new Prefilter(linker, entityTable, entityTableLink, embeddingsIdx, bm25);
+                    case NONE -> null;
                 };
             }
 
