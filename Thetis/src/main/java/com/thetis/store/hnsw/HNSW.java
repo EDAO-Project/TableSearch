@@ -112,9 +112,12 @@ public class HNSW implements Index<String, Set<String>>
         }
 
         List<Double> embedding = this.embeddingGen.apply(key);
-        float[] embeddingsArray = toFloat(embedding);
 
-        this.hnsw.add(id.getId(), embeddingsArray);
+        if (embedding != null)
+        {
+            float[] embeddingsArray = toFloat(embedding);
+            this.hnsw.add(id.getId(), embeddingsArray);
+        }
     }
 
     /**
