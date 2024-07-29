@@ -201,7 +201,7 @@ public class AnalogousSearch extends AbstractSearch
 
                 catch (InterruptedException | ExecutionException e)
                 {
-                    throw new RuntimeException(e.getMessage());
+                    return false;
                 }
             }).count();
 
