@@ -46,7 +46,8 @@ public class AnalogousSearchTest
                     1, embeddingsDB, "http://www.wikipedia.org/", "http://dbpedia.org/");
             indexWriter.performIO();
 
-            this.search = new AnalogousSearch(indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
+            this.search = new AnalogousSearch(paths.stream().map(Path::toString).collect(Collectors.toSet()),
+                    indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
                     indexWriter.getEmbeddingsIndex(), 5, 1, AnalogousSearch.EntitySimilarity.JACCARD_TYPES,
                     false, false, true, false,
                     false, AnalogousSearch.SimilarityMeasure.EUCLIDEAN);
