@@ -324,7 +324,7 @@ public class SearchTables extends Command {
         }
     }
 
-    public boolean ensureQueryEntitiesMapping(Table<String> query, EntityLinking linker, EntityTableLink tableLink)
+    public static boolean ensureQueryEntitiesMapping(Table<String> query, EntityLinking linker, EntityTableLink tableLink)
     {
         int rows = query.rowCount();
 
@@ -347,7 +347,7 @@ public class SearchTables extends Command {
         return true;
     }
 
-    private boolean linkQueryEntities(Table<String> query, DBDriverBatch<List<Double>, String> embeddingsDB, Neo4jEndpoint neo4j,
+    public static boolean linkQueryEntities(Table<String> query, DBDriverBatch<List<Double>, String> embeddingsDB, Neo4jEndpoint neo4j,
                                       EntityLinking linker, EntityTable entityTable, EmbeddingsIndex<Id> embeddingsIdx)
     {
         int rowCount = query.rowCount();

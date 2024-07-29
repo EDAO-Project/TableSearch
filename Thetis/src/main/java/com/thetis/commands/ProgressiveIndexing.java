@@ -258,6 +258,12 @@ public class ProgressiveIndexing extends Command
                     Table<String> queryTable = query.getRight();
                     boolean paused = false;
 
+                    if (!SearchTables.ensureQueryEntitiesMapping(queryTable, indexWriter.getEntityLinker(), indexWriter.getEntityTableLinker()) &&
+                            !SearchTables.linkQueryEntities(queryTable, embeddingStore, connector, indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEmbeddingsIndex()))
+                    {
+                        continue;
+                    }
+
                     if (indexWriter.isRunning())
                     {
                         TimeUnit.SECONDS.sleep(this.indexingTime);
