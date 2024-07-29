@@ -74,9 +74,8 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                 }
 
                 Indexable item = this.scheduler.next();
-                Table.Row<String> indexedRow = (Table.Row<String>) item.index();
 
-                if (indexedRow != null)
+                if (item.index() != null)
                 {
                     int tableSize = item.getIndexable().numDataRows;
                     double decrement = (double) this.largestTable / tableSize;

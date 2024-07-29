@@ -140,7 +140,7 @@ Table search is only possible if the table corpus has been fully indexed.
 - The `-td` parameter specifies the directory of the tables to search among.
 - The `-i` parameter specifies the directory containing the indexes.
 - The `-od` parameter specifies the directory in which to write the result sets.
-- You can additionally add a `-pf HNSW` option to use HNSW search space pre-filtering to scale the table search algorithm.
+- You can additionally add a `-pf HNSW` option to use HNSW search space pre-filtering to scale the table search algorithm. Specify neighborhood size with `--hnsw-K <SIZE>`.
 
 2. Find the query results in `data/results/`.
 
