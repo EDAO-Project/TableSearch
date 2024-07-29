@@ -218,6 +218,9 @@ public class SearchTables extends Command {
     @CommandLine.Option(names = {"-pf", "--pre-filter"}, description = "Pre-filtering technique to reduce search space (HNSW, BM25)")
     private PrefilterTechnique prefilterTechnique = null;
 
+    @CommandLine.Option(names = {"-hk", "--hnsw-K"}, description = "Neighborhood size of HNSW search", defaultValue = "1000")
+    private int hnswK;
+
     @Override
     public Integer call()
     {
@@ -248,13 +251,14 @@ public class SearchTables extends Command {
             EntityTable entityTable = indexReader.getEntityTable();
             EntityTableLink entityTableLink = indexReader.getEntityTableLink();
             EmbeddingsIndex<Id> embeddingsIdx = indexReader.getEmbeddingsIndex();
+            Prefilter prefilter = null;
             HNSW hnsw = indexReader.getHNSW();
             BM25 bm25 = new BM25(linker, entityTable, entityTableLink, embeddingsIdx);
             hnsw.setLinker(linker);
             hnsw.setEntityTable(entityTable);
             hnsw.setEntityTableLink(entityTableLink);
             hnsw.setEmbeddingGenerator(entity -> embeddingStore.select(entity.getUri()));
-            Prefilter prefilter = null;
+            hnsw.setK(this.hnswK);
 
             if (this.prefilterTechnique != null)
             {

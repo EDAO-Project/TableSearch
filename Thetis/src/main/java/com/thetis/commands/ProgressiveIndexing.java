@@ -176,6 +176,9 @@ public class ProgressiveIndexing extends Command
     @CommandLine.Option(names = {"-pf", "--pre-filter"}, description = "Pre-filtering technique to reduce search space (HNSW, BM25)")
     private SearchTables.PrefilterTechnique prefilterTechnique = null;
 
+    @CommandLine.Option(names = {"-hk", "--hnsw-K"}, description = "Neighborhood size of HNSW search", defaultValue = "1000")
+    private int hnswK;
+
     @Override
     public Integer call()
     {
@@ -231,6 +234,8 @@ public class ProgressiveIndexing extends Command
             HNSW hnsw = indexWriter.getHNSW();
             BM25 bm25 = new BM25(indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
                     indexWriter.getEmbeddingsIndex());
+            hnsw.setK(this.hnswK);
+
             Prefilter bm25Prefilter = new Prefilter(indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
                     indexWriter.getEmbeddingsIndex(), bm25), hnswPrefilter = new Prefilter(indexWriter.getEntityLinker(),
                     indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(), indexWriter.getEmbeddingsIndex(), hnsw);
