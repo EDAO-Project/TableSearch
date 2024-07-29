@@ -304,7 +304,7 @@ public class ProgressiveIndexing extends Command
                         scores.add(result);
                     }
 
-                    SearchTables.saveFilenameScores(this.outputDir, indexWriter.getEntityTableLinker().getDirectory(),
+                    SearchTables.saveFilenameScores(this.resultDir, indexWriter.getEntityTableLinker().getDirectory(),
                             queryFile.getName().split("\\.")[0], scores, search.getTableStats(), search.getQueryEntitiesMissingCoverage(),
                             search.elapsedNanoSeconds(), search.getEmbeddingComparisons(), search.getNonEmbeddingComparisons(),
                             search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails(), search.getReduction(),
