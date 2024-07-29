@@ -81,7 +81,7 @@ public class SearchTables extends Command {
         }
     }
 
-    public enum PrefilterTechnique {HNSW, BM25}
+    public enum PrefilterTechnique {HNSW, BM25, NONE}
 
     @CommandLine.Option(names = {"-scpqe", "--singleColumnPerQueryEntity"}, description = "If specified, each query tuple will be evaluated against only one entity")
     private boolean singleColumnPerQueryEntity;

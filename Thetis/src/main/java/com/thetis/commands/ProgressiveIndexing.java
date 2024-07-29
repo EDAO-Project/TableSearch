@@ -182,7 +182,7 @@ public class ProgressiveIndexing extends Command
     @CommandLine.Option(names = {"-it", "--indexing-time"}, description = "Threshold indexing time (seconds) before the query is executed", defaultValue="0")
     private int indexingTime;
 
-    @CommandLine.Option(names = {"-pf", "--pre-filter"}, description = "Pre-filtering technique to reduce search space (HNSW, BM25)")
+    @CommandLine.Option(names = {"-pf", "--pre-filter"}, description = "Pre-filtering technique to reduce search space (HNSW, BM25)", defaultValue = "NONE")
     private SearchTables.PrefilterTechnique prefilterTechnique = null;
 
     @CommandLine.Option(names = {"-hk", "--hnsw-K"}, description = "Neighborhood size of HNSW search", defaultValue = "1000")
@@ -256,8 +256,14 @@ public class ProgressiveIndexing extends Command
                     var query = queryRetriever.next();
                     File queryFile = query.getKey();
                     Table<String> queryTable = query.getRight();
-                    TimeUnit.SECONDS.sleep(this.indexingTime);
-                    indexWriter.pauseIndexing();
+                    boolean paused = false;
+
+                    if (indexWriter.isRunning())
+                    {
+                        TimeUnit.SECONDS.sleep(this.indexingTime);
+                        indexWriter.pauseIndexing();
+                        paused = true;
+                    }
 
                     AnalogousSearch search = switch (this.prefilterTechnique) {
                         case BM25 -> new AnalogousSearch(searchTables, indexWriter.getEntityLinker(), indexWriter.getEntityTable(),
@@ -268,7 +274,7 @@ public class ProgressiveIndexing extends Command
                                 indexWriter.getEntityTableLinker(), indexWriter.getEmbeddingsIndex(), this.topK, 1, entitySimilarity,
                                 this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity, this.useMaxSimilarityPerColumn,
                                 this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, hnswPrefilter);
-                        default -> new AnalogousSearch(searchTables, indexWriter.getEntityLinker(), indexWriter.getEntityTable(),   // TODO: Check if this is selected if no pre-filter technique is selected
+                        case NONE -> new AnalogousSearch(searchTables, indexWriter.getEntityLinker(), indexWriter.getEntityTable(),
                                 indexWriter.getEntityTableLinker(), indexWriter.getEmbeddingsIndex(), this.topK, 1, entitySimilarity,
                                 this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity, this.useMaxSimilarityPerColumn,
                                 this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN);
@@ -277,7 +283,11 @@ public class ProgressiveIndexing extends Command
                     Result results = search.search(queryTable);
                     Iterator<Pair<String, Double>> resultIter = results.getResults();
                     List<Pair<String, Double>> scores = new ArrayList<>();
-                    indexWriter.continueIndexing();
+
+                    if (paused)
+                    {
+                        indexWriter.continueIndexing();
+                    }
 
                     while (resultIter.hasNext())
                     {
