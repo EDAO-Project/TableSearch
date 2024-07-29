@@ -310,6 +310,7 @@ public class ProgressiveIndexing extends Command
                             search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails(), search.getReduction(),
                             this.embeddingSimFunction, this.simProperty, this.prefilterTechnique, this.singleColumnPerQueryEntity,
                             this.useMaxSimilarityPerColumn, this.adjustedSimilarity, 1);
+                    queryFile.delete();
                 }
 
                 catch (InterruptedException e)
