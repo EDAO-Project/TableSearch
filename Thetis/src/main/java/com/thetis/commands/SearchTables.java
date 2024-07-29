@@ -267,7 +267,6 @@ public class SearchTables extends Command {
             HNSW hnsw = indexReader.getHNSW();
             BM25 bm25 = new BM25(linker, entityTable, entityTableLink, embeddingsIdx);
             hnsw.setLinker(linker);
-            hnsw.setEntityTable(entityTable);
             hnsw.setEntityTableLink(entityTableLink);
             hnsw.setEmbeddingGenerator(entity -> embeddingStore.select(entity));
             hnsw.setK(this.hnswK);

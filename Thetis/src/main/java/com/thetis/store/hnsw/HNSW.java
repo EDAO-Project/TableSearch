@@ -5,7 +5,6 @@ import com.thetis.store.EntityTable;
 import com.thetis.store.EntityTableLink;
 import com.thetis.store.Index;
 import com.thetis.structures.Id;
-import com.thetis.structures.graph.Entity;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -20,7 +19,6 @@ public class HNSW implements Index<String, Set<String>>
     private int embeddingsDim, k;
     private long capacity;
     private EntityLinking linker;
-    private EntityTable entityTable;
     private EntityTableLink entityTableLink;
     private String indexPath;
 
@@ -33,7 +31,6 @@ public class HNSW implements Index<String, Set<String>>
         this.k = neighborhoodSize;
         this.hnsw = new cloud.unum.usearch.Index.Config().metric("cos").dimensions(embeddingsDimension).build();
         this.linker = linker;
-        this.entityTable = entityTable;
         this.entityTableLink = entityTableLink;
         this.indexPath = indexPath;
         this.hnsw.reserve(capacity);
@@ -42,11 +39,6 @@ public class HNSW implements Index<String, Set<String>>
     public void setLinker(EntityLinking linker)
     {
         this.linker = linker;
-    }
-
-    public void setEntityTable(EntityTable entityTable)
-    {
-        this.entityTable = entityTable;
     }
 
     public void setEntityTableLink(EntityTableLink entityTableLink)
@@ -184,7 +176,7 @@ public class HNSW implements Index<String, Set<String>>
 
         for (int resultId : ids)
         {
-            if (this.entityTable.contains(new Id(resultId)))
+            if (this.linker.kgUriLookup(new Id(resultId)) != null)
             {
                 return true;
             }
