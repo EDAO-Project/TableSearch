@@ -15,7 +15,7 @@ import java.util.function.Function;
 
 public class HNSW implements Index<String, Set<String>>
 {
-    private transient Function<Entity, List<Double>> embeddingGen;
+    private transient Function<String, List<Double>> embeddingGen;
     private cloud.unum.usearch.Index hnsw;
     private int embeddingsDim, k;
     private long capacity;
@@ -24,7 +24,7 @@ public class HNSW implements Index<String, Set<String>>
     private EntityTableLink entityTableLink;
     private String indexPath;
 
-    public HNSW(Function<Entity, List<Double>> embeddingGenerator, int embeddingsDimension, long capacity, int neighborhoodSize,
+    public HNSW(Function<String, List<Double>> embeddingGenerator, int embeddingsDimension, long capacity, int neighborhoodSize,
                 EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, String indexPath)
     {
         this.embeddingGen = embeddingGenerator;
@@ -54,7 +54,7 @@ public class HNSW implements Index<String, Set<String>>
         this.entityTableLink = entityTableLink;
     }
 
-    public void setEmbeddingGenerator(Function<Entity, List<Double>> embeddingGenerator)
+    public void setEmbeddingGenerator(Function<String, List<Double>> embeddingGenerator)
     {
         this.embeddingGen = embeddingGenerator;
     }
@@ -119,8 +119,7 @@ public class HNSW implements Index<String, Set<String>>
             return;
         }
 
-        Entity entity = this.entityTable.find(id);
-        List<Double> embedding = this.embeddingGen.apply(entity);
+        List<Double> embedding = this.embeddingGen.apply(key);
         float[] embeddingsArray = toFloat(embedding);
 
         this.hnsw.add(id.getId(), embeddingsArray);
@@ -148,15 +147,12 @@ public class HNSW implements Index<String, Set<String>>
     @Override
     public Set<String> find(String key)
     {
-        Id id = this.linker.kgUriLookup(key);
-
-        if (id == null)
+        if (this.linker.kgUriLookup(key) == null)
         {
             return Collections.emptySet();
         }
 
-        Entity entity = this.entityTable.find(id);
-        List<Double> embedding = this.embeddingGen.apply(entity);
+        List<Double> embedding = this.embeddingGen.apply(key);
         float[] primitiveEmbedding = toFloat(embedding);
         int[] ids = this.hnsw.search(primitiveEmbedding, this.k);
         Set<String> tables = new HashSet<>();
@@ -177,15 +173,12 @@ public class HNSW implements Index<String, Set<String>>
     @Override
     public boolean contains(String key)
     {
-        Id id = this.linker.kgUriLookup(key);
-
-        if (id == null)
+        if (this.linker.kgUriLookup(key) == null)
         {
             return false;
         }
 
-        Entity entity = this.entityTable.find(id);
-        List<Double> embedding = this.embeddingGen.apply(entity);
+        List<Double> embedding = this.embeddingGen.apply(key);
         float[] primitiveEmbedding = toFloat(embedding);
         int[] ids = this.hnsw.search(primitiveEmbedding, this.k);
 

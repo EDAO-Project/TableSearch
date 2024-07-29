@@ -14,8 +14,8 @@ import java.util.*;
 public class EntityLinking implements Linker<String, String>, Serializable
 {
     private IdDictionary<String> t1Ids, t2Ids;
-    private Map<Id, Id> inputToKGEntity;    // Input entity to KG entity mapping
-    private Map<Id, Id> kgEntityToInput;    // KG entity to input entity
+    private final Map<Id, Id> inputToKGEntity;    // Input entity to KG entity mapping
+    private final Map<Id, Id> kgEntityToInput;    // KG entity to input entity
     String inputPrefix, kgEntityPrefix;
 
     public EntityLinking(String inputPrefix, String kgEntityPrefix)
@@ -28,7 +28,7 @@ public class EntityLinking implements Linker<String, String>, Serializable
         this.kgEntityPrefix = kgEntityPrefix;
     }
 
-    public EntityLinking(IdDictionary<String> kgEntityDict, IdDictionary inputDict, String inputPrefix, String kgEntityPrefix)
+    public EntityLinking(IdDictionary<String> kgEntityDict, IdDictionary<String> inputDict, String inputPrefix, String kgEntityPrefix)
     {
         this(inputPrefix, kgEntityPrefix);
         this.t1Ids = kgEntityDict;

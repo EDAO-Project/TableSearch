@@ -28,8 +28,8 @@ import org.neo4j.driver.exceptions.ServiceUnavailableException;
 import com.thetis.connector.Neo4jEndpoint;
 
 @picocli.CommandLine.Command(name = "index", description = "creates the index for the specified set of tables")
-public class IndexTables extends Command {
-
+public class IndexTables extends Command
+{
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec; // injected by picocli
 

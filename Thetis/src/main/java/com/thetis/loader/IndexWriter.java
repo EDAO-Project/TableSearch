@@ -214,9 +214,9 @@ public class IndexWriter implements IndexIO
 
                                     Id entityId = ((EntityLinking) this.linker.getLinker()).kgUriLookup(entity);
                                     List<Double> embeddings = this.embeddingsDB.select(entity.replace("'", "''"));
-                                    this.hnsw.insert(entity, Collections.emptySet());
                                     this.entityTable.insert(entityId,
                                         new Entity(entity, entityTypes.stream().map(Type::new).collect(Collectors.toList()), entityPredicates));
+                                    this.hnsw.insert(entity, Collections.emptySet());
 
                                     if (embeddings != null)
                                     {

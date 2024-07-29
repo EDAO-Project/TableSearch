@@ -269,7 +269,7 @@ public class SearchTables extends Command {
             hnsw.setLinker(linker);
             hnsw.setEntityTable(entityTable);
             hnsw.setEntityTableLink(entityTableLink);
-            hnsw.setEmbeddingGenerator(entity -> embeddingStore.select(entity.getUri()));
+            hnsw.setEmbeddingGenerator(entity -> embeddingStore.select(entity));
             hnsw.setK(this.hnswK);
 
             if (this.prefilterTechnique != null)
