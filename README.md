@@ -104,7 +104,7 @@ The WikiTables corpus originates from the semantic table search benchmark paper
    java -Xms25g -jar target/Thetis.0.1.jar index --table-dir /data/SemanticTableSearchDataset/table_corpus/tables_2013/ --output-dir /data/index/wikitables/ -t 4
    ```
 
-   The `t` option specifies the number of threads.
+   The `-t` option specifies the number of threads.
 
 4. Materialize table to entity edges in the Graph
 
