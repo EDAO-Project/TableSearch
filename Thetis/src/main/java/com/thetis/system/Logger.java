@@ -1,5 +1,6 @@
 package com.thetis.system;
 
+import java.io.PrintStream;
 import java.util.Date;
 
 /**
@@ -64,6 +65,12 @@ public class Logger
 
     private static int prevLength = 0;
     private static boolean prevWasNewLine = false;
+    private static PrintStream stream = System.out;
+
+    public static void setPrintStream(PrintStream printStream)
+    {
+        stream = printStream;
+    }
 
     public static void log(Level level, String message)
     {
@@ -72,13 +79,13 @@ public class Logger
         if (configuredLevel != null && level.getLevel() >= configuredLevel.getLevel())
         {
             if (prevWasNewLine)
-                System.out.println();
+                stream.println();
 
             else
                 clearChannel();
 
             String msg = "(" + new Date() + ") - " + level + ": " + message + "\r";
-            System.out.print(msg);
+            stream.print(msg);
             prevLength = msg.length();
             prevWasNewLine = false;
         }
@@ -90,7 +97,7 @@ public class Logger
 
         if (configuredLevel != null && level.getLevel() >= configuredLevel.getLevel())
         {
-            System.out.print("\n(" + new Date() + ") - " + level + ": " + message);
+            stream.print("\n(" + new Date() + ") - " + level + ": " + message);
             prevWasNewLine = true;
         }
     }
@@ -99,9 +106,9 @@ public class Logger
     {
         for (int i = 0; i < prevLength; i++)
         {
-            System.out.print(" ");
+            stream.print(" ");
         }
 
-        System.out.print("\r");
+        stream.print("\r");
     }
 }
