@@ -47,13 +47,15 @@ public class IdDictionary<K> extends Dictionary<K, Id> implements Serializable
     @Override
     public Enumeration<K> keys()
     {
-        return Collections.enumeration(this.map.keySet());
+        Collection<K> keys = new HashSet<>(this.map.keySet());
+        return Collections.enumeration(keys);
     }
 
     @Override
-    public Enumeration<Id> elements()
+    public synchronized Enumeration<Id> elements()
     {
-        return Collections.enumeration(this.map.values());
+        Collection<Id> ids = new HashSet<>(this.map.values());
+        return Collections.enumeration(ids);
     }
 
     @Override
