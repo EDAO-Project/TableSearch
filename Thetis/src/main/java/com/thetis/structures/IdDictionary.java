@@ -59,32 +59,32 @@ public class IdDictionary<K> extends Dictionary<K, Id> implements Serializable
     }
 
     @Override
-    public Id get(Object key)
+    public synchronized Id get(Object key)
     {
         return this.map.get(key);
     }
 
-    public K get(Id value)
+    public synchronized K get(Id value)
     {
         return this.inverse.get(value);
     }
 
     @Override
-    public Id put(K key, Id id)
+    public synchronized Id put(K key, Id id)
     {
         this.inverse.put(id, key);
         return this.map.put(key, id);
     }
 
     @Override
-    public Id remove(Object key)
+    public synchronized Id remove(Object key)
     {
         Id removed = this.map.remove(key);
         this.inverse.remove(removed);
         return removed;
     }
 
-    public void clear()
+    public synchronized void clear()
     {
         this.map.clear();
         this.inverse.clear();
