@@ -77,7 +77,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
 
                 if (item.index() != null)
                 {
-                    int tableSize = item.getIndexable().numDataRows;
+                    int tableSize = item.getIndexable().rows.size();
                     double decrement = (double) this.largestTable / tableSize;
                     item.setPriority(item.getPriority() - decrement);
                     this.largestTable = Math.max(this.largestTable, tableSize);
