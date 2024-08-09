@@ -1,11 +1,13 @@
 package com.thetis.store.hnsw;
 
+import com.stepstone.search.hnswlib.jna.QueryTuple;
+import com.stepstone.search.hnswlib.jna.SpaceName;
 import com.thetis.store.EntityLinking;
-import com.thetis.store.EntityTable;
 import com.thetis.store.EntityTableLink;
 import com.thetis.store.Index;
 import com.thetis.structures.Id;
 
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -15,7 +17,7 @@ import java.util.function.Function;
 public class HNSW implements Index<String, Set<String>>
 {
     private transient Function<String, List<Double>> embeddingGen;
-    private cloud.unum.usearch.Index hnsw;
+    private com.stepstone.search.hnswlib.jna.Index hnsw;
     private int embeddingsDim, k;
     private long capacity;
     private EntityLinking linker;
@@ -23,17 +25,17 @@ public class HNSW implements Index<String, Set<String>>
     private String indexPath;
 
     public HNSW(Function<String, List<Double>> embeddingGenerator, int embeddingsDimension, long capacity, int neighborhoodSize,
-                EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, String indexPath)
+                EntityLinking linker, EntityTableLink entityTableLink, String indexPath)
     {
         this.embeddingGen = embeddingGenerator;
         this.embeddingsDim = embeddingsDimension;
         this.capacity = capacity;
         this.k = neighborhoodSize;
-        this.hnsw = new cloud.unum.usearch.Index.Config().metric("cos").dimensions(embeddingsDimension).build();
+        this.hnsw = new com.stepstone.search.hnswlib.jna.Index(SpaceName.COSINE, embeddingsDimension);
         this.linker = linker;
         this.entityTableLink = entityTableLink;
         this.indexPath = indexPath;
-        this.hnsw.reserve(capacity);
+        this.hnsw.initialize((int) capacity);
     }
 
     public void setLinker(EntityLinking linker)
@@ -84,10 +86,10 @@ public class HNSW implements Index<String, Set<String>>
         return embeddingsArray;
     }
 
-    public void setCapacity(long capacity)
+    public void setCapacity(int capacity)
     {
         this.capacity = capacity;
-        this.hnsw.reserve(this.capacity);
+        this.hnsw.initialize(capacity);
     }
 
     public void setK(int k)
@@ -116,7 +118,7 @@ public class HNSW implements Index<String, Set<String>>
         if (embedding != null)
         {
             float[] embeddingsArray = toFloat(embedding);
-            this.hnsw.add(id.getId(), embeddingsArray);
+            this.hnsw.addItem(embeddingsArray, id.getId());
         }
     }
 
@@ -135,10 +137,15 @@ public class HNSW implements Index<String, Set<String>>
             return false;
         }
 
-        this.hnsw.remove(id.getId());
+        this.hnsw.markDeleted(id.getId());
         return true;
     }
 
+    /**
+     * Performs the approximate KNN search over the HNSW index
+     * @param key Entity to search for
+     * @return Set of entities that are approximately closest to the key entity in the embedding space
+     */
     @Override
     public Set<String> find(String key)
     {
@@ -149,10 +156,10 @@ public class HNSW implements Index<String, Set<String>>
 
         List<Double> embedding = this.embeddingGen.apply(key);
         float[] primitiveEmbedding = toFloat(embedding);
-        int[] ids = this.hnsw.search(primitiveEmbedding, this.k);
+        QueryTuple results = this.hnsw.knnQuery(primitiveEmbedding, this.k);
         Set<String> tables = new HashSet<>();
 
-        for (int resultId : ids)
+        for (int resultId : results.getIds())
         {
             tables.addAll(this.entityTableLink.find(new Id(resultId)));
         }
@@ -162,30 +169,14 @@ public class HNSW implements Index<String, Set<String>>
 
     /**
      * Approximately checks whether a given entity exists in the HNSW index
+     * Increase K to improve accuracy
      * @param key Entity to check
      * @return True if the entity is in the top-K nearest neighbors
      */
     @Override
     public boolean contains(String key)
     {
-        if (this.linker.kgUriLookup(key) == null)
-        {
-            return false;
-        }
-
-        List<Double> embedding = this.embeddingGen.apply(key);
-        float[] primitiveEmbedding = toFloat(embedding);
-        int[] ids = this.hnsw.search(primitiveEmbedding, this.k);
-
-        for (int resultId : ids)
-        {
-            if (this.linker.kgUriLookup(new Id(resultId)) != null)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return find(key).stream().anyMatch(key::equals);
     }
 
     /**
@@ -195,7 +186,7 @@ public class HNSW implements Index<String, Set<String>>
     @Override
     public long size()
     {
-        return this.hnsw.size();
+        return this.hnsw.getLength();
     }
 
     /**
@@ -204,18 +195,16 @@ public class HNSW implements Index<String, Set<String>>
     @Override
     public void clear()
     {
-        this.hnsw = new cloud.unum.usearch.Index.Config().metric("cos").dimensions(this.embeddingsDim).build();
+        this.hnsw.clear();
     }
 
     public void save()
     {
-        this.hnsw.save(this.indexPath);
+        this.hnsw.save(Path.of(this.indexPath));
     }
 
     public void load()
     {
-        this.hnsw = new cloud.unum.usearch.Index.Config().metric("cos").dimensions(this.embeddingsDim).build();
-        this.hnsw.reserve(this.capacity);
-        this.hnsw.load(this.indexPath);
+        this.hnsw.load(Path.of(this.indexPath), (int) this.capacity);
     }
 }

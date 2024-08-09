@@ -95,7 +95,7 @@ public class IndexWriter implements IndexIO
         this.embeddingsIdx = SynchronizedIndex.wrap(new EmbeddingsIndex<>());
         this.entityTableLink = SynchronizedIndex.wrap(new EntityTableLink());
         this.hnsw = SynchronizedIndex.wrap(new HNSW((entity -> this.embeddingsDB.select(entity.replace("'", "''"))), Configuration.getEmbeddingsDimension(),
-                neo4j.getNumNodes(), HNSW_K, getEntityLinker(), getEntityTable(), getEntityTableLinker(), this.outputPath + "/" + Configuration.getHNSWFile()));
+                neo4j.getNumNodes(), HNSW_K, getEntityLinker(), getEntityTableLinker(), this.outputPath + "/" + Configuration.getHNSWFile()));
         ((EntityTableLink) this.entityTableLink.getIndex()).setDirectory(files.get(0).toFile().getParent() + "/");
     }
 

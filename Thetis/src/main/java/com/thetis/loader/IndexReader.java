@@ -163,7 +163,7 @@ public class IndexReader implements IndexIO
             String indexPath = stream.readUTF();
 
             return new HNSW((entity -> this.embeddingStore.select(entity.replace("'", "''"))),
-                    embeddingsDimension, capacity, neighborhoodSize, null, null, null, indexPath);
+                    embeddingsDimension, capacity, neighborhoodSize, null, null, indexPath);
         }
 
         catch (IOException e)
