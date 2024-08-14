@@ -8,6 +8,8 @@ import com.thetis.loader.LuceneLinker;
 import com.thetis.loader.WikiLinker;
 import com.thetis.loader.progressive.PriorityScheduler;
 import com.thetis.loader.progressive.ProgressiveIndexWriter;
+import com.thetis.loader.progressive.recorder.QueryRecorder;
+import com.thetis.loader.progressive.recorder.TrendRecorder;
 import com.thetis.search.*;
 import com.thetis.store.hnsw.HNSW;
 import com.thetis.structures.Pair;
@@ -236,6 +238,7 @@ public class ProgressiveIndexing extends Command
                 Logger.log(Logger.Level.INFO, "Progressively loaded in " + (elapsed / 1000) / 60 + " minutes");
             };
             QueryRetriever queryRetriever = new QueryRetriever(queryDir);
+            QueryRecorder recorder = new TrendRecorder();
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
                     1, embeddingStore, IndexTables.WIKI_PREFIX, IndexTables.URI_PREFIX, new PriorityScheduler(), cleanup);
             indexWriter.performIO();
@@ -297,8 +300,10 @@ public class ProgressiveIndexing extends Command
 
                     while (resultIter.hasNext())
                     {
-                        Pair<String, Double> result = resultIter.next();    // TODO: Check if result.getFirst() returns the ID of an indexable
-                        double alpha = 1;
+                        Pair<String, Double> result = resultIter.next();
+                        recorder.record(result);
+
+                        double alpha = recorder.boost(result.getFirst());
                         double newPriority = indexWriter.getMaxPriority() * (1 + result.getSecond() * alpha);
                         indexWriter.updatePriority(result.getFirst(), (i) -> i.setPriority(newPriority));
                         scores.add(result);
