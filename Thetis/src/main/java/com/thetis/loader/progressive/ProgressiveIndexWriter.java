@@ -34,8 +34,8 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     private final Scheduler scheduler;
     private final Map<String, Table<String>> indexedTables = new HashMap<>();
     private final int corpusSize;
-    private int largestTable = 0;
-    private double maxPriority = -1.0;
+    private Pair<String, Double> maxPriority = null;
+    private Pair<String, Integer> largestTable = null;
     private final HashSet<String> insertedIds = new HashSet<>();
 
     public ProgressiveIndexWriter(List<Path> files, File indexPath, Linker entityLinker,
@@ -77,14 +77,23 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
 
                 if (item.index() != null)
                 {
-                    int tableSize = item.getIndexable().rows.size();
-                    double decrement = (double) this.largestTable / tableSize;
-                    item.setPriority(item.getPriority() - decrement);
-                    this.largestTable = Math.max(this.largestTable, tableSize);
-                    this.maxPriority = Math.max(this.maxPriority, item.getPriority());
-
                     synchronized (super.lock)
                     {
+                        int tableSize = item.getIndexable().rows.size();
+
+                        if (this.largestTable == null || tableSize > this.largestTable.getSecond() || item.getId().equals(this.largestTable.getFirst()))
+                        {
+                            this.largestTable = new Pair<>(item.getId(), tableSize);
+                        }
+
+                        if (this.maxPriority == null || item.getPriority() > this.maxPriority.getSecond() || item.getId().equals(maxPriority.getFirst()))
+                        {
+                            this.maxPriority = new Pair<>(item.getId(), item.getPriority());
+                        }
+
+                        double decrement = (double) this.largestTable.getSecond() / tableSize;
+                        item.setPriority(item.getPriority() - decrement);
+
                         if (!item.isIndexed())
                         {
                             this.scheduler.addIndexTable(item);
@@ -225,7 +234,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     @Override
     public boolean addTable(Path tablePath)
     {
-        IndexTable tableToIndex = new IndexTable(tablePath, this.maxPriority, this::indexRow);
+        IndexTable tableToIndex = new IndexTable(tablePath, this.maxPriority.getSecond(), this::indexRow);
         this.scheduler.addIndexTable(tableToIndex);
 
         return true;
@@ -288,11 +297,11 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
 
     public int getLargestTable()
     {
-        return this.largestTable;
+        return this.largestTable.getSecond();
     }
 
     public double getMaxPriority()
     {
-        return this.maxPriority;
+        return this.maxPriority.getSecond();
     }
 }
