@@ -7,7 +7,7 @@ package com.thetis.loader.progressive.recorder;
 public class DummyRecorder extends QueryRecorder
 {
     @Override
-    public double abstractBoost(String id)
+    protected double abstractBoost(String id)
     {
         return 1.0;
     }

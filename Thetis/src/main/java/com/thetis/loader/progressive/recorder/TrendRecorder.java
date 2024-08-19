@@ -10,7 +10,7 @@ import java.util.List;
 public class TrendRecorder extends QueryRecorder
 {
     @Override
-    public double abstractBoost(String id)
+    protected double abstractBoost(String id)
     {
         if (!super.scores.containsKey(id))
         {

@@ -38,4 +38,19 @@ public abstract class QueryRecorder
     {
         return abstractBoost(id);
     }
+
+    public static DummyRecorder dummyRecorder()
+    {
+        return new DummyRecorder();
+    }
+
+    public static TrendRecorder trendRecorder()
+    {
+        return new TrendRecorder();
+    }
+
+    public static ThresholdRecorder thresholdRecorder(double threshold)
+    {
+        return new ThresholdRecorder(threshold);
+    }
 }
