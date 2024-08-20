@@ -238,7 +238,7 @@ public class ProgressiveIndexing extends Command
                 Logger.log(Logger.Level.INFO, "Progressively loaded in " + (elapsed / 1000) / 60 + " minutes");
             };
             QueryRetriever queryRetriever = new QueryRetriever(queryDir);
-            QueryRecorder recorder = QueryRecorder.thresholdRecorder(0.6);
+            QueryRecorder recorder = QueryRecorder.dummyRecorder();
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
                     1, embeddingStore, IndexTables.WIKI_PREFIX, IndexTables.URI_PREFIX, new PriorityScheduler(), cleanup);
             indexWriter.performIO();
@@ -304,10 +304,25 @@ public class ProgressiveIndexing extends Command
                         recorder.record(result);
 
                         double alpha = recorder.boost(result.getFirst());
-                        double newPriority = indexWriter.getMaxPriority() * (1 + result.getSecond() * alpha);
-                        indexWriter.updatePriority(result.getFirst(), (i) -> i.setPriority(newPriority));
+                        double newPriority = Math.abs(indexWriter.getMaxPriority() * (1 + result.getSecond() * alpha) - indexWriter.getMaxPriority()) + indexWriter.getMaxPriority();
+                        indexWriter.updatePriority(result.getFirst(), i -> i.setPriority(newPriority));
                         scores.add(result);
                     }
+
+                    /*while (resultIter.hasNext())
+                    {
+                        Pair<String, Double> result = resultIter.next();
+                        scores.add(result);
+                    }
+
+                    QueryRecorder recorder = QueryRecorder.meanRecorder(scores.stream().map(Pair::getSecond).toList());
+                    scores.forEach(score -> {
+                        recorder.record(score);
+
+                        double alpha = recorder.boost(score.getFirst());
+                        double newPriority = indexWriter.getMaxPriority() * (1 + score.getSecond() * alpha);
+                        indexWriter.updatePriority(score.getFirst(), i -> i.setPriority(newPriority));
+                    });*/
 
                     SearchTables.saveFilenameScores(this.resultDir, indexWriter.getEntityTableLinker().getDirectory(),
                             queryFile.getName().split("\\.")[0], scores, search.getTableStats(), search.getQueryEntitiesMissingCoverage(),

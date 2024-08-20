@@ -53,4 +53,9 @@ public abstract class QueryRecorder
     {
         return new ThresholdRecorder(threshold);
     }
+
+    public static MeanRecorder meanRecorder(List<Double> scores)
+    {
+        return new MeanRecorder(scores);
+    }
 }
