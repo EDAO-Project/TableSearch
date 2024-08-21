@@ -14,7 +14,7 @@ public class RegretRecorder extends QueryRecorder
                 avgRegret = super.scores.get(id).subList(0, super.scores.get(id).size() - 1).stream()
                         .mapToDouble(d -> 1 - d)
                         .average()
-                        .getAsDouble();
+                        .orElse(1.0);
 
         return 1 / (1 + Math.abs(current - avgRegret));
     }
