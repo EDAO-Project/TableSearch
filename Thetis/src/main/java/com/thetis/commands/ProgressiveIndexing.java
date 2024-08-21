@@ -9,7 +9,6 @@ import com.thetis.loader.WikiLinker;
 import com.thetis.loader.progressive.PriorityScheduler;
 import com.thetis.loader.progressive.ProgressiveIndexWriter;
 import com.thetis.loader.progressive.recorder.QueryRecorder;
-import com.thetis.loader.progressive.recorder.TrendRecorder;
 import com.thetis.search.*;
 import com.thetis.store.hnsw.HNSW;
 import com.thetis.structures.Pair;
@@ -238,7 +237,7 @@ public class ProgressiveIndexing extends Command
                 Logger.log(Logger.Level.INFO, "Progressively loaded in " + (elapsed / 1000) / 60 + " minutes");
             };
             QueryRetriever queryRetriever = new QueryRetriever(queryDir);
-            QueryRecorder recorder = QueryRecorder.dummyRecorder();
+            QueryRecorder recorder = QueryRecorder.regretRecorder();
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
                     1, embeddingStore, IndexTables.WIKI_PREFIX, IndexTables.URI_PREFIX, new PriorityScheduler(), cleanup);
             indexWriter.performIO();
@@ -308,21 +307,6 @@ public class ProgressiveIndexing extends Command
                         indexWriter.updatePriority(result.getFirst(), i -> i.setPriority(newPriority));
                         scores.add(result);
                     }
-
-                    /*while (resultIter.hasNext())
-                    {
-                        Pair<String, Double> result = resultIter.next();
-                        scores.add(result);
-                    }
-
-                    QueryRecorder recorder = QueryRecorder.meanRecorder(scores.stream().map(Pair::getSecond).toList());
-                    scores.forEach(score -> {
-                        recorder.record(score);
-
-                        double alpha = recorder.boost(score.getFirst());
-                        double newPriority = indexWriter.getMaxPriority() * (1 + score.getSecond() * alpha);
-                        indexWriter.updatePriority(score.getFirst(), i -> i.setPriority(newPriority));
-                    });*/
 
                     SearchTables.saveFilenameScores(this.resultDir, indexWriter.getEntityTableLinker().getDirectory(),
                             queryFile.getName().split("\\.")[0], scores, search.getTableStats(), search.getQueryEntitiesMissingCoverage(),

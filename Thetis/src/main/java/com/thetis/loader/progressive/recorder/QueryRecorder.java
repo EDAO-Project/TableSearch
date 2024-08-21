@@ -58,4 +58,9 @@ public abstract class QueryRecorder
     {
         return new MeanRecorder(scores);
     }
+
+    public static RegretRecorder regretRecorder()
+    {
+        return new RegretRecorder();
+    }
 }
