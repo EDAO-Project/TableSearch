@@ -237,7 +237,7 @@ public class ProgressiveIndexing extends Command
                 Logger.log(Logger.Level.INFO, "Progressively loaded in " + (elapsed / 1000) / 60 + " minutes");
             };
             QueryRetriever queryRetriever = new QueryRetriever(queryDir);
-            QueryRecorder recorder = QueryRecorder.regretRecorder();
+            QueryRecorder recorder = QueryRecorder.dummyRecorder();
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
                     1, embeddingStore, IndexTables.WIKI_PREFIX, IndexTables.URI_PREFIX, new PriorityScheduler(), cleanup);
             indexWriter.performIO();
