@@ -1,47 +1,22 @@
 package com.thetis.search;
 
 import com.thetis.commands.parser.TableParser;
+import com.thetis.loader.FileRetriever;
 import com.thetis.structures.table.Table;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.File;
-import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 
-public class QueryRetriever implements Iterator<Pair<File, Table<String>>>
+public class QueryRetriever extends FileRetriever
 {
-    private final File dir;
-
     public QueryRetriever(File queryDirectory)
     {
-        this.dir = queryDirectory;
+        super(queryDirectory);
     }
 
-    public File getDirectory()
+    public Pair<File, Table<String>> nextQuery()
     {
-        return this.dir;
-    }
-
-    @Override
-    public boolean hasNext()
-    {
-        return this.dir.listFiles().length > 0;
-    }
-
-    @Override
-    public Pair<File, Table<String>> next()
-    {
-        while (!hasNext())
-        {
-            try
-            {
-                TimeUnit.SECONDS.sleep(2);
-            }
-
-            catch (InterruptedException ignored) {}
-        }
-
-        File queryFile = this.dir.listFiles()[0];
+        File queryFile = next();
         Table<String> queryTable = null;
 
         while (queryTable == null)

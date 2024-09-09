@@ -3,6 +3,7 @@ package com.thetis.commands;
 import com.thetis.connector.DBDriverBatch;
 import com.thetis.connector.Factory;
 import com.thetis.connector.Neo4jEndpoint;
+import com.thetis.loader.FileRetriever;
 import com.thetis.loader.Linker;
 import com.thetis.loader.LuceneLinker;
 import com.thetis.loader.WikiLinker;
@@ -203,7 +204,7 @@ public class ProgressiveIndexing extends Command
 
         try
         {
-            File queryDir = new File("/queries/");
+            File queryDir = new File("/queries/"), newTablesDir = new File("/tables/");
             long start = System.currentTimeMillis();
             DBDriverBatch<List<Double>, String> embeddingStore = Factory.fromConfig(false);
             Neo4jEndpoint connector = this.neo4jUri != null ? new Neo4jEndpoint(this.neo4jUri, this.neo4jUser, this.neo4jPassword) : new Neo4jEndpoint(this.configFile);
@@ -237,6 +238,7 @@ public class ProgressiveIndexing extends Command
                 Logger.log(Logger.Level.INFO, "Progressively loaded in " + (elapsed / 1000) / 60 + " minutes");
             };
             QueryRetriever queryRetriever = new QueryRetriever(queryDir);
+            FileRetriever tableRetriever = new FileRetriever(newTablesDir);
             QueryRecorder recorder = QueryRecorder.dummyRecorder();
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
                     1, embeddingStore, IndexTables.WIKI_PREFIX, IndexTables.URI_PREFIX, new PriorityScheduler(), cleanup);
@@ -255,7 +257,19 @@ public class ProgressiveIndexing extends Command
             {
                 try
                 {
-                    var query = queryRetriever.next();
+                    if (tableRetriever.hasNext())
+                    {
+                        File tableFile = tableRetriever.next();
+                        boolean isMoved = tableFile.renameTo(new File(this.tableDir + "/" + tableFile.getName()));
+
+                        if (isMoved)
+                        {
+                            searchTables.add(tableFile.getAbsolutePath());
+                            indexWriter.addTable(tableFile.toPath());
+                        }
+                    }
+
+                    var query = queryRetriever.nextQuery();
                     File queryFile = query.getKey();
                     Table<String> queryTable = query.getRight();
                     boolean paused = false;

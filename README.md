@@ -151,10 +151,11 @@ The table search will be performed over partially constructed indexes, and the i
 1. Run the Docker container and start the progressive indexing from within the container
 
 ```bash
-   docker run -v $(pwd)/queries:/queries -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm thetis bash
+   docker run -v $(pwd)/queries:/queries -v $(pwd)/new-tables:/tables/ -v $(pwd)/Thetis:/src -v $(pwd)/data:/data  --network="host" -it --rm thetis bash
    java -Xms25g -jar target/Thetis.0.1.jar progressive -topK 10 -prop types --table-dir /data/SemanticTableSearchDataset/table_corpus/tables_2013/ --output-dir /data/index/wikitables/ --result-dir /data/results/ --indexing-time 10 --singleColumnPerQueryEntity --adjustedSimilarity --useMaxSimilarityPerColumn
 ```
 
 - You can additionally add a `-pf HNSW` option to use HNSW search space pre-filtering to scale the table search algorithm.
 - The parameter `--indexing-time` allows to specify the amount of time to spend on indexing before a query is executed.
 - To execute queries, add the query file(s) to the `queries/` directory.
+- To add new tables to the corpus and to be indexed, add the table files to the `new-tables/` directory.
