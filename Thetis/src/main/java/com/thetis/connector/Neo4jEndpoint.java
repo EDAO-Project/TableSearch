@@ -1,6 +1,7 @@
 package com.thetis.connector;
 
 import com.thetis.structures.Pair;
+import com.thetis.system.Logger;
 import org.neo4j.driver.*;
 import org.neo4j.driver.Record;
 
@@ -96,7 +97,7 @@ public class Neo4jEndpoint implements AutoCloseable {
                         "RETURN COUNT(a) as count");
                 return result.single().get("count").asLong();
             });
-            System.out.printf("Neo4j Connection established. Num Nodes: %d \n", numNodes);
+            Logger.logNewLine(Logger.Level.INFO, "Neo4j Connection established. Num Nodes: " + numNodes);
         }
     }
 
