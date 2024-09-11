@@ -272,7 +272,6 @@ public class ProgressiveIndexing extends Command
                     var query = queryRetriever.nextQuery();
                     File queryFile = query.getKey();
                     Table<String> queryTable = query.getRight();
-                    boolean paused = false;
 
                     if (!SearchTables.ensureQueryEntitiesMapping(queryTable, indexWriter.getEntityLinker(), indexWriter.getEntityTableLinker()) &&
                             !SearchTables.linkQueryEntities(queryTable, embeddingStore, connector, indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEmbeddingsIndex()))
@@ -280,11 +279,9 @@ public class ProgressiveIndexing extends Command
                         continue;
                     }
 
-                    if (indexWriter.isRunning())
+                    if (this.indexingTime > 0)
                     {
                         TimeUnit.SECONDS.sleep(this.indexingTime);
-                        indexWriter.pauseIndexing();
-                        paused = true;
                     }
 
                     AnalogousSearch search = switch (this.prefilterTechnique) {
@@ -305,11 +302,6 @@ public class ProgressiveIndexing extends Command
                     Result results = search.search(queryTable);
                     Iterator<Pair<String, Double>> resultIter = results.getResults();
                     List<Pair<String, Double>> scores = new ArrayList<>();
-
-                    if (paused)
-                    {
-                        indexWriter.continueIndexing();
-                    }
 
                     while (resultIter.hasNext())
                     {
