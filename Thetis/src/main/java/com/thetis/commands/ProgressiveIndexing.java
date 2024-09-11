@@ -187,7 +187,7 @@ public class ProgressiveIndexing extends Command
     @CommandLine.Option(names = {"-pf", "--pre-filter"}, description = "Pre-filtering technique to reduce search space (HNSW, BM25)", defaultValue = "NONE")
     private SearchTables.PrefilterTechnique prefilterTechnique = null;
 
-    @CommandLine.Option(names = {"-hk", "--hnsw-K"}, description = "Neighborhood size of HNSW search", defaultValue = "1000")
+    @CommandLine.Option(names = {"-hk", "--hnsw-K"}, description = "Neighborhood size of HNSW search", defaultValue = "100")
     private int hnswK;
 
     @Override
