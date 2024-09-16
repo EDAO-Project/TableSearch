@@ -2,6 +2,7 @@ package com.thetis.store.hnsw;
 
 import com.stepstone.search.hnswlib.jna.QueryTuple;
 import com.stepstone.search.hnswlib.jna.SpaceName;
+import com.stepstone.search.hnswlib.jna.exception.QueryCannotReturnResultsException;
 import com.thetis.store.EntityLinking;
 import com.thetis.store.EntityTableLink;
 import com.thetis.store.Index;
@@ -154,17 +155,26 @@ public class HNSW implements Index<String, Set<String>>
             return Collections.emptySet();
         }
 
-        List<Double> embedding = this.embeddingGen.apply(key);
-        float[] primitiveEmbedding = toFloat(embedding);
-        QueryTuple results = this.hnsw.knnQuery(primitiveEmbedding, this.k);
-        Set<String> tables = new HashSet<>();
-
-        for (int resultId : results.getIds())
+        try
         {
-            tables.addAll(this.entityTableLink.find(new Id(resultId)));
+            List<Double> embedding = this.embeddingGen.apply(key);
+            float[] primitiveEmbedding = toFloat(embedding);
+            QueryTuple results = this.hnsw.knnQuery(primitiveEmbedding, this.k);
+            Set<String> tables = new HashSet<>();
+
+            for (int resultId : results.getIds())
+            {
+                tables.addAll(this.entityTableLink.find(new Id(resultId)));
+            }
+
+            return tables;
         }
 
-        return tables;
+        catch (QueryCannotReturnResultsException e)
+        {
+            this.hnsw.setEf(this.hnsw.getEf() * 2);
+            return find(key);
+        }
     }
 
     /**
