@@ -99,4 +99,9 @@ public class PrioritySchedulerQueue implements SchedulerQueue
     {
         return this.invIndex.size();
     }
+
+    public List<Double> getPriorities()
+    {
+        return new ArrayList<>(this.invIndex.values());
+    }
 }

@@ -301,7 +301,7 @@ public class ProgressiveIndexing extends Command
                             if (resultTables.containsKey(res.getFirst()) &&
                                     Math.abs(resultTables.get(res.getFirst()) - res.getSecond()) > relevanceDifferenceThreshold)
                             {
-                                indexWriter.updatePriority(res.getFirst(), i -> i.setPriority(median));
+                                indexWriter.updateIndexable(res.getFirst(), i -> i.setPriority(median));
                             }
                         }
                     });

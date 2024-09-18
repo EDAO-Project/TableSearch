@@ -31,7 +31,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     private final Runnable cleanupProcess;
     private Thread schedulerThread;
     private boolean isRunning = false, isPaused = false;
-    private final Scheduler scheduler;
+    private final PriorityScheduler scheduler;
     private final Map<String, Table<String>> indexedTables = new HashMap<>();
     private final int corpusSize;
     private Pair<String, Double> maxPriority = null;
@@ -40,7 +40,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
 
     public ProgressiveIndexWriter(List<Path> files, File indexPath, Linker entityLinker,
                                   Neo4jEndpoint neo4j, int threads, DBDriverBatch<List<Double>, String> embeddingStore,
-                                  String wikiPrefix, String uriPrefix, Scheduler scheduler, Runnable cleanup)
+                                  String wikiPrefix, String uriPrefix, PriorityScheduler scheduler, Runnable cleanup)
     {
         super(files, indexPath, entityLinker, neo4j, threads, embeddingStore, wikiPrefix, uriPrefix);
         this.scheduler = scheduler;
@@ -104,10 +104,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                             Logger.log(Logger.Level.INFO, "Fully indexed " + super.loadedTables.incrementAndGet() + "/" + this.corpusSize + " tables");
                         }
 
-                        if (!this.insertedIds.contains(item.getId()))
-                        {
-                            this.insertedIds.add(item.getId());
-                        }
+                        this.insertedIds.add(item.getId());
                     }
                 }
             }
@@ -290,7 +287,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
      * @param id ID of indexable to update
      * @param update Procedure for updating the identified indexable
      */
-    public void updatePriority(String id, Consumer<Indexable> update)
+    public void updateIndexable(String id, Consumer<Indexable> update)
     {
         this.scheduler.update(id, update);
     }
@@ -307,6 +304,6 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
 
     public List<Double> getPriorities()
     {
-        return null;
+        return this.scheduler.getPriorities();
     }
 }
