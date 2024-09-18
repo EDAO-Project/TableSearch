@@ -145,7 +145,7 @@ public class HNSW implements Index<String, Set<String>>
     /**
      * Performs the approximate KNN search over the HNSW index
      * @param key Entity to search for
-     * @return Set of entities that are approximately closest to the key entity in the embedding space
+     * @return Set of tables in which entities that are approximately closest to the key entity in the embedding space exist
      */
     @Override
     public Set<String> find(String key)

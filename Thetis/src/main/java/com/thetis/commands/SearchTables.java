@@ -413,7 +413,8 @@ public class SearchTables extends Command {
                     this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, prefilter);
         }
 
-        Result result = search.search(query);
+        QueryExecution execution = new QueryExecution(search);
+        Result result = execution.execute(query);
         Iterator<Pair<String, Double>> resultIter = result.getResults();
         List<Pair<String, Double>> scores = new ArrayList<>();
         Logger.logNewLine(Logger.Level.RESULT, "\nTop-" + this.topK + " tables are:");

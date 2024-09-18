@@ -304,4 +304,9 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     {
         return this.maxPriority.getSecond();
     }
+
+    public List<Double> getPriorities()
+    {
+        return null;
+    }
 }
