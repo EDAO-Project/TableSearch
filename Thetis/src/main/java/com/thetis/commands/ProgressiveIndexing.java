@@ -6,7 +6,6 @@ import com.thetis.connector.Neo4jEndpoint;
 import com.thetis.loader.*;
 import com.thetis.loader.progressive.PriorityScheduler;
 import com.thetis.loader.progressive.ProgressiveIndexWriter;
-import com.thetis.loader.progressive.recorder.QueryRecorder;
 import com.thetis.search.*;
 import com.thetis.store.hnsw.HNSW;
 import com.thetis.structures.Pair;

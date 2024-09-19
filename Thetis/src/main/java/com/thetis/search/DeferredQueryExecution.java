@@ -24,7 +24,7 @@ public class DeferredQueryExecution extends QueryExecution
                 Thread.sleep(this.durationMillis);
 
                 Result res = execute(query);
-                consume.accept(result);
+                consume.accept(res);
                 this.result = res;
             }
 
