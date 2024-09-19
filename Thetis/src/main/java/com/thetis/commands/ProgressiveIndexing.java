@@ -237,7 +237,7 @@ public class ProgressiveIndexing extends Command
             double relevanceDifferenceThreshold = 0.2;
             QueryRetriever queryRetriever = new QueryRetriever(queryDir);
             FileRetriever tableRetriever = new FileRetriever(newTablesDir);
-            QueryRecorder recorder = QueryRecorder.dummyRecorder();
+            List<DeferredQueryExecution> deferredExecutions = new ArrayList<>();
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
                     1, embeddingStore, IndexTables.WIKI_PREFIX, IndexTables.URI_PREFIX, new PriorityScheduler(), cleanup);
             indexWriter.performIO();
@@ -279,7 +279,7 @@ public class ProgressiveIndexing extends Command
                     Iterator<Pair<String, Double>> resultIter = results.getResults();
                     Map<String, Double> resultTables = new HashMap<>();
                     List<Double> priorities = indexWriter.getPriorities();
-                    double median = priorities.size() % 2 == 0 ? (priorities.get(priorities.size() / 2) + priorities.get((priorities.size() / 2) + 1)) / 2 : priorities.get(priorities.size() / 2);
+                    double median = priorities.isEmpty() ? 0 : priorities.size() % 2 == 0 ? (priorities.get(priorities.size() / 2) + priorities.get((priorities.size() / 2) + 1)) / 2 : priorities.get(priorities.size() / 2);
                     DeferredQueryExecution deferredExecution = new DeferredQueryExecution(search, 2 * 60 * 1000);     // 2 minutes
 
                     while (resultIter.hasNext())
@@ -293,10 +293,12 @@ public class ProgressiveIndexing extends Command
                     scores.sort((p1, p2) -> Double.compare(p2.getSecond(), p1.getSecond()));
                     deferredExecution.deferredExecute(queryTable, result -> {
                         Iterator<Pair<String, Double>> deferredResultIter = result.getResults();
+                        Set<String> deferredResults = new HashSet<>();
 
                         while (deferredResultIter.hasNext())
                         {
                             Pair<String, Double> res = deferredResultIter.next();
+                            deferredResults.add(res.getFirst());
 
                             if (resultTables.containsKey(res.getFirst()) &&
                                     Math.abs(resultTables.get(res.getFirst()) - res.getSecond()) > relevanceDifferenceThreshold)
@@ -304,7 +306,12 @@ public class ProgressiveIndexing extends Command
                                 indexWriter.updateIndexable(res.getFirst(), i -> i.setPriority(median));
                             }
                         }
+
+                        Set<String> unretrievedTables = resultTables.keySet();
+                        unretrievedTables.removeAll(deferredResults);
+                        unretrievedTables.forEach(table -> indexWriter.updateIndexable(table, i -> i.setPriority(median)));
                     });
+                    deferredExecutions.add(deferredExecution);
                     SearchTables.saveFilenameScores(this.resultDir, indexWriter.getEntityTableLinker().getDirectory(),
                             queryFile.getName().split("\\.")[0], scores, search.getTableStats(), search.getQueryEntitiesMissingCoverage(),
                             search.elapsedNanoSeconds(), search.getEmbeddingComparisons(), search.getNonEmbeddingComparisons(),
