@@ -300,15 +300,11 @@ public class ProgressiveIndexing extends Command
                             deferredResults.add(res.getFirst());
 
                             if (resultTables.containsKey(res.getFirst()) &&
-                                    Math.abs(resultTables.get(res.getFirst()) - res.getSecond()) > relevanceDifferenceThreshold)
+                                    Math.abs(resultTables.get(res.getFirst()) - res.getSecond()) < relevanceDifferenceThreshold)
                             {
                                 indexWriter.updateIndexable(res.getFirst(), i -> i.setPriority(median));
                             }
                         }
-
-                        Set<String> unretrievedTables = resultTables.keySet();
-                        unretrievedTables.removeAll(deferredResults);
-                        unretrievedTables.forEach(table -> indexWriter.updateIndexable(table, i -> i.setPriority(median)));
                     });
                     deferredExecutions.add(deferredExecution);
                     SearchTables.saveFilenameScores(this.resultDir, indexWriter.getEntityTableLinker().getDirectory(),
