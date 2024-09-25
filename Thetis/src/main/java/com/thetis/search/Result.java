@@ -37,12 +37,7 @@ public class Result
 
     public Iterator<Pair<String, Double>> getResults()
     {
-        this.tableScores.sort((e1, e2) -> {
-            if (e1.getSecond().equals(e2.getSecond()))
-                return 0;
-
-            return e1.getSecond() > e2.getSecond() ? -1 : 1;
-        });
+        this.tableScores.sort((e1, e2) -> e2.getSecond().compareTo(e1.getSecond()));
 
         if (this.tableScores.size() < this.k + 1)
             return this.tableScores.iterator();

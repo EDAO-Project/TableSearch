@@ -37,6 +37,8 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     private Pair<String, Double> maxPriority = null;
     private Pair<String, Integer> largestTable = null;
     private final HashSet<String> insertedIds = new HashSet<>();
+    private final Map<String, Integer> tableSizes = new HashMap<>();
+    private int indexedRows = 0;
 
     public ProgressiveIndexWriter(List<Path> files, File indexPath, Linker entityLinker,
                                   Neo4jEndpoint neo4j, int threads, DBDriverBatch<List<Double>, String> embeddingStore,
@@ -80,6 +82,12 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                     synchronized (super.lock)
                     {
                         int tableSize = item.getIndexable().rows.size();
+                        this.indexedRows++;
+
+                        if (!this.tableSizes.containsKey(item.getId()))
+                        {
+                            this.tableSizes.put(item.getId(), tableSize);
+                        }
 
                         if (this.largestTable == null || tableSize > this.largestTable.getSecond() || item.getId().equals(this.largestTable.getFirst()))
                         {
@@ -305,5 +313,10 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     public List<Double> getPriorities()
     {
         return this.scheduler.getPriorities();
+    }
+
+    public double indexed()
+    {
+        return (double) this.indexedRows / this.tableSizes.values().stream().mapToInt(i -> i).sum();
     }
 }

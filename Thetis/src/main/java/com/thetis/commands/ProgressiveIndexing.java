@@ -277,9 +277,8 @@ public class ProgressiveIndexing extends Command
                     Result results = search.search(queryTable);
                     Iterator<Pair<String, Double>> resultIter = results.getResults();
                     Map<String, Double> resultTables = new HashMap<>();
-                    List<Double> priorities = indexWriter.getPriorities();
-                    double median = priorities.isEmpty() ? 0 : priorities.size() % 2 == 0 ? (priorities.get(priorities.size() / 2) + priorities.get((priorities.size() / 2) + 1)) / 2 : priorities.get(priorities.size() / 2);
                     DeferredQueryExecution deferredExecution = new DeferredQueryExecution(search, 2 * 60 * 1000);     // 2 minutes
+                    double slope = indexWriter.indexed();
 
                     while (resultIter.hasNext())
                     {
@@ -292,17 +291,15 @@ public class ProgressiveIndexing extends Command
                     scores.sort((p1, p2) -> Double.compare(p2.getSecond(), p1.getSecond()));
                     deferredExecution.deferredExecute(queryTable, result -> {
                         Iterator<Pair<String, Double>> deferredResultIter = result.getResults();
-                        Set<String> deferredResults = new HashSet<>();
 
                         while (deferredResultIter.hasNext())
                         {
                             Pair<String, Double> res = deferredResultIter.next();
-                            deferredResults.add(res.getFirst());
 
                             if (resultTables.containsKey(res.getFirst()) &&
                                     Math.abs(resultTables.get(res.getFirst()) - res.getSecond()) < relevanceDifferenceThreshold)
                             {
-                                indexWriter.updateIndexable(res.getFirst(), i -> i.setPriority(median));
+                                indexWriter.updateIndexable(res.getFirst(), i -> i.setPriority(i.getPriority() - Math.abs(i.getPriority()) * slope));
                             }
                         }
                     });
@@ -314,6 +311,11 @@ public class ProgressiveIndexing extends Command
                             this.embeddingSimFunction, this.simProperty, this.prefilterTechnique, this.singleColumnPerQueryEntity,
                             this.useMaxSimilarityPerColumn, this.adjustedSimilarity, 1);
                     queryFile.delete();
+
+                    if (!indexWriter.isRunning())
+                    {
+                        deferredExecutions.forEach(DeferredQueryExecution::stopExecution);
+                    }
                 }
 
                 catch (InterruptedException e)
