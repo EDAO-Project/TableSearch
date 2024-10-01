@@ -87,7 +87,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                         this.indexedRows++;
                         double indexedPercentage = ((double) this.indexedRows / this.totalRows) * 100;
 
-                        if (indexedPercentage - prevIndexedPercentage >= 0.5)
+                        if (!this.tableSizes.containsKey(item.getId()) || indexedPercentage - prevIndexedPercentage >= 0.5)
                         {
                             prevIndexedPercentage = indexedPercentage;
                             Logger.log(Logger.Level.DEBUG, "Indexed " + indexedPercentage + "%");
