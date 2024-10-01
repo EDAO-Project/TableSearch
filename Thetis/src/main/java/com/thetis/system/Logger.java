@@ -10,7 +10,7 @@ public class Logger
 {
     public enum Level
     {
-        INFO(1), DEBUG(2), RESULT(3), ERROR(4);
+        DEBUG(1), INFO(2), RESULT(3), ERROR(4);
 
         private int level;
 
@@ -24,16 +24,16 @@ public class Logger
             switch (this.level)
             {
                 case 1:
-                    return INFO.name();
+                    return DEBUG.name();
 
                 case 2:
-                    return ERROR.name();
+                    return INFO.name();
 
                 case 3:
                     return RESULT.name();
 
                 case 4:
-                    return DEBUG.name();
+                    return ERROR.name();
 
                 default:
                     return null;
