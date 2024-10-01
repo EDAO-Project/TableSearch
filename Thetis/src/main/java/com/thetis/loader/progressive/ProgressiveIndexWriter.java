@@ -1,5 +1,6 @@
 package com.thetis.loader.progressive;
 
+import com.thetis.commands.parser.TableParser;
 import com.thetis.connector.DBDriverBatch;
 import com.thetis.connector.Neo4jEndpoint;
 import com.thetis.loader.IndexWriter;
@@ -52,7 +53,9 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         for (Path path : files)
         {
             IndexTable it = new IndexTable(path, this::indexRow);
+            JsonTable table = TableParser.parse(path);
             this.scheduler.addIndexTable(it);
+            this.totalRows += table != null ? table.rows.size() : 0;
         }
     }
 
@@ -63,7 +66,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     public void performIO()
     {
         Runnable indexing = () -> {
-            double prevIndexedPercentage = 0.0;
+            long prevTimePoint = System.currentTimeMillis();
 
             while (this.scheduler.hasNext())
             {
@@ -87,16 +90,15 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                         this.indexedRows++;
                         double indexedPercentage = ((double) this.indexedRows / this.totalRows) * 100;
 
-                        if (!this.tableSizes.containsKey(item.getId()) || indexedPercentage - prevIndexedPercentage >= 0.5)
+                        if (System.currentTimeMillis() - prevTimePoint > 1000)
                         {
-                            prevIndexedPercentage = indexedPercentage;
+                            prevTimePoint = System.currentTimeMillis();
                             Logger.log(Logger.Level.DEBUG, "Indexed " + indexedPercentage + "%");
                         }
 
                         if (!this.tableSizes.containsKey(item.getId()))
                         {
                             this.tableSizes.put(item.getId(), tableSize);
-                            this.totalRows += tableSize;
                         }
 
                         if (this.largestTable == null || tableSize > this.largestTable.getSecond() || item.getId().equals(this.largestTable.getFirst()))
