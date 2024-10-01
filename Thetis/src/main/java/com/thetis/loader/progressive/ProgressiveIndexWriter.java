@@ -54,9 +54,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         for (Path path : files)
         {
             IndexTable it = new IndexTable(path, this::indexRow);
-            JsonTable table = TableParser.parse(path);
             this.scheduler.addIndexTable(it);
-            this.totalRows += table != null ? table.rows.size() : 0;
         }
     }
 
@@ -100,6 +98,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                         if (!this.tableSizes.containsKey(item.getId()))
                         {
                             this.tableSizes.put(item.getId(), tableSize);
+                            this.totalRows += tableSize;
                         }
 
                         if (this.largestTable == null || tableSize > this.largestTable.getSecond() || item.getId().equals(this.largestTable.getFirst()))
