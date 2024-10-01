@@ -49,6 +49,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         this.scheduler = scheduler;
         this.cleanupProcess = cleanup;
         this.corpusSize = files.size();
+        Logger.logNewLine(Logger.Level.DEBUG, "Reading table sizes...");
 
         for (Path path : files)
         {
