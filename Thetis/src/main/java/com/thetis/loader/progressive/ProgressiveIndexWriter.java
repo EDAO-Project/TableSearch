@@ -1,6 +1,5 @@
 package com.thetis.loader.progressive;
 
-import com.thetis.commands.parser.TableParser;
 import com.thetis.connector.DBDriverBatch;
 import com.thetis.connector.Neo4jEndpoint;
 import com.thetis.loader.IndexWriter;
@@ -49,7 +48,6 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         this.scheduler = scheduler;
         this.cleanupProcess = cleanup;
         this.corpusSize = files.size();
-        Logger.logNewLine(Logger.Level.DEBUG, "Reading table sizes...");
 
         for (Path path : files)
         {
