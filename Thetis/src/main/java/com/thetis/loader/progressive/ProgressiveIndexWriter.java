@@ -39,6 +39,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     private final HashSet<String> insertedIds = new HashSet<>();
     private final Map<String, Integer> tableSizes = new HashMap<>();
     private int indexedRows = 0, totalRows = 0;
+    private boolean totalTableRowsInitialized = false;
 
     public ProgressiveIndexWriter(List<Path> files, File indexPath, Linker entityLinker,
                                   Neo4jEndpoint neo4j, int threads, DBDriverBatch<List<Double>, String> embeddingStore,
@@ -54,6 +55,12 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
             IndexTable it = new IndexTable(path, this::indexRow);
             this.scheduler.addIndexTable(it);
         }
+    }
+
+    public void setTotalRows(int rows)
+    {
+        this.totalRows = rows;
+        this.totalTableRowsInitialized = true;
     }
 
     /**
@@ -85,18 +92,19 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                     {
                         int tableSize = item.getIndexable().rows.size();
                         this.indexedRows++;
+
+                        if (!this.tableSizes.containsKey(item.getId()))
+                        {
+                            this.tableSizes.put(item.getId(), tableSize);
+                            this.totalRows += this.totalTableRowsInitialized ? 0 : tableSize;
+                        }
+
                         double indexedPercentage = ((double) this.indexedRows / this.totalRows) * 100;
 
                         if (System.currentTimeMillis() - prevTimePoint > 1000)
                         {
                             prevTimePoint = System.currentTimeMillis();
                             Logger.log(Logger.Level.DEBUG, "Indexed " + indexedPercentage + "%");
-                        }
-
-                        if (!this.tableSizes.containsKey(item.getId()))
-                        {
-                            this.tableSizes.put(item.getId(), tableSize);
-                            this.totalRows += tableSize;
                         }
 
                         if (this.largestTable == null || tableSize > this.largestTable.getSecond() || item.getId().equals(this.largestTable.getFirst()))

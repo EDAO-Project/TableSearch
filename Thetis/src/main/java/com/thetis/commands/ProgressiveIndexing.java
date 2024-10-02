@@ -186,6 +186,9 @@ public class ProgressiveIndexing extends Command
     @CommandLine.Option(names = {"-hk", "--hnsw-K"}, description = "Neighborhood size of HNSW search", defaultValue = "100")
     private int hnswK;
 
+    @CommandLine.Option(names = {"-tr", "--table-rows"}, description = "Total number of rows in the corpus", defaultValue = "-1")
+    private int tableRows;
+
     @Override
     public Integer call()
     {
@@ -239,6 +242,12 @@ public class ProgressiveIndexing extends Command
             List<DeferredQueryExecution> deferredExecutions = new ArrayList<>();
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
                     1, embeddingStore, IndexTables.WIKI_PREFIX, IndexTables.URI_PREFIX, new PriorityScheduler(), cleanup);
+
+            if (this.tableRows > 0)
+            {
+                indexWriter.setTotalRows(this.tableRows);
+            }
+
             indexWriter.performIO();
 
             while (true)
