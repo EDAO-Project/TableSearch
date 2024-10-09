@@ -248,9 +248,10 @@ public class ProgressiveIndexing extends Command
                     try
                     {
                         File tableFile = tableRetriever.next();
-                        Files.move(tableFile.toPath(), Path.of(this.tableDir.getAbsolutePath() + "/" + tableFile.getName()));
-                        indexWriter.addTable(tableFile.toPath());
-                        searchTables.add(tableFile.getAbsolutePath());
+                        Path newPath = Path.of(this.tableDir.getAbsolutePath() + "/" + tableFile.getName());
+                        Files.move(tableFile.toPath(), newPath);
+                        indexWriter.addTable(newPath);
+                        searchTables.add(newPath.toString());
                     }
 
                     catch (IOException ignored) {}
