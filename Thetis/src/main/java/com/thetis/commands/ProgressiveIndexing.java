@@ -245,14 +245,15 @@ public class ProgressiveIndexing extends Command
             Thread newTablesWatcher = new Thread(() -> {
                 while (true)
                 {
-                    File tableFile = tableRetriever.next();
-                    boolean isMoved = tableFile.renameTo(new File(this.tableDir + "/" + tableFile.getName()));
-
-                    if (isMoved)
+                    try
                     {
+                        File tableFile = tableRetriever.next();
+                        Files.move(tableFile.toPath(), Path.of(this.tableDir.getAbsolutePath() + "/" + tableFile.getName()));
                         indexWriter.addTable(tableFile.toPath());
                         searchTables.add(tableFile.getAbsolutePath());
                     }
+
+                    catch (IOException ignored) {}
                 }
             });
 
