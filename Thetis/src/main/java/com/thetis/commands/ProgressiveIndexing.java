@@ -242,6 +242,19 @@ public class ProgressiveIndexing extends Command
             List<DeferredQueryExecution> deferredExecutions = new ArrayList<>();
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
                     1, embeddingStore, IndexTables.WIKI_PREFIX, IndexTables.URI_PREFIX, new PriorityScheduler(), cleanup);
+            Thread newTablesWatcher = new Thread(() -> {
+                while (true)
+                {
+                    File tableFile = tableRetriever.next();
+                    boolean isMoved = tableFile.renameTo(new File(this.tableDir + "/" + tableFile.getName()));
+
+                    if (isMoved)
+                    {
+                        indexWriter.addTable(tableFile.toPath());
+                        searchTables.add(tableFile.getAbsolutePath());
+                    }
+                }
+            });
 
             if (this.tableRows > 0)
             {
@@ -249,23 +262,12 @@ public class ProgressiveIndexing extends Command
             }
 
             indexWriter.performIO();
+            newTablesWatcher.start();
 
             while (true)
             {
                 try
                 {
-                    if (tableRetriever.hasNext())
-                    {
-                        File tableFile = tableRetriever.next();
-                        boolean isMoved = tableFile.renameTo(new File(this.tableDir + "/" + tableFile.getName()));
-
-                        if (isMoved)
-                        {
-                            searchTables.add(tableFile.getAbsolutePath());
-                            indexWriter.addTable(tableFile.toPath());
-                        }
-                    }
-
                     var query = queryRetriever.nextQuery();
                     File queryFile = query.getKey();
                     Table<String> queryTable = query.getRight();
