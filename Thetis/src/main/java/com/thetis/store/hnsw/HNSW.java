@@ -158,6 +158,12 @@ public class HNSW implements Index<String, Set<String>>
         try
         {
             List<Double> embedding = this.embeddingGen.apply(key);
+
+            if (embedding == null)
+            {
+                return Collections.emptySet();
+            }
+
             float[] primitiveEmbedding = toFloat(embedding);
             QueryTuple results = this.hnsw.knnQuery(primitiveEmbedding, this.k);
             Set<String> tables = new HashSet<>();

@@ -257,8 +257,9 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     @Override
     public boolean addTable(Path tablePath)
     {
-        IndexTable tableToIndex = new IndexTable(tablePath, this.maxPriority.getSecond(), this::indexRow);
+        IndexTable tableToIndex = new IndexTable(tablePath, this::indexRow);
         this.scheduler.addIndexTable(tableToIndex);
+        Logger.logNewLine(Logger.Level.INFO, "Inserted table file '" + tablePath + "'");
 
         return true;
     }
@@ -335,6 +336,9 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
 
     public double indexed()
     {
-        return (double) this.indexedRows / this.tableSizes.values().stream().mapToInt(i -> i).sum();
+        synchronized (super.lock)
+        {
+            return (double) this.indexedRows / this.tableSizes.values().stream().mapToInt(i -> i).sum();
+        }
     }
 }

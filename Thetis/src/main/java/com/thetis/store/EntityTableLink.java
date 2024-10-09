@@ -71,7 +71,15 @@ public class EntityTableLink implements Index<Id, List<String>>, Externalizable
         if (tablesLocations == null)
             return new ArrayList<>();
 
-        return new ArrayList<>(tablesLocations.keySet());
+        try
+        {
+            return new ArrayList<>(tablesLocations.keySet());
+        }
+
+        catch (IndexOutOfBoundsException e)
+        {
+            return new ArrayList<>();
+        }
     }
 
     @Override
