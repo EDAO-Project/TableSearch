@@ -85,6 +85,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                 }
 
                 Indexable item = this.scheduler.next();
+                Logger.logNewLine(Logger.Level.DEBUG, "Indexing " + item.getId());
 
                 if (item.index() != null)
                 {
@@ -259,7 +260,6 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     {
         IndexTable tableToIndex = new IndexTable(tablePath, this::indexRow);
         this.scheduler.addIndexTable(tableToIndex);
-        Logger.logNewLine(Logger.Level.INFO, "Inserted table file '" + tablePath + "'");
 
         return true;
     }
