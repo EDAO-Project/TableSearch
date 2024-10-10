@@ -85,7 +85,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                 }
 
                 Indexable item = this.scheduler.next();
-                Logger.logNewLine(Logger.Level.DEBUG, "Indexing " + item.getId());
+                Logger.logNewLine(Logger.Level.DEBUG, "Indexing " + item.getId() + " (" + item.getPriority() + ")");
 
                 if (item.index() != null)
                 {
@@ -100,12 +100,12 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                             this.totalRows += this.totalTableRowsInitialized ? 0 : tableSize;
                         }
 
-                        double indexedPercentage = ((double) this.indexedRows / this.totalRows) * 100;
+                        String indexedPercentage = String.valueOf(((double) this.indexedRows / this.totalRows) * 100);
 
                         if (System.currentTimeMillis() - prevTimePoint > 1000)
                         {
                             prevTimePoint = System.currentTimeMillis();
-                            Logger.log(Logger.Level.DEBUG, "Indexed " + indexedPercentage + "%");
+                            Logger.log(Logger.Level.INFO, "Indexed " + (indexedPercentage.contains("E") ? "0.0" : indexedPercentage) + "%");
                         }
 
                         if (this.largestTable == null || tableSize > this.largestTable.getSecond() || item.getId().equals(this.largestTable.getFirst()))
