@@ -291,10 +291,11 @@ public class ProgressiveIndexing extends Command
                     Result results = search.search(queryTable);
                     results.setK(this.topK);
 
+                    double slope = indexWriter.indexed(), indexed = indexWriter.indexed();
                     Iterator<Pair<String, Double>> resultIter = results.getResults();
                     Map<String, Double> resultTables = new HashMap<>();
-                    DeferredQueryExecution deferredExecution = new DeferredQueryExecution(search, 2 * 60 * 1000);     // 2 minutes
-                    double slope = indexWriter.indexed();
+                    DeferredQueryExecution deferredExecution = new DeferredQueryExecution(search, 10 * 1000,
+                            ignored -> indexWriter.indexed() - indexed < 2.0);
 
                     while (resultIter.hasNext())
                     {
