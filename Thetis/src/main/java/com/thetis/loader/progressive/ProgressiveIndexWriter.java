@@ -105,7 +105,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                         if (System.currentTimeMillis() - prevTimePoint > 1000)
                         {
                             prevTimePoint = System.currentTimeMillis();
-                            Logger.log(Logger.Level.INFO, "Indexed " + (indexedPercentage.contains("E") ? "0.0" : indexedPercentage) + "%");
+                            Logger.log(Logger.Level.INFO, "Indexed " + (indexedPercentage.contains("E") ? "0.00" : indexedPercentage) + "%");
                         }
 
                         if (this.largestTable == null || tableSize > this.largestTable.getSecond() || item.getId().equals(this.largestTable.getFirst()))

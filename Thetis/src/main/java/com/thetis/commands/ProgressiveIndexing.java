@@ -237,6 +237,7 @@ public class ProgressiveIndexing extends Command
                 Logger.log(Logger.Level.INFO, "Progressively loaded in " + (elapsed / 1000) / 60 + " minutes");
             };
             double relevanceDifferenceThreshold = 0.2;
+            int progressiveK = 10000;
             QueryRetriever queryRetriever = new QueryRetriever(queryDir);
             FileRetriever tableRetriever = new FileRetriever(newTablesDir);
             List<DeferredQueryExecution> deferredExecutions = new ArrayList<>();
@@ -286,8 +287,10 @@ public class ProgressiveIndexing extends Command
                         TimeUnit.SECONDS.sleep(this.indexingTime);
                     }
 
-                    AnalogousSearch search = initSearch(searchTables, indexWriter, entitySimilarity);
+                    AnalogousSearch search = initSearch(searchTables, indexWriter, entitySimilarity, progressiveK);
                     Result results = search.search(queryTable);
+                    results.setK(this.topK);
+
                     Iterator<Pair<String, Double>> resultIter = results.getResults();
                     Map<String, Double> resultTables = new HashMap<>();
                     DeferredQueryExecution deferredExecution = new DeferredQueryExecution(search, 2 * 60 * 1000);     // 2 minutes
@@ -346,7 +349,7 @@ public class ProgressiveIndexing extends Command
         }
     }
 
-    public AnalogousSearch initSearch(Set<String> searchTables, IndexWriter indexWriter, AnalogousSearch.EntitySimilarity entitySimilarity)
+    public AnalogousSearch initSearch(Set<String> searchTables, IndexWriter indexWriter, AnalogousSearch.EntitySimilarity entitySimilarity, int k)
     {
         HNSW hnsw = indexWriter.getHNSW();
         BM25 bm25 = new BM25(indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
@@ -362,11 +365,11 @@ public class ProgressiveIndexing extends Command
                     this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity, this.useMaxSimilarityPerColumn,
                     this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, bm25Prefilter);
             case HNSW -> new AnalogousSearch(searchTables, indexWriter.getEntityLinker(), indexWriter.getEntityTable(),
-                    indexWriter.getEntityTableLinker(), indexWriter.getEmbeddingsIndex(), this.topK, 1, entitySimilarity,
+                    indexWriter.getEntityTableLinker(), indexWriter.getEmbeddingsIndex(), k, 1, entitySimilarity,
                     this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity, this.useMaxSimilarityPerColumn,
                     this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, hnswPrefilter);
             case NONE -> new AnalogousSearch(searchTables, indexWriter.getEntityLinker(), indexWriter.getEntityTable(),
-                    indexWriter.getEntityTableLinker(), indexWriter.getEmbeddingsIndex(), this.topK, 1, entitySimilarity,
+                    indexWriter.getEntityTableLinker(), indexWriter.getEmbeddingsIndex(), k, 1, entitySimilarity,
                     this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity, this.useMaxSimilarityPerColumn,
                     this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN);
         };

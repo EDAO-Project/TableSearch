@@ -30,6 +30,11 @@ public class Result
         return this.k;
     }
 
+    public void setK(int k)
+    {
+        this.k = k;
+    }
+
     public int getSize()
     {
         return this.size;
