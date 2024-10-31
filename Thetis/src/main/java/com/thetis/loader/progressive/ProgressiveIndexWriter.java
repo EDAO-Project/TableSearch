@@ -338,6 +338,11 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     {
         synchronized (super.lock)
         {
+            if (this.totalTableRowsInitialized)
+            {
+                return (double) this.indexedRows / this.totalRows;
+            }
+
             return (double) this.indexedRows / this.tableSizes.values().stream().mapToInt(i -> i).sum();
         }
     }
