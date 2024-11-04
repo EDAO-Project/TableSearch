@@ -289,13 +289,12 @@ public class ProgressiveIndexing extends Command
 
                     AnalogousSearch search = initSearch(searchTables, indexWriter, entitySimilarity, progressiveK);
                     Result results = search.search(queryTable);
-                    results.setK(this.topK);
 
                     double slope = indexWriter.indexed(), indexed = indexWriter.indexed();
                     Iterator<Pair<String, Double>> resultIter = results.getResults();
                     Map<String, Double> resultTables = new HashMap<>();
                     DeferredQueryExecution deferredExecution = new DeferredQueryExecution(search, 10 * 1000,
-                            ignored -> indexWriter.indexed() - indexed < 2.0);
+                            ignored -> indexWriter.indexed() - indexed < 0.02);
 
                     while (resultIter.hasNext())
                     {
@@ -322,11 +321,11 @@ public class ProgressiveIndexing extends Command
                     });
                     deferredExecutions.add(deferredExecution);
                     SearchTables.saveFilenameScores(this.resultDir, indexWriter.getEntityTableLinker().getDirectory(),
-                            queryFile.getName().split("\\.")[0], scores, search.getTableStats(), search.getQueryEntitiesMissingCoverage(),
-                            search.elapsedNanoSeconds(), search.getEmbeddingComparisons(), search.getNonEmbeddingComparisons(),
-                            search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails(), search.getReduction(),
-                            this.embeddingSimFunction, this.simProperty, this.prefilterTechnique, this.singleColumnPerQueryEntity,
-                            this.useMaxSimilarityPerColumn, this.adjustedSimilarity, 1);
+                            queryFile.getName().split("\\.")[0], scores.subList(0, this.topK), search.getTableStats(),
+                            search.getQueryEntitiesMissingCoverage(), search.elapsedNanoSeconds(), search.getEmbeddingComparisons(),
+                            search.getNonEmbeddingComparisons(), search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails(),
+                            search.getReduction(), this.embeddingSimFunction, this.simProperty, this.prefilterTechnique,
+                            this.singleColumnPerQueryEntity, this.useMaxSimilarityPerColumn, this.adjustedSimilarity, 1);
                     queryFile.delete();
 
                     if (!indexWriter.isRunning())
