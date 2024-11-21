@@ -7,9 +7,9 @@ import java.util.function.Predicate;
 
 public class DeferredQueryExecution extends QueryExecution
 {
-    private long durationMillis = -1;
-    private Predicate<Void> predicate;
-    private Thread execution;
+    protected long durationMillis = -1;
+    protected Predicate<Void> predicate;
+    protected Thread execution;
     private Result result = null;
 
     public DeferredQueryExecution(AnalogousSearch search, long durationMillis)
@@ -38,15 +38,7 @@ public class DeferredQueryExecution extends QueryExecution
         this.execution = new Thread(() -> {
             try
             {
-                if (this.predicate == null)
-                {
-                    deferredExecuteTime();
-                }
-
-                else
-                {
-                    deferredExecutePredicate();
-                }
+                defer();
 
                 Result res = execute(query);
                 consume.accept(res);
@@ -55,7 +47,20 @@ public class DeferredQueryExecution extends QueryExecution
 
             catch (InterruptedException ignored) {}
         });
-        execution.start();
+        this.execution.start();
+    }
+
+    protected void defer() throws InterruptedException
+    {
+        if (this.predicate == null)
+        {
+            deferredExecuteTime();
+        }
+
+        else
+        {
+            deferredExecutePredicate();
+        }
     }
 
     private void deferredExecuteTime() throws InterruptedException

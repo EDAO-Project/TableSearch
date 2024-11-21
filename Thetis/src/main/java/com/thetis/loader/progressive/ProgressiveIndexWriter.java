@@ -329,7 +329,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         return this.maxPriority.getSecond();
     }
 
-    public List<Double> getPriorities()
+    public Map<String, Double> getPriorities()
     {
         return this.scheduler.getPriorities();
     }

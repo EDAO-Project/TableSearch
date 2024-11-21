@@ -100,15 +100,8 @@ public class PrioritySchedulerQueue implements SchedulerQueue
         return this.invIndex.size();
     }
 
-    public synchronized List<Double> getPriorities()
+    public synchronized Map<String, Double> getPriorities()
     {
-        List<Double> priorities = new ArrayList<>(this.invIndex.size());
-
-        for (Map.Entry<String, Double> entry : this.invIndex.entrySet())
-        {
-            priorities.add(entry.getValue());
-        }
-
-        return priorities;
+        return new HashMap<>(this.invIndex);
     }
 }

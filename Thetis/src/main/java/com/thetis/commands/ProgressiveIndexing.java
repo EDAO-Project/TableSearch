@@ -4,6 +4,8 @@ import com.thetis.connector.DBDriverBatch;
 import com.thetis.connector.Factory;
 import com.thetis.connector.Neo4jEndpoint;
 import com.thetis.loader.*;
+import com.thetis.loader.progressive.ConsensusResultAdapter;
+import com.thetis.loader.progressive.IndexingAdapter;
 import com.thetis.loader.progressive.PriorityScheduler;
 import com.thetis.loader.progressive.ProgressiveIndexWriter;
 import com.thetis.search.*;
@@ -236,13 +238,13 @@ public class ProgressiveIndexing extends Command
                 embeddingStore.close();
                 Logger.log(Logger.Level.INFO, "Progressively loaded in " + (elapsed / 1000) / 60 + " minutes");
             };
-            double relevanceDifferenceThreshold = 0.2;
-            int progressiveK = 10000;
+            int progressiveK = (int) (0.1 * searchTables.size());
             QueryRetriever queryRetriever = new QueryRetriever(queryDir);
             FileRetriever tableRetriever = new FileRetriever(newTablesDir);
-            List<DeferredQueryExecution> deferredExecutions = new ArrayList<>();
+            List<Result> oldResults = new ArrayList<>();
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
                     1, embeddingStore, IndexTables.WIKI_PREFIX, IndexTables.URI_PREFIX, new PriorityScheduler(), cleanup);
+            GroupedDeferredQueryExecution deferredQueryExecution = null;
             Thread newTablesWatcher = new Thread(() -> {
                 while (true)
                 {
@@ -289,12 +291,37 @@ public class ProgressiveIndexing extends Command
 
                     AnalogousSearch search = initSearch(searchTables, indexWriter, entitySimilarity, progressiveK);
                     Result results = search.search(queryTable);
-
-                    double slope = indexWriter.indexed(), indexed = indexWriter.indexed();
+                    double indexed = indexWriter.indexed();
                     Iterator<Pair<String, Double>> resultIter = results.getResults();
                     Map<String, Double> resultTables = new HashMap<>();
-                    DeferredQueryExecution deferredExecution = new DeferredQueryExecution(search, 10 * 1000,
-                            ignored -> indexWriter.indexed() - indexed < 0.02);
+
+                    if (deferredQueryExecution == null || deferredQueryExecution.isFinished())
+                    {
+                        deferredQueryExecution = new GroupedDeferredQueryExecution(search, 10 * 1000,
+                                ignored -> indexWriter.indexed() - indexed < 0.02);
+                        deferredQueryExecution.deferredExecute(newResults -> {
+                            if (oldResults.size() != newResults.size())
+                            {
+                                throw new IllegalStateException("Un-matching number of old and new results");
+                            }
+
+                            Set<Pair<Result, Result>> resultsVersions = new HashSet<>();
+
+                            for (int i = 0; i < oldResults.size(); i++)
+                            {
+                                resultsVersions.add(new Pair<>(oldResults.get(i), newResults.get(i)));
+                            }
+
+                            IndexingAdapter adapter = new ConsensusResultAdapter(resultsVersions);
+                            List<Pair<String, Double>> newPriorities = adapter.newPriorities(indexWriter.getPriorities());
+                            oldResults.clear();
+
+                            for (Pair<String, Double> newPriority : newPriorities)
+                            {
+                                indexWriter.updateIndexable(newPriority.getFirst(), i -> i.setPriority(newPriority.getSecond()));
+                            }
+                        });
+                    }
 
                     while (resultIter.hasNext())
                     {
@@ -305,32 +332,20 @@ public class ProgressiveIndexing extends Command
                     List<Pair<String, Double>> scores = new ArrayList<>(resultTables.entrySet().stream()
                             .map(entry -> new Pair<>(entry.getKey(), entry.getValue())).toList());
                     scores.sort((p1, p2) -> Double.compare(p2.getSecond(), p1.getSecond()));
-                    deferredExecution.deferredExecute(queryTable, result -> {
-                        Iterator<Pair<String, Double>> deferredResultIter = result.getResults();
-
-                        while (deferredResultIter.hasNext())
-                        {
-                            Pair<String, Double> res = deferredResultIter.next();
-
-                            if (resultTables.containsKey(res.getFirst()) &&
-                                    Math.abs(resultTables.get(res.getFirst()) - res.getSecond()) < relevanceDifferenceThreshold)
-                            {
-                                indexWriter.updateIndexable(res.getFirst(), i -> i.setPriority(i.getPriority() - Math.abs(i.getPriority()) * slope));
-                            }
-                        }
-                    });
-                    deferredExecutions.add(deferredExecution);
+                    deferredQueryExecution.addQueries(queryTable);
+                    oldResults.add(results);
+                    scores = scores.subList(0, scores.size() >= this.topK ? this.topK : scores.size());
                     SearchTables.saveFilenameScores(this.resultDir, indexWriter.getEntityTableLinker().getDirectory(),
-                            queryFile.getName().split("\\.")[0], scores.subList(0, this.topK), search.getTableStats(),
-                            search.getQueryEntitiesMissingCoverage(), search.elapsedNanoSeconds(), search.getEmbeddingComparisons(),
-                            search.getNonEmbeddingComparisons(), search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails(),
-                            search.getReduction(), this.embeddingSimFunction, this.simProperty, this.prefilterTechnique,
-                            this.singleColumnPerQueryEntity, this.useMaxSimilarityPerColumn, this.adjustedSimilarity, 1);
+                            queryFile.getName().split("\\.")[0], scores, search.getTableStats(), search.getQueryEntitiesMissingCoverage(),
+                            search.elapsedNanoSeconds(), search.getEmbeddingComparisons(), search.getNonEmbeddingComparisons(),
+                            search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails(), search.getReduction(),
+                            this.embeddingSimFunction, this.simProperty, this.prefilterTechnique, this.singleColumnPerQueryEntity,
+                            this.useMaxSimilarityPerColumn, this.adjustedSimilarity, 1);
                     queryFile.delete();
 
                     if (!indexWriter.isRunning())
                     {
-                        deferredExecutions.forEach(DeferredQueryExecution::stopExecution);
+                        deferredQueryExecution.stopExecution();
                     }
                 }
 
