@@ -65,19 +65,29 @@ public class GroupedDeferredQueryExecution extends DeferredQueryExecution
                         Result newResult = execute(query);
                         newResults.add(newResult);
                     }
-                }
 
-                consume.accept(this.results, newResults);
-                this.finished = true;
+                    consume.accept(this.results, newResults);
+                }
             }
 
             catch (InterruptedException ignored) {}
+
+            finally
+            {
+                synchronized (this.lock)
+                {
+                    this.finished = true;
+                }
+            }
         });
         super.execution.start();
     }
 
     public boolean isFinished()
     {
-        return this.finished;
+        synchronized (this.lock)
+        {
+            return this.finished;
+        }
     }
 }
