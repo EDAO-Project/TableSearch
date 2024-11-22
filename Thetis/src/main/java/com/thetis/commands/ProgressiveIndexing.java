@@ -241,7 +241,6 @@ public class ProgressiveIndexing extends Command
             int progressiveK = (int) (0.1 * searchTables.size());
             QueryRetriever queryRetriever = new QueryRetriever(queryDir);
             FileRetriever tableRetriever = new FileRetriever(newTablesDir);
-            List<Result> oldResults = new ArrayList<>();
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
                     1, embeddingStore, IndexTables.WIKI_PREFIX, IndexTables.URI_PREFIX, new PriorityScheduler(), cleanup);
             GroupedDeferredQueryExecution deferredQueryExecution = null;
@@ -298,11 +297,12 @@ public class ProgressiveIndexing extends Command
                     if (deferredQueryExecution == null || deferredQueryExecution.isFinished())
                     {
                         deferredQueryExecution = new GroupedDeferredQueryExecution(search, 10 * 1000,
-                                ignored -> indexWriter.indexed() - indexed < 0.02);
-                        deferredQueryExecution.deferredExecute(newResults -> {
+                                ignored -> indexWriter.indexed() - indexed < 0.01);
+                        deferredQueryExecution.deferredExecute((oldResults, newResults) -> {
                             if (oldResults.size() != newResults.size())
                             {
-                                throw new IllegalStateException("Un-matching number of old and new results");
+                                throw new IllegalStateException("Un-matching number of old and new results (" +
+                                        oldResults.size() + " initial query results and " + newResults.size() + " new query results)");
                             }
 
                             Set<Pair<Result, Result>> resultsVersions = new HashSet<>();
@@ -314,7 +314,6 @@ public class ProgressiveIndexing extends Command
 
                             IndexingAdapter adapter = new ConsensusResultAdapter(resultsVersions);
                             List<Pair<String, Double>> newPriorities = adapter.newPriorities(indexWriter.getPriorities());
-                            oldResults.clear();
 
                             for (Pair<String, Double> newPriority : newPriorities)
                             {
@@ -332,8 +331,7 @@ public class ProgressiveIndexing extends Command
                     List<Pair<String, Double>> scores = new ArrayList<>(resultTables.entrySet().stream()
                             .map(entry -> new Pair<>(entry.getKey(), entry.getValue())).toList());
                     scores.sort((p1, p2) -> Double.compare(p2.getSecond(), p1.getSecond()));
-                    deferredQueryExecution.addQueries(queryTable);
-                    oldResults.add(results);
+                    deferredQueryExecution.addQueryResult(queryTable, results);
                     scores = scores.subList(0, scores.size() >= this.topK ? this.topK : scores.size());
                     SearchTables.saveFilenameScores(this.resultDir, indexWriter.getEntityTableLinker().getDirectory(),
                             queryFile.getName().split("\\.")[0], scores, search.getTableStats(), search.getQueryEntitiesMissingCoverage(),

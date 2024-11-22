@@ -3,12 +3,13 @@ package com.thetis.search;
 import com.thetis.structures.table.Table;
 
 import java.util.*;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 public class GroupedDeferredQueryExecution extends DeferredQueryExecution
 {
     private final List<Table<String>> queries = new ArrayList<>();
+    private final List<Result> results = new ArrayList<>();
     private final Object lock = new Object();
     private boolean finished = false;
 
@@ -35,15 +36,16 @@ public class GroupedDeferredQueryExecution extends DeferredQueryExecution
         }
     }
 
-    public void addQueries(Table<String> ... queries)
+    public void addQueryResult(Table<String> query, Result result)
     {
         synchronized (this.lock)
         {
-            this.queries.addAll(Arrays.asList(queries));
+            this.queries.add(query);
+            this.results.add(result);
         }
     }
 
-    public void deferredExecute(Consumer<List<Result>> consume)
+    public void deferredExecute(BiConsumer<List<Result>, List<Result>> consume)
     {
         if (this.finished)
         {
@@ -53,19 +55,19 @@ public class GroupedDeferredQueryExecution extends DeferredQueryExecution
         super.execution = new Thread(() -> {
             try
             {
-                List<Result> results = new ArrayList<>();
+                List<Result> newResults = new ArrayList<>();
                 defer();
 
                 synchronized (this.lock)
                 {
                     for (Table<String> query : this.queries)
                     {
-                        Result result = execute(query);
-                        results.add(result);
+                        Result newResult = execute(query);
+                        newResults.add(newResult);
                     }
                 }
 
-                consume.accept(results);
+                consume.accept(this.results, newResults);
                 this.finished = true;
             }
 
