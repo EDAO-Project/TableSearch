@@ -1,7 +1,6 @@
 package com.thetis.loader.progressive;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 public class PrioritySchedulerQueue implements SchedulerQueue
 {
@@ -25,16 +24,6 @@ public class PrioritySchedulerQueue implements SchedulerQueue
     }
 
     /**
-     * Adds a collection of indexables to the priority queue
-     * @param indexables Collection of indexables to add to the priority queue
-     */
-    @Override
-    public synchronized void addIndexables(Collection<Indexable> indexables)
-    {
-        indexables.forEach(this::addIndexable);
-    }
-
-    /**
      * Retrieves, removes, and returns one of the indexables belonging to the set of indexables of the highest priority
      * Order of retrieval and removal from this set of indexables is determined by the HashSet
      * @return Indexable of the highest priority
@@ -50,11 +39,11 @@ public class PrioritySchedulerQueue implements SchedulerQueue
 
     /**
      * Updates the indexable of the given ID according to the caller
-     * @param id ID of the indexable to update
-     * @param update Lambda to update the indexable
+     * @param id ID of indexable to update
+     * @param levelIncrement How much to update its priority by
      */
     @Override
-    public synchronized void update(String id, Consumer<Indexable> update)
+    public synchronized void update(String id, int levelIncrement)
     {
         if (this.invIndex.containsKey(id))
         {
@@ -67,12 +56,18 @@ public class PrioritySchedulerQueue implements SchedulerQueue
                 if (indexableArray[i].getId().equals(id))
                 {
                     remove(indexableArray[i]);
-                    update.accept(indexableArray[i]);
+                    indexableArray[i].setPriority(indexableArray[i].getPriority() + levelIncrement);
                     addIndexable(indexableArray[i]);
                     break;
                 }
             }
         }
+    }
+
+    @Override
+    public boolean isEmpty()
+    {
+        return this.map.isEmpty();
     }
 
     private void remove(Indexable indexable)

@@ -313,11 +313,15 @@ public class ProgressiveIndexing extends Command
                             }
 
                             IndexingAdapter adapter = new ConsensusResultAdapter(resultsVersions);
-                            List<Pair<String, Double>> newPriorities = adapter.newPriorities(indexWriter.getPriorities());
+                            List<Pair<String, Double>> newPriorities = adapter.newPriorities();
 
                             for (Pair<String, Double> newPriority : newPriorities)
                             {
-                                indexWriter.updateIndexable(newPriority.getFirst(), i -> i.setPriority(newPriority.getSecond()));
+                                if (Math.abs(newPriority.getSecond()) > 0.0)
+                                {
+                                    indexWriter.updateIndexable(newPriority.getFirst(),
+                                            (int) Math.round(newPriority.getSecond()));
+                                }
                             }
                         });
                     }

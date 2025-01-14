@@ -19,7 +19,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -28,6 +27,7 @@ import java.util.stream.Collectors;
  */
 public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIndexIO
 {
+    private final IndexingPool indexers;
     private final Runnable cleanupProcess;
     private Thread schedulerThread;
     private boolean isRunning = false, isPaused = false;
@@ -40,6 +40,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     private final Map<String, Integer> tableSizes = new HashMap<>();
     private int indexedRows = 0, totalRows = 0;
     private boolean totalTableRowsInitialized = false;
+    private long prevTimePoint;
 
     public ProgressiveIndexWriter(List<Path> files, File indexPath, Linker entityLinker,
                                   Neo4jEndpoint neo4j, int threads, DBDriverBatch<List<Double>, String> embeddingStore,
@@ -49,10 +50,11 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         this.scheduler = scheduler;
         this.cleanupProcess = cleanup;
         this.corpusSize = files.size();
+        this.indexers = new IndexingPool(new BasicLoadBalancer(threads), this::indexTable);
 
         for (Path path : files)
         {
-            IndexTable it = new IndexTable(path, this::indexRow);
+            IndexTable it = new IndexTable(path, this::indexRow, true);
             this.scheduler.addIndexTable(it);
         }
     }
@@ -70,7 +72,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     public void performIO()
     {
         Runnable indexing = () -> {
-            long prevTimePoint = System.currentTimeMillis();
+            this.prevTimePoint = System.currentTimeMillis();
 
             while (this.scheduler.hasNext())
             {
@@ -84,56 +86,16 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                     catch (InterruptedException ignore) {}
                 }
 
+                List<Integer> status = this.indexers.status();
+
+                while (status.stream().noneMatch(s -> s == 0))
+                {
+                    status = this.indexers.status();
+                }
+
                 Indexable item = this.scheduler.next();
                 Logger.logNewLine(Logger.Level.DEBUG, "Indexing " + item.getId() + " (" + item.getPriority() + ")");
-
-                if (item.index() != null)
-                {
-                    synchronized (super.lock)
-                    {
-                        int tableSize = item.getIndexable().rows.size();
-                        this.indexedRows++;
-
-                        if (!this.tableSizes.containsKey(item.getId()))
-                        {
-                            this.tableSizes.put(item.getId(), tableSize);
-                            this.totalRows += this.totalTableRowsInitialized ? 0 : tableSize;
-                        }
-
-                        String indexedPercentage = String.valueOf(((double) this.indexedRows / this.totalRows) * 100);
-
-                        if (System.currentTimeMillis() - prevTimePoint > 1000)
-                        {
-                            prevTimePoint = System.currentTimeMillis();
-                            Logger.log(Logger.Level.INFO, "Indexed " + (indexedPercentage.contains("E") ? "0.00" : indexedPercentage) + "%");
-                        }
-
-                        if (this.largestTable == null || tableSize > this.largestTable.getSecond() || item.getId().equals(this.largestTable.getFirst()))
-                        {
-                            this.largestTable = new Pair<>(item.getId(), tableSize);
-                        }
-
-                        if (this.maxPriority == null || item.getPriority() > this.maxPriority.getSecond() || item.getId().equals(maxPriority.getFirst()))
-                        {
-                            this.maxPriority = new Pair<>(item.getId(), item.getPriority());
-                        }
-
-                        double decrement = (double) this.largestTable.getSecond() / tableSize;
-                        item.setPriority(item.getPriority() - decrement);
-
-                        if (!item.isIndexed())
-                        {
-                            this.scheduler.addIndexTable(item);
-                        }
-
-                        else
-                        {
-                            Logger.log(Logger.Level.INFO, "Fully indexed " + super.loadedTables.incrementAndGet() + "/" + this.corpusSize + " tables");
-                        }
-
-                        this.insertedIds.add(item.getId());
-                    }
-                }
+                this.indexers.queue(item);
             }
 
             this.cleanupProcess.run();
@@ -149,6 +111,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     {
         try
         {
+            this.indexers.stopIndexing();
             Logger.log(Logger.Level.INFO, "Collecting IDF weights...");
             loadIDFs();
 
@@ -160,6 +123,55 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         catch (IOException e)
         {
             throw new RuntimeException("Exception during progressive indexing: " + e.getMessage());
+        }
+    }
+
+    private void indexTable(Indexable indexable)
+    {
+        if (indexable.index() != null)
+        {
+            synchronized (super.lock)
+            {
+                int tableSize = indexable.getIndexable().rows.size();
+                this.indexedRows++;
+
+                if (!this.tableSizes.containsKey(indexable.getId()))
+                {
+                    this.tableSizes.put(indexable.getId(), tableSize);
+                    this.totalRows += this.totalTableRowsInitialized ? 0 : tableSize;
+                }
+
+                String indexedPercentage = String.valueOf(((double) this.indexedRows / this.totalRows) * 100);
+
+                if (System.currentTimeMillis() - this.prevTimePoint > 1000)
+                {
+                    this.prevTimePoint = System.currentTimeMillis();
+                    Logger.log(Logger.Level.INFO, "Indexed " + (indexedPercentage.contains("E") ? "0.00" : indexedPercentage) + "%");
+                }
+
+                if (this.largestTable == null || tableSize > this.largestTable.getSecond() || indexable.getId().equals(this.largestTable.getFirst()))
+                {
+                    this.largestTable = new Pair<>(indexable.getId(), tableSize);
+                }
+
+                if (this.maxPriority == null || indexable.getPriority() > this.maxPriority.getSecond() || indexable.getId().equals(maxPriority.getFirst()))
+                {
+                    this.maxPriority = new Pair<>(indexable.getId(), indexable.getPriority());
+                }
+
+                if (!indexable.isIndexed())
+                {
+                    this.scheduler.addIndexTable(indexable);
+                    // TODO: Move it to the appropriate level using this.scheduler.update():
+                }
+
+                else
+                {
+                    Logger.log(Logger.Level.INFO, "Fully indexed " + super.loadedTables.incrementAndGet() + "/" + this.corpusSize + " tables");
+                }
+
+                this.insertedIds.add(indexable.getId());
+            }
         }
     }
 
@@ -258,7 +270,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     @Override
     public boolean addTable(Path tablePath)
     {
-        IndexTable tableToIndex = new IndexTable(tablePath, this::indexRow);
+        IndexTable tableToIndex = new IndexTable(tablePath, this::indexRow, true);
         this.scheduler.addIndexTable(tableToIndex);
 
         return true;
@@ -312,11 +324,11 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     /**
      * Allows updating indexables externally
      * @param id ID of indexable to update
-     * @param update Procedure for updating the identified indexable
+     * @param increment How much an indexable should be incremented in priority
      */
-    public void updateIndexable(String id, Consumer<Indexable> update)
+    public void updateIndexable(String id, int increment)
     {
-        this.scheduler.update(id, update);
+        this.scheduler.update(id, increment);
     }
 
     public int getLargestTable()
@@ -327,11 +339,6 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     public double getMaxPriority()
     {
         return this.maxPriority.getSecond();
-    }
-
-    public Map<String, Double> getPriorities()
-    {
-        return this.scheduler.getPriorities();
     }
 
     public double indexed()

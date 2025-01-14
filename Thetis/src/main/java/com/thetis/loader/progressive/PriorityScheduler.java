@@ -1,13 +1,10 @@
 package com.thetis.loader.progressive;
 
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
 
 public class PriorityScheduler implements Scheduler
 {
-    private final PrioritySchedulerQueue queue = new PrioritySchedulerQueue();
+    private final SchedulerQueue queue = new MLFQScheduler();
 
     @Override
     public void addIndexTable(Indexable indexTable)
@@ -24,7 +21,7 @@ public class PriorityScheduler implements Scheduler
     @Override
     public boolean hasNext()
     {
-        return this.queue.countElements() > 0;
+        return !this.queue.isEmpty();
     }
 
     @Override
@@ -39,13 +36,8 @@ public class PriorityScheduler implements Scheduler
     }
 
     @Override
-    public void update(String id, Consumer<Indexable> update)
+    public void update(String id, int increment)
     {
-        this.queue.update(id, update);
-    }
-
-    public Map<String, Double> getPriorities()
-    {
-        return this.queue.getPriorities();
+        this.queue.update(id, increment);
     }
 }

@@ -16,17 +16,40 @@ public class IndexTable implements Indexable, Comparable<IndexTable>
     private int currentRow = 0;
     private final ItemIndexer<List<JsonTable.TableCell>> indexRow;
 
-    public IndexTable(Path filePath, ItemIndexer<List<JsonTable.TableCell>> consumeRow)
+    public IndexTable(Path filePath, ItemIndexer<List<JsonTable.TableCell>> consumeRow, boolean preLoad)
     {
-        this(filePath, 1, consumeRow);
+        this(filePath, 1, consumeRow, preLoad);
     }
 
-    public IndexTable(Path filePath, double priority, ItemIndexer<List<JsonTable.TableCell>> consumeRow)
+    public IndexTable(Path filePath, double priority, ItemIndexer<List<JsonTable.TableCell>> consumeRow, boolean preLoad)
     {
         this.filePath = filePath;
         this.fileId = filePath.toFile().getName();
         this.indexRow = consumeRow;
         this.priority = priority;
+
+        if (preLoad)
+        {
+            load();
+        }
+    }
+
+    public void load()
+    {
+        if (!loadTable())
+        {
+            throw new RuntimeException("Table '" + this.fileId + "' could not be parsed before indexing");
+        }
+    }
+
+    /**
+     * Path of indexable
+     * @return Path to indexable
+     */
+    @Override
+    public Path getPath()
+    {
+        return this.filePath;
     }
 
     /**
@@ -36,12 +59,7 @@ public class IndexTable implements Indexable, Comparable<IndexTable>
     @Override
     public Object index()
     {
-        if (this.table == null && !loadTable())
-        {
-            throw new RuntimeException("Table '" + this.fileId + "' could not be parsed before indexing");
-        }
-
-        else if (isIndexed())
+        if (this.table == null || isIndexed())
         {
             return null;
         }
@@ -107,14 +125,9 @@ public class IndexTable implements Indexable, Comparable<IndexTable>
         return this.table;
     }
 
-    public void increasePriority(int increment)
+    public void setPriority(int priority)
     {
-        this.priority += increment;
-    }
-
-    public void decreasePriority(int decrement)
-    {
-        this.priority -= decrement;
+        this.priority = priority;
     }
 
     @Override
@@ -158,6 +171,7 @@ public class IndexTable implements Indexable, Comparable<IndexTable>
 
     /**
      * Checks for equality to another table to be indexed
+     * Note that it does not check for equality of the priority and the contents of the tables, as these rapidly change during indexing
      * @param o Object to check for equality
      * @return True if the given object is equal to this object
      */
@@ -174,8 +188,6 @@ public class IndexTable implements Indexable, Comparable<IndexTable>
             return false;
         }
 
-        return other.priority == this.priority &&
-                other.filePath.equals(this.filePath) &&
-                (other.table == null || other.table.equals(this.table));
+        return other.filePath.equals(this.filePath) && other.fileId.equals(this.fileId);
     }
 }
