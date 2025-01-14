@@ -30,6 +30,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     private final IndexingPool indexers;
     private final Runnable cleanupProcess;
     private Thread schedulerThread;
+    private Thread loadIndexables;
     private boolean isRunning = false, isPaused = false;
     private final PriorityScheduler scheduler;
     private final Map<String, Table<String>> indexedTables = new HashMap<>();
@@ -51,12 +52,14 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         this.cleanupProcess = cleanup;
         this.corpusSize = files.size();
         this.indexers = new IndexingPool(new BasicLoadBalancer(threads), this::indexTable);
-
-        for (Path path : files)
-        {
-            IndexTable it = new IndexTable(path, this::indexRow, true);
-            this.scheduler.addIndexTable(it);
-        }
+        this.loadIndexables = new Thread(() -> {
+            for (Path path : files)
+            {
+                IndexTable it = new IndexTable(path, this::indexRow, true);
+                this.scheduler.addIndexTable(it);
+            }
+        });
+        this.loadIndexables.start();
     }
 
     public void setTotalRows(int rows)
@@ -96,6 +99,13 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                 Indexable item = this.scheduler.next();
                 Logger.logNewLine(Logger.Level.DEBUG, "Indexing " + item.getId() + " (" + item.getPriority() + ")");
                 this.indexers.queue(item);
+            }
+
+            List<Integer> status = this.indexers.status();
+
+            while (status.stream().allMatch(s -> s > 0))
+            {
+                status = this.indexers.status();
             }
 
             this.cleanupProcess.run();
