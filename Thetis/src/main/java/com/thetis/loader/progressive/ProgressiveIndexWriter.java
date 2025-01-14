@@ -74,6 +74,13 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     @Override
     public void performIO()
     {
+        try
+        {
+            Thread.sleep(2500);
+        }
+
+        catch (InterruptedException ignored) {}
+
         Runnable indexing = () -> {
             this.prevTimePoint = System.currentTimeMillis();
 
