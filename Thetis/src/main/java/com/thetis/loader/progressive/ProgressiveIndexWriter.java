@@ -77,7 +77,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         Runnable indexing = () -> {
             this.prevTimePoint = System.currentTimeMillis();
 
-            while (this.scheduler.hasNext())
+            while (this.scheduler.hasNext() || this.indexers.status().stream().anyMatch(s -> s > 0))
             {
                 while (this.isPaused)
                 {
@@ -90,15 +90,27 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                 }
 
                 List<Integer> status = this.indexers.status();
+                boolean hasMoreIndexables = true;
 
                 while (status.stream().noneMatch(s -> s == 0))
                 {
                     status = this.indexers.status();
                 }
 
-                Indexable item = this.scheduler.next();
-                Logger.logNewLine(Logger.Level.DEBUG, "Indexing " + item.getId() + " (" + item.getPriority() + ")");
-                this.indexers.queue(item);
+                while (!this.scheduler.hasNext())
+                {
+                    if (this.indexers.status().stream().allMatch(s -> s == 0))
+                    {
+                        hasMoreIndexables = false;
+                    }
+                }
+
+                if (hasMoreIndexables)
+                {
+                    Indexable item = this.scheduler.next();
+                    Logger.logNewLine(Logger.Level.DEBUG, "Indexing " + item.getId() + " (" + item.getPriority() + ")");
+                    this.indexers.queue(item);
+                }
             }
 
             List<Integer> status = this.indexers.status();
@@ -172,7 +184,6 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                 if (!indexable.isIndexed())
                 {
                     this.scheduler.addIndexTable(indexable);
-                    // TODO: Move it to the appropriate level using this.scheduler.update():
                 }
 
                 else
