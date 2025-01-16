@@ -49,7 +49,7 @@ public class ConsensusResultAdapter extends ResultAdapter implements IndexingAda
 
             else
             {
-                priorities.add(new Pair<>(tableId, 0.0));
+                priorities.add(new Pair<>(tableId, 1.0));
             }
         }
 

@@ -99,7 +99,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                 List<Integer> status = this.indexers.status();
                 boolean hasMoreIndexables = true;
 
-                while (status.stream().noneMatch(s -> s == 0))
+                while (status.stream().allMatch(s -> s > 5))
                 {
                     status = this.indexers.status();
                 }
