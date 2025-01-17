@@ -65,6 +65,7 @@ public class Logger
 
     private static int prevLength = 0;
     private static boolean prevWasNewLine = false;
+    private static final Object lock = new Object();
     private static PrintStream stream = System.out;
 
     public static void setPrintStream(PrintStream printStream)
@@ -84,10 +85,13 @@ public class Logger
             else
                 clearChannel();
 
-            String msg = "(" + new Date() + ") - " + level + ": " + message + "\r";
-            stream.print(msg);
-            prevLength = msg.length();
-            prevWasNewLine = false;
+            synchronized (lock)
+            {
+                String msg = "(" + new Date() + ") - " + level + ": " + message + "\r";
+                stream.print(msg);
+                prevLength = msg.length();
+                prevWasNewLine = false;
+            }
         }
     }
 
@@ -97,8 +101,11 @@ public class Logger
 
         if (configuredLevel != null && level.getLevel() >= configuredLevel.getLevel())
         {
-            stream.print("\n(" + new Date() + ") - " + level + ": " + message);
-            prevWasNewLine = true;
+            synchronized (lock)
+            {
+                stream.print("\n(" + new Date() + ") - " + level + ": " + message);
+                prevWasNewLine = true;
+            }
         }
     }
 
