@@ -7,8 +7,6 @@ import java.util.*;
 
 public class ConsensusResultAdapter extends ResultAdapter implements IndexingAdapter
 {
-    private final Set<String> tableIds = new HashSet<>();
-
     public ConsensusResultAdapter(Set<Pair<Result, Result>> results)
     {
         super(results);
@@ -38,7 +36,7 @@ public class ConsensusResultAdapter extends ResultAdapter implements IndexingAda
                                                                     .mapToDouble(List::size)
                                                                     .sum();
 
-        for (String tableId : this.tableIds)
+        for (String tableId : maxRelevanceDifferences.keySet())
         {
             double maxDiff = maxRelevanceDifferences.get(tableId);
 
