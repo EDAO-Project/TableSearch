@@ -97,22 +97,13 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                 }
 
                 List<Integer> status = this.indexers.status();
-                boolean hasMoreIndexables = true;
 
-                while (status.stream().allMatch(s -> s > 100))
+                while (status.stream().allMatch(s -> s > 100))  // This reflects the priority freshness of the data to index
                 {
                     status = this.indexers.status();
                 }
 
-                while (!this.scheduler.hasNext())
-                {
-                    if (this.indexers.status().stream().allMatch(s -> s == 0))
-                    {
-                        hasMoreIndexables = false;
-                    }
-                }
-
-                if (hasMoreIndexables)
+                if (this.scheduler.hasNext())
                 {
                     Indexable item = this.scheduler.next();
                     Logger.logNewLine(Logger.Level.DEBUG, "Indexing " + item.getId() + " (" + item.getPriority() + ")");
@@ -120,16 +111,10 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                 }
             }
 
-            List<Integer> status = this.indexers.status();
-
-            while (status.stream().allMatch(s -> s > 0))
-            {
-                status = this.indexers.status();
-            }
-
+            while (this.indexers.status().stream().anyMatch(s -> s > 0));
             this.cleanupProcess.run();
-            this.isRunning = false;
             finalizeIndexing();
+            this.isRunning = false;
         };
         this.schedulerThread = new Thread(indexing);
         this.schedulerThread.start();
