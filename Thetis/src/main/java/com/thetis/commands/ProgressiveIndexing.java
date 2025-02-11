@@ -243,7 +243,6 @@ public class ProgressiveIndexing extends Command
             FileRetriever tableRetriever = new FileRetriever(newTablesDir);
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
                     4, embeddingStore, IndexTables.WIKI_PREFIX, IndexTables.URI_PREFIX, new PriorityScheduler(), cleanup);
-            GroupedDeferredQueryExecution deferredQueryExecution = null;
             Thread newTablesWatcher = new Thread(() -> {
                 while (true)
                 {
@@ -290,41 +289,8 @@ public class ProgressiveIndexing extends Command
 
                     AnalogousSearch search = initSearch(searchTables, indexWriter, entitySimilarity, progressiveK);
                     Result results = search.search(queryTable);
-                    double indexed = indexWriter.indexed();
                     Iterator<Pair<String, Double>> resultIter = results.getResults();
                     Map<String, Double> resultTables = new HashMap<>();
-
-                    if (deferredQueryExecution == null || deferredQueryExecution.isFinished())
-                    {
-                        deferredQueryExecution = new GroupedDeferredQueryExecution(search, 10 * 1000,
-                                ignored -> indexWriter.indexed() - indexed < 0.01);
-                        deferredQueryExecution.deferredExecute((oldResults, newResults) -> {
-                            if (oldResults.size() != newResults.size())
-                            {
-                                throw new IllegalStateException("Un-matching number of old and new results (" +
-                                        oldResults.size() + " initial query results and " + newResults.size() + " new query results)");
-                            }
-
-                            Set<Pair<Result, Result>> resultsVersions = new HashSet<>();
-
-                            for (int i = 0; i < oldResults.size(); i++)
-                            {
-                                resultsVersions.add(new Pair<>(oldResults.get(i), newResults.get(i)));
-                            }
-
-                            IndexingAdapter adapter = new ConsensusResultAdapter(resultsVersions);
-                            List<Pair<String, Double>> newPriorities = adapter.newPriorities();
-
-                            for (Pair<String, Double> newPriority : newPriorities)
-                            {
-                                if (Math.abs(newPriority.getSecond()) > 0.0)
-                                {
-                                    indexWriter.updateIndexable(newPriority.getFirst(),
-                                            (int) Math.round(newPriority.getSecond()));
-                                }
-                            }
-                        });
-                    }
 
                     while (resultIter.hasNext())
                     {
@@ -335,7 +301,6 @@ public class ProgressiveIndexing extends Command
                     List<Pair<String, Double>> scores = new ArrayList<>(resultTables.entrySet().stream()
                             .map(entry -> new Pair<>(entry.getKey(), entry.getValue())).toList());
                     scores.sort((p1, p2) -> Double.compare(p2.getSecond(), p1.getSecond()));
-                    deferredQueryExecution.addQueryResult(queryTable, results);
                     scores = scores.subList(0, scores.size() >= this.topK ? this.topK : scores.size());
                     SearchTables.saveFilenameScores(this.resultDir, indexWriter.getEntityTableLinker().getDirectory(),
                             queryFile.getName().split("\\.")[0], scores, search.getTableStats(), search.getQueryEntitiesMissingCoverage(),
@@ -344,11 +309,6 @@ public class ProgressiveIndexing extends Command
                             this.embeddingSimFunction, this.simProperty, this.prefilterTechnique, this.singleColumnPerQueryEntity,
                             this.useMaxSimilarityPerColumn, this.adjustedSimilarity, 1);
                     queryFile.delete();
-
-                    if (!indexWriter.isRunning())
-                    {
-                        deferredQueryExecution.stopExecution();
-                    }
                 }
 
                 catch (InterruptedException e)
