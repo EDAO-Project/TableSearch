@@ -10,8 +10,6 @@ import com.thetis.structures.Id;
 import com.thetis.structures.Pair;
 import com.thetis.structures.graph.Entity;
 import com.thetis.structures.graph.Type;
-import com.thetis.structures.table.DynamicTable;
-import com.thetis.structures.table.Table;
 import com.thetis.system.Logger;
 import com.thetis.tables.JsonTable;
 
@@ -19,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -33,13 +32,11 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     private Thread loadIndexables;
     private boolean isRunning = false, isPaused = false;
     private final PriorityScheduler scheduler;
-    private final Map<String, Table<String>> indexedTables = new HashMap<>();
     private final int corpusSize;
-    private Pair<String, Double> maxPriority = null;
-    private Pair<String, Integer> largestTable = null;
     private final HashSet<String> insertedIds = new HashSet<>();
     private final Map<String, Integer> tableSizes = new HashMap<>();
-    private int indexedRows = 0, totalRows = 0;
+    private int  totalRows = 0;
+    private final AtomicInteger indexedRows = new AtomicInteger(0);
     private boolean totalTableRowsInitialized = false;
     private long prevTimePoint;
 
@@ -84,7 +81,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         Runnable indexing = () -> {
             this.prevTimePoint = System.currentTimeMillis();
 
-            while (this.scheduler.hasNext() || this.indexers.status().stream().anyMatch(s -> s > 0))
+            while (this.scheduler.hasNext())
             {
                 while (this.isPaused)
                 {
@@ -96,19 +93,12 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                     catch (InterruptedException ignore) {}
                 }
 
-                List<Integer> status = this.indexers.status();
+                // This reflects the priority freshness of the data to index
+                while (this.indexers.status().stream().allMatch(s -> s > 100));
 
-                while (status.stream().allMatch(s -> s > 100))  // This reflects the priority freshness of the data to index
-                {
-                    status = this.indexers.status();
-                }
-
-                if (this.scheduler.hasNext())
-                {
-                    Indexable item = this.scheduler.next();
-                    Logger.logNewLine(Logger.Level.DEBUG, "Indexing " + item.getId() + " (" + item.getPriority() + ")");
-                    this.indexers.queue(item);
-                }
+                Indexable item = this.scheduler.next();
+                Logger.logNewLine(Logger.Level.DEBUG, "Indexing " + item.getId() + " (" + item.getPriority() + ")");
+                this.indexers.queue(item);
             }
 
             while (this.indexers.status().stream().anyMatch(s -> s > 0));
@@ -147,7 +137,6 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
             synchronized (super.lock)
             {
                 int tableSize = indexable.getIndexable().rows.size();
-                this.indexedRows++;
 
                 if (!this.tableSizes.containsKey(indexable.getId()))
                 {
@@ -155,7 +144,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                     this.totalRows += this.totalTableRowsInitialized ? 0 : tableSize;
                 }
 
-                String indexedPercentage = String.valueOf(((double) this.indexedRows / this.totalRows) * 100);
+                String indexedPercentage = String.valueOf(((double) this.indexedRows.get() / this.totalRows) * 100);
 
                 if (System.currentTimeMillis() - this.prevTimePoint > 1000)
                 {
@@ -163,17 +152,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                     Logger.log(Logger.Level.INFO, "Indexed " + (indexedPercentage.contains("E") ? "0.00" : indexedPercentage) + "%");
                 }
 
-                if (this.largestTable == null || tableSize > this.largestTable.getSecond() || indexable.getId().equals(this.largestTable.getFirst()))
-                {
-                    this.largestTable = new Pair<>(indexable.getId(), tableSize);
-                }
-
-                if (this.maxPriority == null || indexable.getPriority() > this.maxPriority.getSecond() || indexable.getId().equals(maxPriority.getFirst()))
-                {
-                    this.maxPriority = new Pair<>(indexable.getId(), indexable.getPriority());
-                }
-
-                if (!indexable.isIndexed())
+                if (!indexable.isIndexed()) // Because the entire indexable is popped from the scheduler when selected and then also from the indexing pool
                 {
                     this.scheduler.addIndexTable(indexable);
                 }
@@ -212,28 +191,25 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
 
                     if (linkedEntity != null)
                     {
-                        synchronized (super.lock)
+                        List<String> entityTypes = super.neo4j.searchTypes(linkedEntity);
+                        List<String> entityPredicates = super.neo4j.searchPredicates(linkedEntity);
+                        matchesUris.add(linkedEntity);
+                        super.linker.addMapping(tableEntity, linkedEntity);
+
+                        for (String type : super.disallowedEntityTypes)
                         {
-                            List<String> entityTypes = super.neo4j.searchTypes(linkedEntity);
-                            List<String> entityPredicates = super.neo4j.searchPredicates(linkedEntity);
-                            matchesUris.add(linkedEntity);
-                            super.linker.addMapping(tableEntity, linkedEntity);
+                            entityTypes.remove(type);
+                        }
 
-                            for (String type : super.disallowedEntityTypes)
-                            {
-                                entityTypes.remove(type);
-                            }
+                        Id entityId = ((EntityLinking) super.linker.getLinker()).kgUriLookup(linkedEntity);
+                        List<Double> embeddings = super.embeddingsDB.select(linkedEntity.replace("'", "''"));
+                        this.hnsw.insert(linkedEntity, Collections.emptySet());
+                        super.entityTable.insert(entityId,
+                                new Entity(linkedEntity, entityTypes.stream().map(Type::new).collect(Collectors.toList()), entityPredicates));
 
-                            Id entityId = ((EntityLinking) super.linker.getLinker()).kgUriLookup(linkedEntity);
-                            List<Double> embeddings = super.embeddingsDB.select(linkedEntity.replace("'", "''"));
-                            this.hnsw.insert(linkedEntity, Collections.emptySet());
-                            super.entityTable.insert(entityId,
-                                    new Entity(linkedEntity, entityTypes.stream().map(Type::new).collect(Collectors.toList()), entityPredicates));
-
-                            if (embeddings != null)
-                            {
-                                super.embeddingsIdx.insert(entityId, embeddings);
-                            }
+                        if (embeddings != null)
+                        {
+                            super.embeddingsIdx.insert(entityId, embeddings);
                         }
                     }
                 }
@@ -267,12 +243,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
             column++;
         }
 
-        if (!this.indexedTables.containsKey(id))
-        {
-            this.indexedTables.put(id, new DynamicTable<>());
-        }
-
-        this.indexedTables.get(id).addRow(new Table.Row<>(indexedRow));
+        this.indexedRows.incrementAndGet();
     }
 
     /**
@@ -344,26 +315,16 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         this.scheduler.update(id, increment);
     }
 
-    public int getLargestTable()
-    {
-        return this.largestTable.getSecond();
-    }
-
-    public double getMaxPriority()
-    {
-        return this.maxPriority.getSecond();
-    }
-
     public double indexed()
     {
         synchronized (super.lock)
         {
             if (this.totalTableRowsInitialized)
             {
-                return (double) this.indexedRows / this.totalRows;
+                return (double) this.indexedRows.get() / this.totalRows;
             }
 
-            return (double) this.indexedRows / this.tableSizes.values().stream().mapToInt(i -> i).sum();
+            return (double) this.indexedRows.get() / this.tableSizes.values().stream().mapToInt(i -> i).sum();
         }
     }
 }

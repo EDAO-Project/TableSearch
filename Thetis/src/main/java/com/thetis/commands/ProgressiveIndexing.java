@@ -4,10 +4,9 @@ import com.thetis.connector.DBDriverBatch;
 import com.thetis.connector.Factory;
 import com.thetis.connector.Neo4jEndpoint;
 import com.thetis.loader.*;
-import com.thetis.loader.progressive.ConsensusResultAdapter;
-import com.thetis.loader.progressive.IndexingAdapter;
 import com.thetis.loader.progressive.PriorityScheduler;
 import com.thetis.loader.progressive.ProgressiveIndexWriter;
+import com.thetis.loader.progressive.adapter.TopicAdapter;
 import com.thetis.search.*;
 import com.thetis.store.hnsw.HNSW;
 import com.thetis.structures.Pair;
@@ -309,6 +308,10 @@ public class ProgressiveIndexing extends Command
                             this.embeddingSimFunction, this.simProperty, this.prefilterTechnique, this.singleColumnPerQueryEntity,
                             this.useMaxSimilarityPerColumn, this.adjustedSimilarity, 1);
                     queryFile.delete();
+
+                    TopicAdapter adapter = new TopicAdapter(queryTable, indexWriter.getHNSW());
+                    List<Pair<String, Double>> priorityIncrements = adapter.newPriorities();
+                    priorityIncrements.forEach(pair -> indexWriter.updateIndexable(pair.getFirst(), (int) Math.round(pair.getSecond())));
                 }
 
                 catch (InterruptedException e)

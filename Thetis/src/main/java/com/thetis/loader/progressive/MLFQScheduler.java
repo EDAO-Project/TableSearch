@@ -50,6 +50,10 @@ public class MLFQScheduler implements SchedulerQueue
         return this.mlfq.poll();
     }
 
+    /*
+        The increment is inverted, as level 0 is the highest priority
+        An increment of +1 should move the indexable closer towards level 0
+     */
     @Override
     public synchronized void update(String id, int levelIncrement)
     {
@@ -68,12 +72,12 @@ public class MLFQScheduler implements SchedulerQueue
 
         else if (levelIncrement < 0)
         {
-            newLevel = Integer.max(currentLevel + levelIncrement, 0);
+            newLevel = Integer.min(currentLevel + -1 * levelIncrement, this.mlfq.getLevels());
         }
 
         else
         {
-            newLevel = Integer.min(currentLevel + levelIncrement, this.mlfq.getLevels());
+            newLevel = Integer.max(currentLevel - levelIncrement, 0);
         }
 
         if (!this.mlfq.move(copy, newLevel))

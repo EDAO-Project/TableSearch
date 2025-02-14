@@ -1,4 +1,4 @@
-package com.thetis.loader.progressive;
+package com.thetis.loader.progressive.adapter;
 
 import com.thetis.search.Result;
 import com.thetis.structures.Pair;
