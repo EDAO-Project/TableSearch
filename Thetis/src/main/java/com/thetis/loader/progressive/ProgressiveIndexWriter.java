@@ -155,6 +155,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
                 if (!indexable.isIndexed()) // Because the entire indexable is popped from the scheduler when selected and then also from the indexing pool
                 {
                     this.scheduler.addIndexTable(indexable);
+                    updateIndexable(indexable.getId(), -1);
                 }
 
                 else
