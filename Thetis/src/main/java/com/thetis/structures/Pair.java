@@ -71,4 +71,10 @@ public class Pair<F extends Comparable, S extends Comparable> implements Seriali
 
         return this.first.compareTo(other.getFirst());
     }
+
+    @Override
+    public String toString()
+    {
+        return "<" + this.first + ", " + this.second + ">";
+    }
 }
