@@ -6,7 +6,6 @@ public class MLFQ<T> implements Queue<T>
 {
     private final List<Queue<T>> queues;
     private final int levels;
-    private final Object lock = new Object();
 
     public enum Policy
     {
@@ -42,31 +41,25 @@ public class MLFQ<T> implements Queue<T>
 
     public boolean move(T o, int level)
     {
-        synchronized (this.lock)
+        if (!remove(o))
         {
-            if (!remove(o))
-            {
-                return false;
-            }
-
-            return add(o, level);
+            return false;
         }
+
+        return add(o, level);
     }
 
     public int levelOf(T t)
     {
-        synchronized (this.lock)
+        for (int i = 0; i < this.levels; i ++)
         {
-            for (int i = 0; i < this.levels; i ++)
+            if (this.queues.get(i).contains(t))
             {
-                if (this.queues.get(i).contains(t))
-                {
-                    return i;
-                }
+                return i;
             }
-
-            return -1;
         }
+
+        return -1;
     }
 
     @Override
@@ -84,26 +77,20 @@ public class MLFQ<T> implements Queue<T>
     @Override
     public boolean contains(Object o)
     {
-        synchronized (this.lock)
+        if (!(o instanceof Queue))
         {
-            if (!(o instanceof Queue))
-            {
-                return false;
-            }
-
-            T other = (T) o;
-            return this.queues.stream().anyMatch(q -> q.contains(other));
+            return false;
         }
+
+        T other = (T) o;
+        return this.queues.stream().anyMatch(q -> q.contains(other));
     }
 
     private Collection<T> toCollection()
     {
-        synchronized (this.lock)
-        {
-            List<T> lst = new ArrayList<>();
-            this.queues.forEach(lst::addAll);
-            return lst;
-        }
+        List<T> lst = new ArrayList<>();
+        this.queues.forEach(lst::addAll);
+        return lst;
     }
 
     @Override
@@ -127,54 +114,42 @@ public class MLFQ<T> implements Queue<T>
     @Override
     public boolean add(T t)
     {
-        synchronized (this.lock)
-        {
-            this.queues.get(0).add(t);
-            return true;
-        }
+        this.queues.get(0).add(t);
+        return true;
     }
 
     public boolean add(T t, int level)
     {
-        synchronized (this.lock)
+        if (level < 0 || level > this.levels)
         {
-            if (level < 0 || level > this.levels)
-            {
-                return false;
-            }
-
-            return this.queues.get(level).add(t);
+            return false;
         }
+
+        return this.queues.get(level).add(t);
     }
 
     @Override
     public boolean remove(Object o)
     {
-        synchronized (this.lock)
+        for (Queue<T> q : this.queues)
         {
-            for (Queue<T> q : this.queues)
+            if (q.remove(o))
             {
-                if (q.remove(o))
-                {
-                    return true;
-                }
+                return true;
             }
-
-            return false;
         }
+
+        return false;
     }
 
     public boolean remove(Object o, int level)
     {
-        synchronized (this.lock)
+        if (level < 0 || level > this.levels)
         {
-            if (level < 0 || level > this.levels)
-            {
-                return false;
-            }
-
-            return this.queues.get(level).remove(o);
+            return false;
         }
+
+        return this.queues.get(level).remove(o);
     }
 
     @Override
@@ -202,7 +177,7 @@ public class MLFQ<T> implements Queue<T>
     }
 
     @Override
-    public synchronized void clear()
+    public void clear()
     {
         this.queues.forEach(Queue::clear);
     }
@@ -229,18 +204,15 @@ public class MLFQ<T> implements Queue<T>
     @Override
     public T poll()
     {
-        synchronized (this.lock)
+        for (int i = 0; i < this.levels; i++)
         {
-            for (int i = 0; i < this.levels; i++)
+            if (!this.queues.get(i).isEmpty())
             {
-                if (!this.queues.isEmpty())
-                {
-                    return this.queues.get(i).remove();
-                }
+                return this.queues.get(i).remove();
             }
-
-            return null;
         }
+
+        return null;
     }
 
     @Override
@@ -259,18 +231,15 @@ public class MLFQ<T> implements Queue<T>
     @Override
     public T peek()
     {
-        synchronized (this.lock)
+        for (int i = 0; i < this.levels; i++)
         {
-            for (int i = 0; i < this.levels; i++)
+            if (!this.queues.get(i).isEmpty())
             {
-                if (!this.queues.get(i).isEmpty())
-                {
-                    return this.queues.get(i).peek();
-                }
+                return this.queues.get(i).peek();
             }
-
-            return null;
         }
+
+        return null;
     }
 
     @Override
@@ -278,12 +247,9 @@ public class MLFQ<T> implements Queue<T>
     {
         StringBuilder builder = new StringBuilder();
 
-        synchronized (this.lock)
+        for (int i = 0; i < this.levels; i++)
         {
-            for (int i = 0; i < this.levels; i++)
-            {
-                builder.append(i).append(". ").append(this.queues.get(i).toString()).append(" ");
-            }
+            builder.append(i).append(". ").append(this.queues.get(i).toString()).append(" ");
         }
 
         return builder.toString();
