@@ -22,13 +22,11 @@ public class MLFQScheduler implements SchedulerQueue
     @Override
     public synchronized void addIndexable(Indexable indexable)
     {
-        Indexable copy = new IndexTable(indexable.getPath(), indexable.getPriority(), (id, row, item) -> {}, false);
-
         if (this.indexables.containsKey(indexable.getId()))
         {
             int oldLevel = (int) this.indexables.get(indexable.getId()).getPriority();
             indexable.setPriority(oldLevel);
-            copy.setPriority(oldLevel);
+            indexable.setPriority(oldLevel);
             this.mlfq.add(indexable, oldLevel);
         }
 
@@ -37,11 +35,11 @@ public class MLFQScheduler implements SchedulerQueue
             this.mlfq.add(indexable);
 
             int assignedPriority = this.mlfq.levelOf(indexable);
-            copy.setPriority(assignedPriority);
+            indexable.setPriority(assignedPriority);
             indexable.setPriority(assignedPriority);
         }
 
-        this.indexables.put(copy.getId(), copy);
+        this.indexables.put(indexable.getId(), indexable);
     }
 
     @Override
@@ -62,8 +60,8 @@ public class MLFQScheduler implements SchedulerQueue
             return;
         }
 
-        Indexable copy = this.indexables.get(id);
-        int currentLevel = this.mlfq.levelOf(copy), newLevel;
+        Indexable indexable = this.indexables.get(id);
+        int currentLevel = this.mlfq.levelOf(indexable), newLevel;
 
         if (currentLevel == -1)
         {
@@ -80,13 +78,13 @@ public class MLFQScheduler implements SchedulerQueue
             newLevel = Integer.max(currentLevel - levelIncrement, 0);
         }
 
-        if (!this.mlfq.move(copy, newLevel))
+        if (!this.mlfq.move(indexable, newLevel))
         {
             throw new IllegalStateException("Failed moving indexable to another MLFQ level");
         }
 
-        copy.setPriority(newLevel);
-        this.indexables.put(copy.getId(), copy);
+        indexable.setPriority(newLevel);
+        this.indexables.put(indexable.getId(), indexable);
     }
 
     @Override
