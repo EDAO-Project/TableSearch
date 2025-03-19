@@ -70,7 +70,7 @@ public class MLFQScheduler implements SchedulerQueue
 
         else if (levelIncrement < 0)
         {
-            newLevel = Integer.min(currentLevel + -1 * levelIncrement, this.mlfq.getLevels());
+            newLevel = Integer.min(currentLevel + -1 * levelIncrement, this.mlfq.getLevels() - 1);
         }
 
         else
