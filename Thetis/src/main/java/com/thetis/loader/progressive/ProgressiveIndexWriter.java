@@ -146,7 +146,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
 
                 String indexedPercentage = String.valueOf(((double) this.indexedRows.get() / this.totalRows) * 100);
 
-                if (System.currentTimeMillis() - this.prevTimePoint > 1000)
+                if (System.currentTimeMillis() - this.prevTimePoint > 1000) // Once a second
                 {
                     this.prevTimePoint = System.currentTimeMillis();
                     Logger.log(Logger.Level.INFO, "Indexed " + (indexedPercentage.contains("E") ? "0.00" : indexedPercentage) + "%");

@@ -206,7 +206,7 @@ public class MLFQ<T> implements Queue<T>
     {
         for (int i = 0; i < this.levels; i++)
         {
-            if (!this.queues.isEmpty())
+            if (!this.queues.get(i).isEmpty())
             {
                 return this.queues.get(i).remove();
             }

@@ -183,11 +183,6 @@ public class IndexTable implements Indexable, Comparable<IndexTable>
             return false;
         }
 
-        else if ((this.table == null && other.table != null) || (other.table == null && this.table != null))
-        {
-            return false;
-        }
-
         return other.filePath.equals(this.filePath) && other.fileId.equals(this.fileId);
     }
 

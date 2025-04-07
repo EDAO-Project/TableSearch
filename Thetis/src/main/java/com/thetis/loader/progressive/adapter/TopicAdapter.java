@@ -14,8 +14,8 @@ public class TopicAdapter implements IndexingAdapter
 {
     private final Table<String> query;
     private final HNSW hnsw;
-    private static final int MIN_OVERLAP = 3;
-    private static final int HNSW_K = 100;
+    private static final int MIN_OVERLAP = 2;
+    private static final int HNSW_K = 1000;
 
     public TopicAdapter(Table<String> query, HNSW hnsw)
     {
@@ -36,7 +36,7 @@ public class TopicAdapter implements IndexingAdapter
 
         for (int row = 0; row < rows; row++)
         {
-            int columns = this.query.columnCount();
+            int columns = this.query.getRow(row).size();
 
             for (int column = 0; column < columns; column++)
             {
