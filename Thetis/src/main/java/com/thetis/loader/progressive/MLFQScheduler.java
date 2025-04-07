@@ -94,4 +94,10 @@ public class MLFQScheduler implements SchedulerQueue
     {
         return this.mlfq.isEmpty();
     }
+
+    @Override
+    public String toString()
+    {
+        return this.mlfq.toString();
+    }
 }

@@ -40,4 +40,10 @@ public class PriorityScheduler implements Scheduler
     {
         this.queue.update(id, increment);
     }
+
+    @Override
+    public String toString()
+    {
+        return this.queue.toString();
+    }
 }

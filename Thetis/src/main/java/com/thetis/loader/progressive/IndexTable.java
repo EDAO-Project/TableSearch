@@ -190,4 +190,10 @@ public class IndexTable implements Indexable, Comparable<IndexTable>
 
         return other.filePath.equals(this.filePath) && other.fileId.equals(this.fileId);
     }
+
+    @Override
+    public String toString()
+    {
+        return this.fileId + "(" + this.priority + ")";
+    }
 }
