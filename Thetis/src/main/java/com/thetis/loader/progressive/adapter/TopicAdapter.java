@@ -14,7 +14,6 @@ public class TopicAdapter implements IndexingAdapter
 {
     private final Table<String> query;
     private final HNSW hnsw;
-    private static final int MIN_OVERLAP = 2;
     private static final int HNSW_K = 1000;
 
     public TopicAdapter(Table<String> query, HNSW hnsw)
@@ -54,8 +53,7 @@ public class TopicAdapter implements IndexingAdapter
         }
 
         return frequencies.entrySet().stream()
-                                    .filter(entry -> entry.getValue() >= MIN_OVERLAP)
-                                    .map(entry -> new Pair<>(entry.getKey(), 1.0))
+                                    .map(entry -> new Pair<>(entry.getKey(), (double) entry.getValue()))
                                     .collect(Collectors.toList());
     }
 }
