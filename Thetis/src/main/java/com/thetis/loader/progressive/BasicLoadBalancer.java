@@ -1,9 +1,6 @@
 package com.thetis.loader.progressive;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
 public class BasicLoadBalancer implements LoadBalancer
 {
@@ -15,7 +12,7 @@ public class BasicLoadBalancer implements LoadBalancer
 
         for (int i = 0; i < pools; i++)
         {
-            this.indexables.add(new LinkedList<>());
+            this.indexables.add(Collections.asLifoQueue(new ArrayDeque<>()));
         }
     }
 
