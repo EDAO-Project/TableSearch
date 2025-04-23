@@ -85,6 +85,12 @@ public class PrioritySchedulerQueue implements SchedulerQueue
         this.invIndex.remove(indexable.getId());
     }
 
+    @Override
+    public int getLevels()
+    {
+        return this.map.size();
+    }
+
     public int countPriorities()
     {
         return this.map.size();
