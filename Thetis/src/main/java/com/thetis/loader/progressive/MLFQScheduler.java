@@ -94,7 +94,7 @@ public class MLFQScheduler implements SchedulerQueue
     }
 
     @Override
-    public String toString()
+    public synchronized String toString()
     {
         return this.mlfq.toString();
     }
