@@ -98,4 +98,10 @@ public class MLFQScheduler implements SchedulerQueue
     {
         return this.mlfq.toString();
     }
+
+    @Override
+    public int getLevels()
+    {
+        return LEVELS;
+    }
 }

@@ -46,4 +46,9 @@ public class PriorityScheduler implements Scheduler
     {
         return this.queue.toString();
     }
+
+    public int priorities()
+    {
+        return this.queue.getLevels();
+    }
 }

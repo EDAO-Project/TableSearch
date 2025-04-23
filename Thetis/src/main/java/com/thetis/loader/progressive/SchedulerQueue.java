@@ -8,6 +8,7 @@ public interface SchedulerQueue
     Indexable popIndexable();
     void update(String id, int levelIncrement);
     boolean isEmpty();
+    int getLevels();
 
     default void addIndexables(Collection<Indexable> indexables)
     {
