@@ -3,7 +3,7 @@ package com.thetis.loader.progressive;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class IndexingPool
+public class IndexingPool implements Pool
 {
     private final List<Thread> threads;
     private final Consumer<Indexable> indexer;
@@ -25,6 +25,7 @@ public class IndexingPool
         }
     }
 
+    @Override
     public void queue(Indexable indexable)
     {
         this.balancer.add(indexable);
@@ -53,12 +54,19 @@ public class IndexingPool
         }
     }
 
+    @Override
     public void stopIndexing()
     {
         for (Thread thread : threads)
         {
             thread.interrupt();
         }
+    }
+
+    @Override
+    public boolean isCompleted()
+    {
+        return status().stream().allMatch(s -> s == 0);
     }
 
     public List<Integer> status()

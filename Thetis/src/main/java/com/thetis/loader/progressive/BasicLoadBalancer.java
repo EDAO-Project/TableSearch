@@ -31,7 +31,18 @@ public class BasicLoadBalancer implements LoadBalancer
             }
         }
 
-        this.indexables.get(smallestIndex).add(indexable);
+        add(indexable, smallestIndex);
+    }
+
+    @Override
+    public void add(Indexable indexable, int index)
+    {
+        if (index < 0 || index >= this.indexables.size())
+        {
+            throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + this.indexables.size());
+        }
+
+        this.indexables.get(index).add(indexable);
     }
 
     @Override

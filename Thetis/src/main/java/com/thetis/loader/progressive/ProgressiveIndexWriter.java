@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  */
 public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIndexIO
 {
-    private final IndexingPool indexers;
+    private final Pool indexers;
     private final Runnable cleanupProcess;
     private Thread schedulerThread;
     private Thread loadIndexables;
@@ -48,7 +48,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         this.scheduler = scheduler;
         this.cleanupProcess = cleanup;
         this.corpusSize = files.size();
-        this.indexers = new IndexingPool(new BasicLoadBalancer(threads), this::indexTable);
+        this.indexers = new PullIndexingPool(this::indexTable, this::supplyIndexable, threads);
         this.loadIndexables = new Thread(() -> {
             for (Path path : files)
             {
@@ -81,27 +81,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         Runnable indexing = () -> {
             this.prevTimePoint = System.currentTimeMillis();
 
-            while (this.scheduler.hasNext())
-            {
-                while (this.isPaused)
-                {
-                    try
-                    {
-                        Thread.sleep(10000);
-                    }
-
-                    catch (InterruptedException ignore) {}
-                }
-
-                // This reflects the priority freshness of the data to index
-                while (this.indexers.status().stream().allMatch(s -> s > 100));
-
-                Indexable item = this.scheduler.next();
-                Logger.logNewLine(Logger.Level.DEBUG, "Indexing " + item.getId() + " (" + item.getPriority() + ")");
-                this.indexers.queue(item);
-            }
-
-            while (this.indexers.status().stream().anyMatch(s -> s > 0));
+            while (!this.indexers.isCompleted());
             this.cleanupProcess.run();
             finalizeIndexing();
             this.isRunning = false;
@@ -245,6 +225,19 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         }
 
         this.indexedRows.incrementAndGet();
+    }
+
+    private Indexable supplyIndexable()
+    {
+        if (this.scheduler.hasNext())
+        {
+            Indexable item = this.scheduler.next();
+            Logger.logNewLine(Logger.Level.DEBUG, "Indexing " + item.getId() + " (" + item.getPriority() + ")");
+
+            return this.scheduler.next();
+        }
+
+        return null;
     }
 
     /**
