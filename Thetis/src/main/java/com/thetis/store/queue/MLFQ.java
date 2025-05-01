@@ -120,7 +120,7 @@ public class MLFQ<T> implements Queue<T>
 
     public boolean add(T t, int level)
     {
-        if (level < 0 || level > this.levels)
+        if (level < 0 || level >= this.levels)
         {
             return false;
         }

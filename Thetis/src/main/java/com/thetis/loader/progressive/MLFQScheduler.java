@@ -36,7 +36,7 @@ public class MLFQScheduler implements SchedulerQueue
     }
 
     @Override
-    public void addIndexable(Indexable indexable, int level)
+    public synchronized void addIndexable(Indexable indexable, int level)
     {
         indexable.setPriority(level);
         this.mlfq.add(indexable, level);
