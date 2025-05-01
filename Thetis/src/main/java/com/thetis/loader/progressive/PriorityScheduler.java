@@ -20,9 +20,9 @@ public class PriorityScheduler implements Scheduler
     }
 
     @Override
-    public void addIndexTable(Indexable indexTable, int increment)
+    public void addIndexTable(Indexable indexTable, int level)
     {
-        this.queue.addIndexable(indexTable, increment);
+        this.queue.addIndexable(indexTable, level);
     }
 
     @Override

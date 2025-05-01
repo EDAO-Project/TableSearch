@@ -22,25 +22,24 @@ public class MLFQScheduler implements SchedulerQueue
     @Override
     public synchronized void addIndexable(Indexable indexable)
     {
-        addIndexable(indexable, 0);
-    }
-
-    @Override
-    public void addIndexable(Indexable indexable, int levelIncrement)
-    {
         if (this.indexables.containsKey(indexable.getId()))
         {
             int oldLevel = (int) this.indexables.get(indexable.getId()).getPriority();
-            indexable.setPriority(oldLevel + levelIncrement);
-            this.mlfq.add(indexable, oldLevel + levelIncrement);
+            indexable.setPriority(oldLevel);
+            addIndexable(indexable, oldLevel);
         }
 
         else
         {
-            indexable.setPriority(indexable.getPriority() + levelIncrement);
-            this.mlfq.add(indexable, (int) indexable.getPriority() + levelIncrement);
+            addIndexable(indexable, 0);
         }
+    }
 
+    @Override
+    public void addIndexable(Indexable indexable, int level)
+    {
+        indexable.setPriority(level);
+        this.mlfq.add(indexable, level);
         this.indexables.put(indexable.getId(), indexable);
     }
 

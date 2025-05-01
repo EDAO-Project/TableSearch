@@ -311,7 +311,7 @@ public class ProgressiveIndexing extends Command
 
                     TopicAdapter adapter = new TopicAdapter(queryTable, indexWriter.getHNSW());
                     List<Pair<String, Double>> priorityIncrements = adapter.newPriorities();
-                    priorityIncrements.forEach(pair -> indexWriter.updateIndexable(pair.getFirst(), (int) Math.round(pair.getSecond())));
+                    priorityIncrements.forEach(pair -> indexWriter.updateIndexable(pair.getFirst(), -1 * (int) Math.round(pair.getSecond())));
                 }
 
                 catch (InterruptedException e)
