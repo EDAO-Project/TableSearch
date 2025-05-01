@@ -18,7 +18,7 @@ public class IndexTable implements Indexable, Comparable<IndexTable>
 
     public IndexTable(Path filePath, ItemIndexer<List<JsonTable.TableCell>> consumeRow, boolean preLoad)
     {
-        this(filePath, 1, consumeRow, preLoad);
+        this(filePath, 0, consumeRow, preLoad);
     }
 
     public IndexTable(Path filePath, double priority, ItemIndexer<List<JsonTable.TableCell>> consumeRow, boolean preLoad)
