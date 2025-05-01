@@ -14,13 +14,21 @@ public class PrioritySchedulerQueue implements SchedulerQueue
     @Override
     public synchronized void addIndexable(Indexable indexable)
     {
+        addIndexable(indexable, 0);
+    }
+
+    @Override
+    public void addIndexable(Indexable indexable, int levelIncrement)
+    {
         if (!this.map.containsKey(indexable.getPriority()))
         {
-            this.map.put(indexable.getPriority(), new HashSet<>());
+            indexable.setPriority(indexable.getPriority() + levelIncrement);
+            this.map.put(indexable.getPriority() + levelIncrement, new HashSet<>());
         }
 
-        this.map.get(indexable.getPriority()).add(indexable);
-        this.invIndex.put(indexable.getId(), indexable.getPriority());
+        this.map.get(indexable.getPriority() + levelIncrement).add(indexable);
+        this.invIndex.put(indexable.getId(), indexable.getPriority() + levelIncrement);
+        indexable.setPriority(indexable.getPriority() + levelIncrement);
     }
 
     /**

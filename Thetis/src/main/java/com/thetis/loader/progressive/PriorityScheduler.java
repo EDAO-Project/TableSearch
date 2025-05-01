@@ -19,6 +19,12 @@ public class PriorityScheduler implements Scheduler
     }
 
     @Override
+    public void addIndexTable(Indexable indexTable, int increment)
+    {
+
+    }
+
+    @Override
     public boolean hasNext()
     {
         return !this.queue.isEmpty();

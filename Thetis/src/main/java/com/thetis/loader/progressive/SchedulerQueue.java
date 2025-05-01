@@ -5,6 +5,7 @@ import java.util.Collection;
 public interface SchedulerQueue
 {
     void addIndexable(Indexable indexable);
+    void addIndexable(Indexable indexable, int levelIncrement);
     Indexable popIndexable();
     void update(String id, int levelIncrement);
     boolean isEmpty();

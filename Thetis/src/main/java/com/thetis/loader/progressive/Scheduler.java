@@ -7,5 +7,6 @@ public interface Scheduler extends Iterator<Indexable>
 {
     void addIndexTables(Collection<Indexable> indexTables);
     void addIndexTable(Indexable indexTable);
+    void addIndexTable(Indexable indexTable, int increment);
     void update(String id, int increment);
 }

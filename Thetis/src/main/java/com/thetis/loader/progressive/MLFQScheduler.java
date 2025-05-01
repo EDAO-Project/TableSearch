@@ -22,21 +22,23 @@ public class MLFQScheduler implements SchedulerQueue
     @Override
     public synchronized void addIndexable(Indexable indexable)
     {
+        addIndexable(indexable, 0);
+    }
+
+    @Override
+    public void addIndexable(Indexable indexable, int levelIncrement)
+    {
         if (this.indexables.containsKey(indexable.getId()))
         {
             int oldLevel = (int) this.indexables.get(indexable.getId()).getPriority();
-            indexable.setPriority(oldLevel);
-            indexable.setPriority(oldLevel);
-            this.mlfq.add(indexable, oldLevel);
+            indexable.setPriority(oldLevel + levelIncrement);
+            this.mlfq.add(indexable, oldLevel + levelIncrement);
         }
 
         else
         {
-            this.mlfq.add(indexable);
-
-            int assignedPriority = this.mlfq.levelOf(indexable);
-            indexable.setPriority(assignedPriority);
-            indexable.setPriority(assignedPriority);
+            indexable.setPriority(indexable.getPriority() + levelIncrement);
+            this.mlfq.add(indexable, (int) indexable.getPriority() + levelIncrement);
         }
 
         this.indexables.put(indexable.getId(), indexable);
@@ -70,12 +72,12 @@ public class MLFQScheduler implements SchedulerQueue
 
         else if (levelIncrement < 0)
         {
-            newLevel = Integer.min(currentLevel + -1 * levelIncrement, this.mlfq.getLevels() - 1);
+            newLevel = Integer.max(0, currentLevel + levelIncrement);
         }
 
         else
         {
-            newLevel = Integer.max(currentLevel - levelIncrement, 0);
+            newLevel = Integer.min(this.mlfq.getLevels() - 1, currentLevel + levelIncrement);
         }
 
         if (!this.mlfq.move(indexable, newLevel))
