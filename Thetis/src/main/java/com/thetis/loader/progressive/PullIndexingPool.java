@@ -70,9 +70,10 @@ public class PullIndexingPool implements Pool
                 }
             }
 
-            else if (++nullCount == 100 && seenFirst)
+            else if (++nullCount > 1000 && seenFirst)
             {
                 this.completeStatus.set(pool, true);
+                break;
             }
         }
     }
