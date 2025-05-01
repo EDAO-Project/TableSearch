@@ -235,7 +235,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
             if (item != null)
             {
                 Logger.logNewLine(Logger.Level.DEBUG, "Indexing " + item.getId() + " (" + item.getPriority() + ")");
-                return this.scheduler.next();
+                return item;
             }
         }
 
