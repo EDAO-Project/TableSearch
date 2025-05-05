@@ -117,11 +117,13 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
             synchronized (super.lock)
             {
                 int tableSize = indexable.getIndexable().rows.size();
+                boolean isFirstTime = false;
 
                 if (!this.tableSizes.containsKey(indexable.getId()))
                 {
                     this.tableSizes.put(indexable.getId(), tableSize);
                     this.totalRows += this.totalTableRowsInitialized ? 0 : tableSize;
+                    isFirstTime = true;
                 }
 
                 String indexedPercentage = String.valueOf(((double) this.indexedRows.get() / this.totalRows) * 100);
@@ -134,7 +136,15 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
 
                 if (!indexable.isIndexed()) // Because the entire indexable is popped from the scheduler when selected and then also from the indexing pool
                 {
-                    this.scheduler.addIndexTable(indexable, this.scheduler.priorities() - 1);
+                    if (isFirstTime)
+                    {
+                        this.scheduler.addIndexTable(indexable, this.scheduler.priorities() - 1);
+                    }
+
+                    else
+                    {
+                        this.scheduler.addIndexTable(indexable, (int) indexable.getPriority() + 1);
+                    }
                 }
 
                 else
