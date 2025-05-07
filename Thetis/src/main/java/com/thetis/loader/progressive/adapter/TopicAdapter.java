@@ -53,7 +53,7 @@ public class TopicAdapter implements IndexingAdapter
         }
 
         return frequencies.entrySet().stream()
-                                    .map(entry -> new Pair<>(entry.getKey(), (double) entry.getValue()))
+                                    .map(entry -> new Pair<>(entry.getKey(), (double) 1))
                                     .collect(Collectors.toList());
     }
 }
