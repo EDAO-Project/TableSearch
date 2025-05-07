@@ -5,4 +5,6 @@ public interface Pool
     void queue(Indexable indexable);
     void stopIndexing();
     boolean isCompleted();
+    void pause();
+    void resume();
 }

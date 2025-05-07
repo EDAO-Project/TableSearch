@@ -8,6 +8,7 @@ public class IndexingPool implements Pool
     private final List<Thread> threads;
     private final Consumer<Indexable> indexer;
     private final LoadBalancer balancer;
+    private boolean isPaused = false;
 
     public IndexingPool(LoadBalancer balancer, Consumer<Indexable> indexer)
     {
@@ -37,7 +38,7 @@ public class IndexingPool implements Pool
         {
             try
             {
-                while (this.balancer.getQueue(pool).isEmpty())
+                while (this.balancer.getQueue(pool).isEmpty() || this.isPaused)
                 {
                     Thread.sleep(250);
                 }
@@ -80,5 +81,17 @@ public class IndexingPool implements Pool
         }
 
         return status;
+    }
+
+    @Override
+    public void pause()
+    {
+        this.isPaused = true;
+    }
+
+    @Override
+    public void resume()
+    {
+        this.isPaused = false;
     }
 }

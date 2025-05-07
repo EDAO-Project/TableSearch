@@ -11,6 +11,7 @@ public class PullIndexingPool implements Pool
     private final Consumer<Indexable> indexer;
     private final Supplier<Indexable> supplier;
     private final List<Boolean> completeStatus = new ArrayList<>();
+    private boolean isPaused = false;
 
     public PullIndexingPool(Consumer<Indexable> indexer, Supplier<Indexable> supplier, int threads)
     {
@@ -37,7 +38,7 @@ public class PullIndexingPool implements Pool
     @Override
     public void stopIndexing()
     {
-        for (Thread thread : threads)
+        for (Thread thread : this.threads)
         {
             thread.interrupt();
         }
@@ -56,6 +57,16 @@ public class PullIndexingPool implements Pool
 
         while (true)
         {
+            while (this.isPaused)
+            {
+                try
+                {
+                    Thread.sleep(1000);
+                }
+
+                catch (InterruptedException ignored) {}
+            }
+
             Indexable indexable = this.supplier.get();
 
             if (indexable != null)
@@ -76,5 +87,17 @@ public class PullIndexingPool implements Pool
                 break;
             }
         }
+    }
+
+    @Override
+    public void pause()
+    {
+        this.isPaused = true;
+    }
+
+    @Override
+    public void resume()
+    {
+        this.isPaused = false;
     }
 }

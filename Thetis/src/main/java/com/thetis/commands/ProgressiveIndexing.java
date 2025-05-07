@@ -273,6 +273,7 @@ public class ProgressiveIndexing extends Command
                     var query = queryRetriever.nextQuery();
                     File queryFile = query.getKey();
                     Table<String> queryTable = query.getRight();
+                    indexWriter.pauseIndexing();
 
                     if (!SearchTables.ensureQueryEntitiesMapping(queryTable, indexWriter.getEntityLinker(), indexWriter.getEntityTableLinker()) &&
                             !SearchTables.linkQueryEntities(queryTable, embeddingStore, connector, indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEmbeddingsIndex()))
@@ -308,6 +309,7 @@ public class ProgressiveIndexing extends Command
                             this.embeddingSimFunction, this.simProperty, this.prefilterTechnique, this.singleColumnPerQueryEntity,
                             this.useMaxSimilarityPerColumn, this.adjustedSimilarity, 1);
                     queryFile.delete();
+                    indexWriter.continueIndexing();
 
                     TopicAdapter adapter = new TopicAdapter(queryTable, indexWriter.getHNSW());
                     List<Pair<String, Double>> priorityIncrements = adapter.newPriorities();

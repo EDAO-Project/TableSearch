@@ -81,7 +81,16 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         Runnable indexing = () -> {
             this.prevTimePoint = System.currentTimeMillis();
 
-            while (!this.indexers.isCompleted());
+            while (!this.indexers.isCompleted())
+            {
+                try
+                {
+                    Thread.sleep(30000);
+                }
+
+                catch (InterruptedException ignored) {}
+            }
+
             this.cleanupProcess.run();
             finalizeIndexing();
             this.isRunning = false;
@@ -279,6 +288,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
     {
         this.isPaused = true;
         this.isRunning = false;
+        this.indexers.pause();
     }
 
     /**
@@ -290,6 +300,7 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         this.isPaused = false;
         this.isRunning = true;
         this.schedulerThread.interrupt();
+        this.indexers.resume();
     }
 
     /**
