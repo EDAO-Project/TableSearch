@@ -6,6 +6,7 @@ import com.thetis.tables.JsonTable;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Random;
 
 public class IndexTable implements Indexable, Comparable<IndexTable>
 {
@@ -15,6 +16,7 @@ public class IndexTable implements Indexable, Comparable<IndexTable>
     private JsonTable table = null;
     private int currentRow = 0;
     private final ItemIndexer<List<JsonTable.TableCell>> indexRow;
+    private static final Random random = new Random();
 
     public IndexTable(Path filePath, ItemIndexer<List<JsonTable.TableCell>> consumeRow, boolean preLoad)
     {
@@ -64,8 +66,9 @@ public class IndexTable implements Indexable, Comparable<IndexTable>
             return null;
         }
 
-        List<JsonTable.TableCell> rowToIndex = this.table.rows.get(0);
-        this.table.rows.remove(0);
+        int rowIndex = Math.abs(random.nextInt()) % this.table.rows.size();
+        List<JsonTable.TableCell> rowToIndex = this.table.rows.get(rowIndex);
+        this.table.rows.remove(rowIndex);
         this.indexRow.index(this.fileId, this.currentRow++, rowToIndex);
 
         return rowToIndex;
