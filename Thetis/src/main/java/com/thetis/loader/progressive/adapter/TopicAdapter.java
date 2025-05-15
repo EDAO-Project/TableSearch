@@ -1,25 +1,25 @@
 package com.thetis.loader.progressive.adapter;
 
+import com.thetis.loader.progressive.Indexable;
 import com.thetis.store.hnsw.HNSW;
 import com.thetis.structures.Pair;
 import com.thetis.structures.table.Table;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class TopicAdapter implements IndexingAdapter
 {
     private final Table<String> query;
     private final HNSW hnsw;
+    private final Map<String, Indexable> indexables;
     private static final int HNSW_K = 1000;
 
-    public TopicAdapter(Table<String> query, HNSW hnsw)
+    public TopicAdapter(Table<String> query, HNSW hnsw, Map<String, Indexable> indexables)
     {
         this.query = query;
         this.hnsw = hnsw;
+        this.indexables = indexables;
         this.hnsw.setK(HNSW_K);
     }
 
@@ -31,29 +31,32 @@ public class TopicAdapter implements IndexingAdapter
     public List<Pair<String, Double>> newPriorities()
     {
         int rows = this.query.rowCount();
-        Map<String, Integer> frequencies = new HashMap<>();
+        Set<String> tables = new HashSet<>();
+        List<Pair<String, Double>> priorityIncrements = new ArrayList<>();
 
         for (int row = 0; row < rows; row++)
         {
-            int columns = this.query.getRow(row).size();
-
-            for (int column = 0; column < columns; column++)
+            for (int column = 0; column < this.query.getRow(row).size(); column++)
             {
                 String entity = this.query.getRow(row).get(column);
-                Set<String> tables = this.hnsw.find(entity);
-                tables.forEach(table -> {
-                    if (!frequencies.containsKey(table))
-                    {
-                        frequencies.put(table, 0);
-                    }
-
-                    frequencies.put(table, frequencies.get(table) + 1);
-                });
+                Set<String> relevantEntityTables = this.hnsw.find(entity);
+                tables.addAll(relevantEntityTables);
             }
         }
 
-        return frequencies.entrySet().stream()
-                                    .map(entry -> new Pair<>(entry.getKey(), (double) 1))
-                                    .collect(Collectors.toList());
+        Set<Indexable> relevantIndexables = this.indexables.entrySet().stream()
+                                            .filter(entry -> tables.contains(entry.getKey()))
+                                            .map(Map.Entry::getValue)
+                                            .collect(Collectors.toSet());
+
+        relevantIndexables.stream()
+                .min(Comparator.comparingInt(indexable -> (int) indexable.getPriority()))
+                .ifPresent(minIndexable -> {
+                    int newPriority = Math.max(0, (int) minIndexable.getPriority() - 1);
+                    relevantIndexables.forEach(indexable -> priorityIncrements.add(new Pair<>(indexable.getId(),
+                            indexable.getPriority() - minIndexable.getPriority())));
+                });
+
+        return priorityIncrements;
     }
 }

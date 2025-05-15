@@ -1,9 +1,8 @@
 package com.thetis.loader.progressive;
 
 import com.thetis.store.queue.MLFQ;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
+
+import java.util.*;
 
 public class MLFQScheduler implements SchedulerQueue
 {
@@ -114,5 +113,10 @@ public class MLFQScheduler implements SchedulerQueue
     public int getLevels()
     {
         return LEVELS;
+    }
+
+    public synchronized Map<String, Indexable> getIndexables()
+    {
+        return new HashMap<>(this.indexables);
     }
 }

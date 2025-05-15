@@ -344,4 +344,9 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
             return (double) this.indexedRows.get() / this.tableSizes.values().stream().mapToInt(i -> i).sum();
         }
     }
+
+    public synchronized PriorityScheduler getScheduler()
+    {
+        return this.scheduler;
+    }
 }

@@ -1,6 +1,8 @@
 package com.thetis.loader.progressive;
 
 import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 
 public class PriorityScheduler implements Scheduler
 {
@@ -46,6 +48,12 @@ public class PriorityScheduler implements Scheduler
     public void update(String id, int increment)
     {
         this.queue.update(id, increment);
+    }
+
+    @Override
+    public Map<String, Indexable> getIndexables()
+    {
+        return ((MLFQScheduler) this.queue).getIndexables();
     }
 
     @Override
