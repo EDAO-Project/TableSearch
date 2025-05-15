@@ -54,7 +54,7 @@ public class TopicAdapter implements IndexingAdapter
                 .ifPresent(minIndexable -> {
                     int newPriority = Math.max(0, (int) minIndexable.getPriority() - 1);
                     relevantIndexables.forEach(indexable -> priorityIncrements.add(new Pair<>(indexable.getId(),
-                            indexable.getPriority() - minIndexable.getPriority())));
+                            indexable.getPriority() - newPriority)));
                 });
 
         return priorityIncrements;
