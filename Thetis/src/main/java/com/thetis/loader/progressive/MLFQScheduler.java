@@ -1,6 +1,7 @@
 package com.thetis.loader.progressive;
 
 import com.thetis.store.queue.MLFQ;
+import com.thetis.store.queue.ProbabilisticMLFQ;
 
 import java.util.*;
 
@@ -15,7 +16,7 @@ public class MLFQScheduler implements SchedulerQueue
 
     public MLFQScheduler()
     {
-        this.mlfq = new MLFQ<>(LEVELS, POLICY, SRPT_COMPARATOR);
+        this.mlfq = new ProbabilisticMLFQ<>(LEVELS, POLICY, SRPT_COMPARATOR);
     }
 
     @Override

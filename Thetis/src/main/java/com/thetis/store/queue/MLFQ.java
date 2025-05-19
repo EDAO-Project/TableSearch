@@ -4,8 +4,8 @@ import java.util.*;
 
 public class MLFQ<T> implements Queue<T>
 {
-    private final List<Queue<T>> queues;
-    private final int levels;
+    protected final List<Queue<T>> queues;
+    protected final int levels;
 
     public enum Policy
     {
