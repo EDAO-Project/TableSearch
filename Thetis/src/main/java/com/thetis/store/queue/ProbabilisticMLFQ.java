@@ -39,6 +39,12 @@ public class ProbabilisticMLFQ<T> extends MLFQ<T>
     public T poll()
     {
         int queueIndex = probSelectQueue();
+
+        while (super.queues.get(queueIndex).isEmpty())
+        {
+            queueIndex = probSelectQueue();
+        }
+
         return super.queues.get(queueIndex).remove();
     }
 }
