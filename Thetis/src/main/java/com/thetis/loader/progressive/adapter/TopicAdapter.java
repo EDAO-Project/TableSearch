@@ -44,19 +44,7 @@ public class TopicAdapter implements IndexingAdapter
             }
         }
 
-        Set<Indexable> relevantIndexables = this.indexables.entrySet().stream()
-                                            .filter(entry -> tables.contains(entry.getKey()))
-                                            .map(Map.Entry::getValue)
-                                            .collect(Collectors.toSet());
-
-        relevantIndexables.stream()
-                .min(Comparator.comparingInt(indexable -> (int) indexable.getPriority()))
-                .ifPresent(minIndexable -> {
-                    int newPriority = Math.max(0, (int) minIndexable.getPriority() - 1);
-                    relevantIndexables.forEach(indexable -> priorityIncrements.add(new Pair<>(indexable.getId(),
-                            indexable.getPriority() - newPriority)));
-                });
-
+        tables.forEach(table -> priorityIncrements.add(new Pair<>(table, this.indexables.get(table).getPriority())));
         return priorityIncrements;
     }
 }
