@@ -6,7 +6,6 @@ import com.thetis.structures.Pair;
 import com.thetis.structures.table.Table;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class TopicAdapter implements IndexingAdapter
 {

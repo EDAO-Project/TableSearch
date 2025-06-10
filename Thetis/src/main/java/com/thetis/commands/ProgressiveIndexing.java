@@ -6,6 +6,7 @@ import com.thetis.connector.Neo4jEndpoint;
 import com.thetis.loader.*;
 import com.thetis.loader.progressive.PriorityScheduler;
 import com.thetis.loader.progressive.ProgressiveIndexWriter;
+import com.thetis.loader.progressive.adapter.RelevanceAdapter;
 import com.thetis.loader.progressive.adapter.TopicAdapter;
 import com.thetis.search.*;
 import com.thetis.store.hnsw.HNSW;
@@ -237,7 +238,6 @@ public class ProgressiveIndexing extends Command
                 embeddingStore.close();
                 Logger.log(Logger.Level.INFO, "Progressively loaded in " + (elapsed / 1000) / 60 + " minutes");
             };
-            int progressiveK = (int) (0.1 * searchTables.size());
             QueryRetriever queryRetriever = new QueryRetriever(queryDir);
             FileRetriever tableRetriever = new FileRetriever(newTablesDir);
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
@@ -263,6 +263,7 @@ public class ProgressiveIndexing extends Command
                 indexWriter.setTotalRows(this.tableRows);
             }
 
+            Set<Thread> adapterThreads = new HashSet<>();
             indexWriter.performIO();
             newTablesWatcher.start();
 
@@ -287,7 +288,7 @@ public class ProgressiveIndexing extends Command
                         TimeUnit.SECONDS.sleep(this.indexingTime);
                     }
 
-                    AnalogousSearch search = initSearch(searchTables, indexWriter, entitySimilarity, progressiveK);
+                    AnalogousSearch search = initSearch(searchTables, indexWriter, entitySimilarity, searchTables.size());
                     Result results = search.search(queryTable);
                     Iterator<Pair<String, Double>> resultIter = results.getResults();
                     Map<String, Double> resultTables = new HashMap<>();
@@ -311,9 +312,19 @@ public class ProgressiveIndexing extends Command
                     queryFile.delete();
                     indexWriter.continueIndexing();
 
-                    TopicAdapter adapter = new TopicAdapter(queryTable, indexWriter.getHNSW(), indexWriter.getScheduler().getIndexables());
-                    List<Pair<String, Double>> priorityIncrements = adapter.newPriorities();
-                    priorityIncrements.forEach(pair -> indexWriter.updateIndexable(pair.getFirst(), -1 * (int) Math.round(pair.getSecond())));
+                    AnalogousSearch.EntitySimilarity similarity = entitySimilarity;
+                    Thread adapterThread = new Thread(() -> {
+                        double current = indexWriter.indexed();
+                        while (indexWriter.indexed() - current < 0.02);
+
+                        AnalogousSearch secondSearch = initSearch(searchTables, indexWriter, similarity, resultTables.size());
+                        Result newResults = secondSearch.search(queryTable);
+                        RelevanceAdapter adapter = new RelevanceAdapter(results, newResults, indexWriter.getScheduler().priorities());
+                        List<Pair<String, Double>> priorityIncrements = adapter.newPriorities();
+                        priorityIncrements.forEach(pair -> indexWriter.updateIndexable(pair.getFirst(), -1 * (int) Math.round(pair.getSecond())));
+                    });
+                    adapterThread.start();
+                    adapterThreads.add(adapterThread);
                 }
 
                 catch (InterruptedException e)

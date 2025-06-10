@@ -779,4 +779,14 @@ public class AnalogousSearch extends AbstractSearch
     {
         return this.reduction;
     }
+
+    public int getTopK()
+    {
+        return this.topK;
+    }
+
+    public void setTopK(int k)
+    {
+        this.topK = k;
+    }
 }
