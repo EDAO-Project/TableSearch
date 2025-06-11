@@ -110,6 +110,11 @@ public class AnalogousSearch extends AbstractSearch
         this.prefilter = prefilter;
     }
 
+    public void disablePrefiltering()
+    {
+        this.prefilter = null;
+    }
+
     public void setCorpus(Set<String> tableFiles)
     {
         this.corpus = tableFiles;
