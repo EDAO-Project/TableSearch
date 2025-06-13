@@ -10,7 +10,7 @@ public class MLFQScheduler implements SchedulerQueue
     private final MLFQ<Indexable> mlfq;
     private final Map<String, Indexable> indexables = new HashMap<>();
     private static final int LEVELS = 5;
-    private static final MLFQ.Policy POLICY = MLFQ.Policy.FIFO;
+    private static final MLFQ.Policy POLICY = MLFQ.Policy.LIFO;
     private static final Comparator<Indexable> SRPT_COMPARATOR =
             Comparator.comparingInt(i -> i.getIndexable().rows.size());
 
