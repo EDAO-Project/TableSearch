@@ -25,7 +25,7 @@ public class RelevanceAdapter implements IndexingAdapter
     @Override
     public List<Pair<String, Double>> newPriorities()
     {
-        Map<String, Double> relevanceScores = new HashMap<>();
+        Map<String, Double> relevanceScores = new HashMap<>(), relevanceDifferences = new HashMap<>();
         Iterator<Pair<String, Double>> resultsIter = this.oldResult.getResults();
         List<Pair<String, Double>> priorityIncrements = new ArrayList<>();
 
@@ -41,18 +41,22 @@ public class RelevanceAdapter implements IndexingAdapter
         while (resultsIter.hasNext())
         {
             Pair<String, Double> result = resultsIter.next();
-            double difference = Math.abs(result.getSecond() - relevanceScores.get(result.getFirst()));
-            relevanceScores.put(result.getFirst(), difference);
 
-            if (difference > maxDifference)
+            if (relevanceScores.containsKey(result.getFirst()))
             {
-                maxDifference = difference;
+                double difference = Math.abs(result.getSecond() - relevanceScores.get(result.getFirst()));
+                relevanceDifferences.put(result.getFirst(), difference);
+
+                if (difference > maxDifference)
+                {
+                    maxDifference = difference;
+                }
             }
         }
 
         double scaler = 1 / (maxDifference * levels);
 
-        for (Map.Entry<String, Double> entry : relevanceScores.entrySet())
+        for (Map.Entry<String, Double> entry : relevanceDifferences.entrySet())
         {
             double boostFraction = entry.getValue() * this.levels * scaler,
                     priorityBoost = Math.round(this.levels * boostFraction);

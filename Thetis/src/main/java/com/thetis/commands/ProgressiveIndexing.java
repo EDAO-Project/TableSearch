@@ -318,6 +318,9 @@ public class ProgressiveIndexing extends Command
                         while (indexWriter.indexed() - current < 0.02);
 
                         AnalogousSearch secondSearch = initSearch(searchTables, indexWriter, similarity, resultTables.size());
+                        secondSearch.setCorpus(resultTables.keySet());
+                        secondSearch.disablePrefiltering();
+
                         Result newResults = secondSearch.search(queryTable);
                         RelevanceAdapter adapter = new RelevanceAdapter(results, newResults, indexWriter.getScheduler().priorities());
                         List<Pair<String, Double>> priorityIncrements = adapter.newPriorities();
