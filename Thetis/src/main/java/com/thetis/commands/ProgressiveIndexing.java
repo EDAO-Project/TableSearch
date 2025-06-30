@@ -11,6 +11,7 @@ import com.thetis.loader.progressive.adapter.TopicAdapter;
 import com.thetis.search.*;
 import com.thetis.store.hnsw.HNSW;
 import com.thetis.structures.Pair;
+import com.thetis.structures.PairNonComparable;
 import com.thetis.structures.table.Table;
 import com.thetis.system.Logger;
 import picocli.CommandLine;
@@ -22,6 +23,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @picocli.CommandLine.Command(name = "progressive", description = "progressively creates the index for the specified set of tables")
@@ -242,6 +244,11 @@ public class ProgressiveIndexing extends Command
             FileRetriever tableRetriever = new FileRetriever(newTablesDir);
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
                     4, embeddingStore, IndexTables.WIKI_PREFIX, IndexTables.URI_PREFIX, new PriorityScheduler(), cleanup);
+            Map<Integer, List<PairNonComparable<Table<String>, Result>>> workload = new HashMap<>();
+            int adaptabilityInterval = 2;
+            AnalogousSearch.EntitySimilarity similarity = entitySimilarity;
+            IntStream.range(1, 100).forEach(percentage -> workload.put(percentage, new ArrayList<>()));
+
             Thread newTablesWatcher = new Thread(() -> {
                 while (true)
                 {
@@ -256,6 +263,25 @@ public class ProgressiveIndexing extends Command
 
                     catch (IOException ignored) {}
                 }
+            }), workloadAdapter = new Thread(() -> {
+                while (true)
+                {
+                    try
+                    {
+                        Thread.sleep(5000); // Wait 5 seconds before checking for queries to adapt to
+
+                        int indexed = (int) Math.round(indexWriter.indexed());
+
+                        if (workload.containsKey(indexed + adaptabilityInterval))
+                        {
+                            workload.get(indexed).forEach(task -> adapt(task.getFirst(), task.getSecond(), similarity, task.getSecond().getK(), indexWriter));
+                        }
+
+                        workload.remove(indexed);
+                    }
+
+                    catch (InterruptedException ignored) {}
+                }
             });
 
             if (this.tableRows > 0)
@@ -263,9 +289,9 @@ public class ProgressiveIndexing extends Command
                 indexWriter.setTotalRows(this.tableRows);
             }
 
-            Set<Thread> adapterThreads = new HashSet<>();
             indexWriter.performIO();
             newTablesWatcher.start();
+            workloadAdapter.start();
 
             while (true)
             {
@@ -309,25 +335,9 @@ public class ProgressiveIndexing extends Command
                             search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails(), search.getReduction(),
                             this.embeddingSimFunction, this.simProperty, this.prefilterTechnique, this.singleColumnPerQueryEntity,
                             this.useMaxSimilarityPerColumn, this.adjustedSimilarity, 1);
+                    workload.get((int) Math.round(indexWriter.indexed())).add(new PairNonComparable<>(queryTable, results));
                     queryFile.delete();
                     indexWriter.continueIndexing();
-
-                    AnalogousSearch.EntitySimilarity similarity = entitySimilarity;
-                    Thread adapterThread = new Thread(() -> {
-                        double current = indexWriter.indexed();
-                        while (indexWriter.indexed() - current < 0.02);
-
-                        AnalogousSearch secondSearch = initSearch(searchTables, indexWriter, similarity, resultTables.size());
-                        secondSearch.setCorpus(resultTables.keySet());
-                        secondSearch.disablePrefiltering();
-
-                        Result newResults = secondSearch.search(queryTable);
-                        RelevanceAdapter adapter = new RelevanceAdapter(results, newResults, indexWriter.getScheduler().priorities());
-                        List<Pair<String, Double>> priorityIncrements = adapter.newPriorities();
-                        priorityIncrements.forEach(pair -> indexWriter.updateIndexable(pair.getFirst(), -1 * (int) Math.round(pair.getSecond())));
-                    });
-                    adapterThread.start();
-                    adapterThreads.add(adapterThread);
                 }
 
                 catch (InterruptedException e)
@@ -345,7 +355,7 @@ public class ProgressiveIndexing extends Command
         }
     }
 
-    public AnalogousSearch initSearch(Set<String> searchTables, IndexWriter indexWriter, AnalogousSearch.EntitySimilarity entitySimilarity, int k)
+    private AnalogousSearch initSearch(Set<String> searchTables, IndexWriter indexWriter, AnalogousSearch.EntitySimilarity entitySimilarity, int k)
     {
         HNSW hnsw = indexWriter.getHNSW();
         BM25 bm25 = new BM25(indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
@@ -369,5 +379,17 @@ public class ProgressiveIndexing extends Command
                     this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity, this.useMaxSimilarityPerColumn,
                     this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN);
         };
+    }
+
+    private void adapt(Table<String> query, Result oldResult, AnalogousSearch.EntitySimilarity entitySimilarity, int k, ProgressiveIndexWriter indexWriter)
+    {
+        Set<String> corpus = oldResult.getResultSet().stream().map(Pair::getFirst).collect(Collectors.toSet());
+        AnalogousSearch search = initSearch(corpus, indexWriter, entitySimilarity, k);
+        search.disablePrefiltering();
+
+        Result results = search.search(query);
+        RelevanceAdapter adapter = new RelevanceAdapter(oldResult, results, indexWriter.getScheduler().priorities());
+        List<Pair<String, Double>> priorityIncrements = adapter.newPriorities();
+        priorityIncrements.forEach(pair -> indexWriter.updateIndexable(pair.getFirst(), -1 * (int) Math.round(pair.getSecond())));
     }
 }

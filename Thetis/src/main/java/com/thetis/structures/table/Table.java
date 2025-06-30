@@ -3,7 +3,7 @@ package com.thetis.structures.table;
 import java.util.Iterator;
 import java.util.List;
 
-public interface Table<T>
+public interface Table<T> extends Comparable<Table<T>>
 {
     Row<T> getRow(int index);
     Column<T> getColumn(int index);
@@ -31,6 +31,11 @@ public interface Table<T>
 
         builder.deleteCharAt(builder.length() - 1).deleteCharAt(builder.length() - 1).append("]");
         return builder.toString();
+    }
+
+    default int compareTo(Table<T> table)
+    {
+        return Integer.compare(rowCount(), table.rowCount());
     }
 
     class Row<E> implements Iterable<E>
