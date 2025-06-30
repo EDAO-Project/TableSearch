@@ -7,7 +7,6 @@ import com.thetis.loader.*;
 import com.thetis.loader.progressive.PriorityScheduler;
 import com.thetis.loader.progressive.ProgressiveIndexWriter;
 import com.thetis.loader.progressive.adapter.RelevanceAdapter;
-import com.thetis.loader.progressive.adapter.TopicAdapter;
 import com.thetis.search.*;
 import com.thetis.store.hnsw.HNSW;
 import com.thetis.structures.Pair;
@@ -245,6 +244,7 @@ public class ProgressiveIndexing extends Command
             ProgressiveIndexWriter indexWriter = new ProgressiveIndexWriter(filePaths, this.outputDir, linker, connector,
                     4, embeddingStore, IndexTables.WIKI_PREFIX, IndexTables.URI_PREFIX, new PriorityScheduler(), cleanup);
             Map<Integer, List<PairNonComparable<Table<String>, Result>>> workload = new HashMap<>();
+            Object workloadLock = new Object();
             int adaptabilityInterval = 2;
             AnalogousSearch.EntitySimilarity similarity = entitySimilarity;
             IntStream.range(1, 100).forEach(percentage -> workload.put(percentage, new ArrayList<>()));
@@ -270,14 +270,16 @@ public class ProgressiveIndexing extends Command
                     {
                         Thread.sleep(5000); // Wait 5 seconds before checking for queries to adapt to
 
-                        int indexed = (int) Math.round(indexWriter.indexed());
-
-                        if (workload.containsKey(indexed + adaptabilityInterval))
+                        synchronized (workloadLock)
                         {
-                            workload.get(indexed).forEach(task -> adapt(task.getFirst(), task.getSecond(), similarity, task.getSecond().getK(), indexWriter));
-                        }
+                            int indexed = (int) Math.round(indexWriter.indexed());
 
-                        workload.remove(indexed);
+                            if (workload.containsKey(indexed + adaptabilityInterval))
+                            {
+                                workload.get(indexed + adaptabilityInterval).forEach(task -> adapt(task.getFirst(), task.getSecond(), similarity, task.getSecond().getK(), indexWriter));
+                                workload.get(indexed + adaptabilityInterval).clear();
+                            }
+                        }
                     }
 
                     catch (InterruptedException ignored) {}
@@ -335,9 +337,13 @@ public class ProgressiveIndexing extends Command
                             search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails(), search.getReduction(),
                             this.embeddingSimFunction, this.simProperty, this.prefilterTechnique, this.singleColumnPerQueryEntity,
                             this.useMaxSimilarityPerColumn, this.adjustedSimilarity, 1);
-                    workload.get((int) Math.round(indexWriter.indexed())).add(new PairNonComparable<>(queryTable, results));
                     queryFile.delete();
                     indexWriter.continueIndexing();
+
+                    synchronized (workloadLock)
+                    {
+                        workload.get((int) Math.round(indexWriter.indexed())).add(new PairNonComparable<>(queryTable, results));
+                    }
                 }
 
                 catch (InterruptedException e)
