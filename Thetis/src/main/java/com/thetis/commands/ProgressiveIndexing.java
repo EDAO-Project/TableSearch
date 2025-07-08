@@ -6,6 +6,8 @@ import com.thetis.connector.Neo4jEndpoint;
 import com.thetis.loader.*;
 import com.thetis.loader.progressive.PriorityScheduler;
 import com.thetis.loader.progressive.ProgressiveIndexWriter;
+import com.thetis.loader.progressive.adapter.GTAdapter;
+import com.thetis.loader.progressive.adapter.IndexingAdapter;
 import com.thetis.loader.progressive.adapter.RelevanceAdapter;
 import com.thetis.search.*;
 import com.thetis.store.hnsw.HNSW;
@@ -192,6 +194,9 @@ public class ProgressiveIndexing extends Command
     @CommandLine.Option(names = {"-tr", "--table-rows"}, description = "Total number of rows in the corpus", defaultValue = "-1")
     private int tableRows;
 
+    @CommandLine.Option(names = {"-gt", "--ground-truth"}, description = "Ground truth file", defaultValue = "null")
+    private File gtFile;
+
     @Override
     public Integer call()
     {
@@ -272,7 +277,7 @@ public class ProgressiveIndexing extends Command
 
                         synchronized (workloadLock)
                         {
-                            int indexed = (int) Math.round(indexWriter.indexed());
+                            int indexed = (int) Math.round(indexWriter.indexed() * 100);
 
                             if (workload.containsKey(indexed + adaptabilityInterval))
                             {
@@ -342,7 +347,7 @@ public class ProgressiveIndexing extends Command
 
                     synchronized (workloadLock)
                     {
-                        workload.get((int) Math.round(indexWriter.indexed())).add(new PairNonComparable<>(queryTable, results));
+                        workload.get((int) Math.round(indexWriter.indexed() * 100)).add(new PairNonComparable<>(queryTable, results));
                     }
                 }
 
@@ -394,7 +399,8 @@ public class ProgressiveIndexing extends Command
         search.disablePrefiltering();
 
         Result results = search.search(query);
-        RelevanceAdapter adapter = new RelevanceAdapter(oldResult, results, indexWriter.getScheduler().priorities());
+        IndexingAdapter adapter = this.gtFile == null ? new RelevanceAdapter(oldResult, results, indexWriter.getScheduler().priorities()) :
+                new GTAdapter(results, this.gtFile);
         List<Pair<String, Double>> priorityIncrements = adapter.newPriorities();
         priorityIncrements.forEach(pair -> indexWriter.updateIndexable(pair.getFirst(), -1 * (int) Math.round(pair.getSecond())));
     }
