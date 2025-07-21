@@ -13,6 +13,7 @@ import com.thetis.loader.IndexWriter;
 import com.thetis.loader.Linker;
 import com.thetis.loader.LuceneLinker;
 import com.thetis.loader.WikiLinker;
+import com.thetis.store.EntityLinking;
 import com.thetis.system.Logger;
 import com.thetis.connector.DBDriverBatch;
 import com.thetis.connector.Factory;
@@ -284,7 +285,7 @@ public class IndexTables extends Command
             Logger.logNewLine(Logger.Level.INFO, "Elapsed time: " + elapsedTime / (1e9) + " seconds\n");
 
             Set<Type> entityTypes = new HashSet<>();
-            Iterator<Id> idIter = indexWriter.getEntityLinker().kgUriIds();
+            Iterator<Id> idIter = ((EntityLinking) indexWriter.getEntityLinker().getLinker()).kgUriIds();
 
             while (idIter.hasNext())
             {
