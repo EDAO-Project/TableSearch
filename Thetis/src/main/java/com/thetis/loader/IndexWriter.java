@@ -19,7 +19,6 @@ import com.thetis.structures.table.Table;
 import com.thetis.system.Configuration;
 import com.thetis.system.Logger;
 import com.thetis.tables.JsonTable;
-import com.thetis.utilities.Utils;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.*;
@@ -145,8 +144,6 @@ public class IndexWriter implements IndexIO
 
             catch (InterruptedException | ExecutionException ignored) {}
         });
-        Logger.log(Logger.Level.INFO, "Collecting IDF weights...");
-        loadIDFs();
         Logger.logNewLine(Logger.Level.INFO, "Writing indexes and stats on disk...");
         writeStats();
         this.tableStats.clear();    // Clean up to save space before writing index objects to disk
@@ -388,64 +385,6 @@ public class IndexWriter implements IndexIO
         }
     }
 
-    protected void loadIDFs()
-    {
-        loadEntityIDFs();
-        loadTypeIDFs();
-    }
-
-    private void loadEntityIDFs()
-    {
-        Iterator<Id> idIter = ((EntityLinking) this.linker.getLinker()).kgUriIds();
-
-        while (idIter.hasNext())
-        {
-            Id entityId = idIter.next();
-            double idf = Math.log10((double) this.loadedTables.get() / this.entityTableLink.find(entityId).size()) + 1;
-            this.entityTable.find(entityId).setIDF(idf);
-        }
-    }
-
-    private void loadTypeIDFs()
-    {
-        Map<Type, Integer> entityTypeFrequency = new HashMap<>();
-        Iterator<Id> idIterator = ((EntityLinking) this.linker.getLinker()).kgUriIds();
-
-        while (idIterator.hasNext())
-        {
-            Id id = idIterator.next();
-            List<Type> entityTypes = this.entityTable.find(id).getTypes();
-
-            for (Type t : entityTypes)
-            {
-                if (entityTypeFrequency.containsKey(t))
-                {
-                    entityTypeFrequency.put(t, entityTypeFrequency.get(t) + 1);
-                }
-
-                else
-                {
-                    entityTypeFrequency.put(t, 1);
-                }
-            }
-        }
-
-        long totalEntityCount = this.entityTable.size();
-        idIterator = ((EntityLinking) this.linker.getLinker()).kgUriIds();
-
-        while (idIterator.hasNext())
-        {
-            Id id = idIterator.next();
-            this.entityTable.find(id).getTypes().forEach(t -> {
-                if (entityTypeFrequency.containsKey(t))
-                {
-                    double idf = Utils.log2((double) totalEntityCount / entityTypeFrequency.get(t));
-                    t.setIdf(idf);
-                }
-            });
-        }
-    }
-
     protected void flushToDisk() throws IOException
     {
         // Entity linker
@@ -561,27 +500,27 @@ public class IndexWriter implements IndexIO
      * Entity linker getter
      * @return Entity linker from link to entity URI
      */
-    public EntityLinking getEntityLinker()
+    public SynchronizedLinker<String, String> getEntityLinker()
     {
-        return (EntityLinking) this.linker.getLinker();
+        return this.linker;
     }
 
     /**
      * Getter to Entity table
      * @return Loaded entity table
      */
-    public EntityTable getEntityTable()
+    public SynchronizedIndex<Id, Entity> getEntityTable()
     {
-        return (EntityTable) this.entityTable.getIndex();
+        return this.entityTable;
     }
 
     /**
      * Getter to embeddings index
      * @return Loaded embeddings index
      */
-    public EmbeddingsIndex<Id> getEmbeddingsIndex()
+    public SynchronizedIndex<Id, List<Double>> getEmbeddingsIndex()
     {
-        return (EmbeddingsIndex<Id>) this.embeddingsIdx.getIndex();
+        return this.embeddingsIdx;
     }
 
     /**
@@ -597,9 +536,9 @@ public class IndexWriter implements IndexIO
      * Getter to entity-table linker
      * @return Loaded entity-table linker
      */
-    public EntityTableLink getEntityTableLinker()
+    public SynchronizedIndex<Id, List<String>> getEntityTableLinker()
     {
-        return (EntityTableLink) this.entityTableLink.getIndex();
+        return this.entityTableLink;
     }
 
     public long getApproximateEntityMentions()

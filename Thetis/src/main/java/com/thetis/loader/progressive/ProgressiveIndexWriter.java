@@ -105,9 +105,6 @@ public class ProgressiveIndexWriter extends IndexWriter implements ProgressiveIn
         try
         {
             this.indexers.stopIndexing();
-            Logger.log(Logger.Level.INFO, "Collecting IDF weights...");
-            loadIDFs();
-
             Logger.log(Logger.Level.INFO, "Writing indexes on disk...");
             flushToDisk();
             Logger.log(Logger.Level.INFO, "Progressive indexing has completed");

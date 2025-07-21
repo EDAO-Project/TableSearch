@@ -1,5 +1,6 @@
 package com.thetis.loader.progressive.adapter;
 
+import com.github.jsonldjava.shaded.com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.thetis.search.Result;
 import com.thetis.structures.Pair;
@@ -27,7 +28,7 @@ public class GTAdapter implements IndexingAdapter
         try (Reader reader = Files.newBufferedReader(gtFile.toPath()))
         {
             Gson gson = new Gson();
-            Type type = new TypeToken<HashMap<String, Double>(){}.getType();
+            Type type = new TypeToken<HashMap<String, Double>>(){}.getType();
 
             return gson.fromJson(reader, type);
         }

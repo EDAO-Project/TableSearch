@@ -9,38 +9,21 @@ import java.io.Serializable;
 public class Type implements Comparable<Type>, Serializable
 {
     private String type;
-    private double idf = 1;
 
     public Type(String type)
     {
         this.type = type;
     }
 
-    public Type(String type, double idf)
-    {
-        this(type);
-        this.idf = idf;
-    }
-
     @Override
     public String toString()
     {
-        return this.type + " - " + this.idf;
+        return this.type;
     }
 
     public String getType()
     {
         return this.type;
-    }
-
-    public double getIdf()
-    {
-        return this.idf;
-    }
-
-    public void setIdf(double idf)
-    {
-        this.idf = idf;
     }
 
     /**
@@ -55,7 +38,7 @@ public class Type implements Comparable<Type>, Serializable
             return false;
 
         Type other = (Type) o;
-        return this.type.equals(other.type) && this.idf == other.idf;
+        return this.type.equals(other.type);
     }
 
     @Override
@@ -63,9 +46,6 @@ public class Type implements Comparable<Type>, Serializable
     {
         if (equals(o))
             return 0;
-
-        else if (this.type.equals(o.getType()))
-            return this.idf < o.idf ? -1 : 1;
 
         return type.compareTo(o.getType());
     }

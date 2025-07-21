@@ -21,10 +21,7 @@ import com.thetis.connector.Neo4jEndpoint;
 import com.thetis.loader.IndexReader;
 import com.thetis.loader.Stats;
 import com.thetis.search.*;
-import com.thetis.store.EmbeddingsIndex;
-import com.thetis.store.EntityLinking;
-import com.thetis.store.EntityTable;
-import com.thetis.store.EntityTableLink;
+import com.thetis.store.*;
 import com.thetis.store.hnsw.HNSW;
 import com.thetis.structures.graph.Entity;
 import com.thetis.structures.graph.Type;
@@ -266,8 +263,8 @@ public class SearchTables extends Command {
             Prefilter prefilter = null;
             HNSW hnsw = indexReader.getHNSW();
             BM25 bm25 = new BM25(linker, entityTable, entityTableLink, embeddingsIdx);
-            hnsw.setLinker(linker);
-            hnsw.setEntityTableLink(entityTableLink);
+            hnsw.setLinker(new SynchronizedLinker<>(linker));
+            hnsw.setEntityTableLink(new SynchronizedIndex<>(entityTableLink));
             hnsw.setEmbeddingGenerator(entity -> embeddingStore.select(entity));
             hnsw.setK(this.hnswK);
 
@@ -295,8 +292,9 @@ public class SearchTables extends Command {
 
                 Logger.logNewLine(Logger.Level.INFO, "Query Entities: " + queryTable + "\n");
 
-                if (ensureQueryEntitiesMapping(queryTable, linker, entityTableLink) ||
-                        linkQueryEntities(queryTable, embeddingStore, connector, linker, entityTable, embeddingsIdx))
+                if (ensureQueryEntitiesMapping(queryTable, new SynchronizedLinker<>(linker), new SynchronizedIndex<>(entityTableLink)) ||
+                        linkQueryEntities(queryTable, embeddingStore, connector, new SynchronizedLinker<>(linker),
+                                new SynchronizedIndex<>(entityTable), new SynchronizedIndex<>(embeddingsIdx)))
                     Logger.logNewLine(Logger.Level.INFO, "All query entities are mappable!\n\n");
 
                 else
@@ -324,7 +322,7 @@ public class SearchTables extends Command {
         }
     }
 
-    public static boolean ensureQueryEntitiesMapping(Table<String> query, EntityLinking linker, EntityTableLink tableLink)
+    public static boolean ensureQueryEntitiesMapping(Table<String> query, SynchronizedLinker<String, String> linker, SynchronizedIndex<Id, List<String>> tableLink)
     {
         int rows = query.rowCount();
 
@@ -335,7 +333,7 @@ public class SearchTables extends Command {
 
             for (int j = 0; j < rowSize; j++)
             {
-                Id entityId = linker.kgUriLookup(row.get(j));
+                Id entityId = ((EntityLinking) linker.getLinker()).kgUriLookup(row.get(j));
 
                 if (!tableLink.contains(entityId))
                 {
@@ -348,7 +346,7 @@ public class SearchTables extends Command {
     }
 
     public static boolean linkQueryEntities(Table<String> query, DBDriverBatch<List<Double>, String> embeddingsDB, Neo4jEndpoint neo4j,
-                                      EntityLinking linker, EntityTable entityTable, EmbeddingsIndex<Id> embeddingsIdx)
+                                      SynchronizedLinker<String, String> linker, SynchronizedIndex<Id, Entity> entityTable, SynchronizedIndex<Id, List<Double>> embeddingsIdx)
     {
         int rowCount = query.rowCount();
 
@@ -358,12 +356,12 @@ public class SearchTables extends Command {
 
             for (int column = 0; column < rowSize; column++)
             {
-                String entity = query.getRow(row).get(column), link = linker.getInputPrefix() + "q" + row + column;
+                String entity = query.getRow(row).get(column), link = ((EntityLinking) linker.getLinker()).getInputPrefix() + "q" + row + column;
                 List<String> entityTypes = neo4j.searchTypes(entity);
                 List<String> entityPredicates = neo4j.searchPredicates(entity);
                 linker.addMapping(link, entity);
 
-                Id entityId = linker.kgUriLookup(entity);
+                Id entityId = ((EntityLinking) linker.getLinker()).kgUriLookup(entity);
                 List<Double> embeddings = embeddingsDB.select(entity.replace("'", "''"));
                 entityTable.insert(entityId,
                         new Entity(entity, entityTypes.stream().map(Type::new).collect(Collectors.toList()), entityPredicates));
@@ -391,6 +389,7 @@ public class SearchTables extends Command {
         Set<String> filePaths = fileStream.map(Path::toString).collect(Collectors.toSet());
         AnalogousSearch.EntitySimilarity entitySimilarity = this.simProperty == SimilarityProperty.TYPES ?
                 AnalogousSearch.EntitySimilarity.JACCARD_TYPES : AnalogousSearch.EntitySimilarity.JACCARD_PREDICATES;
+        Map<Type, Integer> typeFrequency = typeFrequencies(new SynchronizedLinker<>(linker), new SynchronizedIndex<>(table));
 
         if (this.simProperty == SimilarityProperty.EMBEDDINGS)
         {
@@ -403,14 +402,14 @@ public class SearchTables extends Command {
         {
             search = new AnalogousSearch(filePaths, linker, table, tableLink, embeddingIdx, this.topK, this.threads, entitySimilarity,
                     this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity, this.useMaxSimilarityPerColumn,
-                    this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN);
+                    this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, typeFrequency);
         }
 
         else
         {
             search = new AnalogousSearch(filePaths, linker, table, tableLink, embeddingIdx, this.topK, this.threads, entitySimilarity,
                     this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity, this.useMaxSimilarityPerColumn,
-                    this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, prefilter);
+                    this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, typeFrequency, prefilter);
         }
 
         QueryExecution execution = new QueryExecution(search);
@@ -431,6 +430,33 @@ public class SearchTables extends Command {
                 search.getNonEmbeddingComparisons(), search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails(),
                 search.getReduction(), this.embeddingSimFunction, this.simProperty, this.prefilterTechnique, this.singleColumnPerQueryEntity,
                 this.useMaxSimilarityPerColumn, this.adjustedSimilarity, this.threads);
+    }
+
+    public static Map<Type, Integer> typeFrequencies(SynchronizedLinker<String, String> linker, SynchronizedIndex<Id, Entity> entityTable)
+    {
+        Map<Type, Integer> entityTypeFrequency = new HashMap<>();
+        Iterator<Id> idIterator = ((EntityLinking) linker.getLinker()).kgUriIds();
+
+        while (idIterator.hasNext())
+        {
+            Id id = idIterator.next();
+            List<Type> entityTypes = entityTable.find(id).getTypes();
+
+            for (Type t : entityTypes)
+            {
+                if (entityTypeFrequency.containsKey(t))
+                {
+                    entityTypeFrequency.put(t, entityTypeFrequency.get(t) + 1);
+                }
+
+                else
+                {
+                    entityTypeFrequency.put(t, 1);
+                }
+            }
+        }
+
+        return entityTypeFrequency;
     }
 
     /**

@@ -24,7 +24,7 @@ public class PPRSearch extends AbstractSearch
     private double threshold, particles;
     private int topK;
     private List<List<Double>> weights;
-
+    private int tables;
     private double elapsedTime = -1;
 
     public PPRSearch(EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink, EmbeddingsIndex<Id> embeddingsIndex,
@@ -36,6 +36,7 @@ public class PPRSearch extends AbstractSearch
         this.threshold = minThreshold;
         this.particles = particles;
         this.topK = topK;
+        this.tables = distinctTables().size();
     }
 
     @Override
@@ -94,7 +95,7 @@ public class PPRSearch extends AbstractSearch
         while (entityIter.hasNext())
         {
             Id entity = entityIter.next();
-            double idf = getEntityTable().find(entity).getIDF();
+            double idf = Math.log10((double) this.tables / getEntityTableLink().find(entity).size()) + 1;
             entityToIDF.put(getLinker().kgUriLookup(entity), idf);
         }
 

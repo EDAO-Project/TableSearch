@@ -3,9 +3,7 @@ package com.thetis.store.hnsw;
 import com.stepstone.search.hnswlib.jna.QueryTuple;
 import com.stepstone.search.hnswlib.jna.SpaceName;
 import com.stepstone.search.hnswlib.jna.exception.QueryCannotReturnResultsException;
-import com.thetis.store.EntityLinking;
-import com.thetis.store.EntityTableLink;
-import com.thetis.store.Index;
+import com.thetis.store.*;
 import com.thetis.structures.Id;
 
 import java.nio.file.Path;
@@ -21,12 +19,12 @@ public class HNSW implements Index<String, Set<String>>
     private com.stepstone.search.hnswlib.jna.Index hnsw;
     private int embeddingsDim, k;
     private long capacity;
-    private EntityLinking linker;
-    private EntityTableLink entityTableLink;
+    private SynchronizedLinker<String, String> linker;
+    private SynchronizedIndex<Id, List<String>> entityTableLink;
     private String indexPath;
 
     public HNSW(Function<String, List<Double>> embeddingGenerator, int embeddingsDimension, long capacity, int neighborhoodSize,
-                EntityLinking linker, EntityTableLink entityTableLink, String indexPath)
+                SynchronizedLinker<String, String> linker, SynchronizedIndex<Id, List<String>> entityTableLink, String indexPath)
     {
         this.embeddingGen = embeddingGenerator;
         this.embeddingsDim = embeddingsDimension;
@@ -39,12 +37,12 @@ public class HNSW implements Index<String, Set<String>>
         this.hnsw.initialize((int) capacity);
     }
 
-    public void setLinker(EntityLinking linker)
+    public void setLinker(SynchronizedLinker<String, String> linker)
     {
         this.linker = linker;
     }
 
-    public void setEntityTableLink(EntityTableLink entityTableLink)
+    public void setEntityTableLink(SynchronizedIndex<Id, List<String>> entityTableLink)
     {
         this.entityTableLink = entityTableLink;
     }
@@ -107,7 +105,7 @@ public class HNSW implements Index<String, Set<String>>
     @Override
     public void insert(String key, Set<String> tables)
     {
-        Id id = this.linker.kgUriLookup(key);
+        Id id = ((EntityLinking) this.linker.getLinker()).kgUriLookup(key);
 
         if (id == null)
         {
@@ -131,7 +129,7 @@ public class HNSW implements Index<String, Set<String>>
     @Override
     public boolean remove(String key)
     {
-        Id id = this.linker.kgUriLookup(key);
+        Id id = ((EntityLinking) this.linker.getLinker()).kgUriLookup(key);
 
         if (id == null)
         {
@@ -150,7 +148,7 @@ public class HNSW implements Index<String, Set<String>>
     @Override
     public Set<String> find(String key)
     {
-        if (this.linker.kgUriLookup(key) == null)
+        if (((EntityLinking) this.linker.getLinker()).kgUriLookup(key) == null)
         {
             return Collections.emptySet();
         }

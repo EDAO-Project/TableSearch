@@ -115,10 +115,6 @@ public class IndexWriterTest
         assertEquals("http://dbpedia.org/resource/Boston_Bruins", ent1.getUri());
         assertEquals("http://dbpedia.org/resource/NEC_Cup", ent2.getUri());
 
-        // Checking entity IDFs
-        assertEquals(Math.log10(this.writer.loadedTables()) + 1, ent1.getIDF(), 0.0001);
-        assertEquals(Math.log10(this.writer.loadedTables()) + 1, ent2.getIDF(), 0.0001);
-
         // Checking types
         assertEquals(ent1Types.size(), ent1.getTypes().size());
         assertEquals(ent2Types.size(), ent2.getTypes().size());
@@ -126,13 +122,11 @@ public class IndexWriterTest
         for (Type t : ent1.getTypes())
         {
             assertTrue(ent1Types.contains(t.getType()));
-            assertTrue(t.getIdf() > 0);
         }
 
         for (Type t : ent2.getTypes())
         {
             assertTrue(ent2Types.contains(t.getType()));
-            assertTrue(t.getIdf() > 0);
         }
     }
 

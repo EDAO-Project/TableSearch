@@ -10,9 +10,15 @@ import com.thetis.loader.progressive.adapter.GTAdapter;
 import com.thetis.loader.progressive.adapter.IndexingAdapter;
 import com.thetis.loader.progressive.adapter.RelevanceAdapter;
 import com.thetis.search.*;
+import com.thetis.store.EmbeddingsIndex;
+import com.thetis.store.EntityLinking;
+import com.thetis.store.EntityTable;
+import com.thetis.store.EntityTableLink;
 import com.thetis.store.hnsw.HNSW;
+import com.thetis.structures.Id;
 import com.thetis.structures.Pair;
 import com.thetis.structures.PairNonComparable;
+import com.thetis.structures.graph.Type;
 import com.thetis.structures.table.Table;
 import com.thetis.system.Logger;
 import picocli.CommandLine;
@@ -231,6 +237,7 @@ public class ProgressiveIndexing extends Command
 
             AnalogousSearch.EntitySimilarity entitySimilarity = this.simProperty == SearchTables.SimilarityProperty.TYPES ?
                     AnalogousSearch.EntitySimilarity.JACCARD_TYPES : AnalogousSearch.EntitySimilarity.JACCARD_PREDICATES;
+            Map<Type, Integer> entityTypeFrequency = new HashMap<>();
 
             if (this.simProperty == SearchTables.SimilarityProperty.EMBEDDINGS)
             {
@@ -281,13 +288,27 @@ public class ProgressiveIndexing extends Command
 
                             if (workload.containsKey(indexed + adaptabilityInterval))
                             {
-                                workload.get(indexed + adaptabilityInterval).forEach(task -> adapt(task.getFirst(), task.getSecond(), similarity, task.getSecond().getK(), indexWriter));
+                                workload.get(indexed + adaptabilityInterval).forEach(task -> adapt(task.getFirst(), task.getSecond(), similarity, task.getSecond().getK(), indexWriter, entityTypeFrequency));
                                 workload.get(indexed + adaptabilityInterval).clear();
                             }
                         }
                     }
 
                     catch (InterruptedException ignored) {}
+                }
+            }), typeFrequencyUpdater = new Thread(() -> {
+                double prev = 0.0;
+                double current = prev;
+
+                while (current < 1.0)
+                {
+                    current = indexWriter.indexed();
+
+                    if (current - prev > 0.01)
+                    {
+                        prev = current;
+                        entityTypeFrequency.putAll(SearchTables.typeFrequencies(indexWriter.getEntityLinker(), indexWriter.getEntityTable()));
+                    }
                 }
             });
 
@@ -299,6 +320,7 @@ public class ProgressiveIndexing extends Command
             indexWriter.performIO();
             newTablesWatcher.start();
             workloadAdapter.start();
+            typeFrequencyUpdater.start();
 
             while (true)
             {
@@ -321,7 +343,7 @@ public class ProgressiveIndexing extends Command
                         TimeUnit.SECONDS.sleep(this.indexingTime);
                     }
 
-                    AnalogousSearch search = initSearch(searchTables, indexWriter, entitySimilarity, searchTables.size());
+                    AnalogousSearch search = initSearch(searchTables, indexWriter, entitySimilarity, searchTables.size(), entityTypeFrequency);
                     Result results = search.search(queryTable);
                     Iterator<Pair<String, Double>> resultIter = results.getResults();
                     Map<String, Double> resultTables = new HashMap<>();
@@ -336,7 +358,7 @@ public class ProgressiveIndexing extends Command
                             .map(entry -> new Pair<>(entry.getKey(), entry.getValue())).toList());
                     scores.sort((p1, p2) -> Double.compare(p2.getSecond(), p1.getSecond()));
                     scores = scores.subList(0, scores.size() >= this.topK ? this.topK : scores.size());
-                    SearchTables.saveFilenameScores(this.resultDir, indexWriter.getEntityTableLinker().getDirectory(),
+                    SearchTables.saveFilenameScores(this.resultDir, ((EntityTableLink) indexWriter.getEntityTableLinker().getIndex()).getDirectory(),
                             queryFile.getName().split("\\.")[0], scores, search.getTableStats(), search.getQueryEntitiesMissingCoverage(),
                             search.elapsedNanoSeconds(), search.getEmbeddingComparisons(), search.getNonEmbeddingComparisons(),
                             search.getEmbeddingCoverageSuccesses(), search.getEmbeddingCoverageFails(), search.getReduction(),
@@ -366,36 +388,40 @@ public class ProgressiveIndexing extends Command
         }
     }
 
-    private AnalogousSearch initSearch(Set<String> searchTables, IndexWriter indexWriter, AnalogousSearch.EntitySimilarity entitySimilarity, int k)
+    private AnalogousSearch initSearch(Set<String> searchTables, IndexWriter indexWriter, AnalogousSearch.EntitySimilarity entitySimilarity, int k, Map<Type, Integer> typeFrequencies)
     {
         HNSW hnsw = indexWriter.getHNSW();
-        BM25 bm25 = new BM25(indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
-                indexWriter.getEmbeddingsIndex());
-        Prefilter bm25Prefilter = new Prefilter(indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
-                indexWriter.getEmbeddingsIndex(), bm25), hnswPrefilter = new Prefilter(indexWriter.getEntityLinker(),
-                indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(), indexWriter.getEmbeddingsIndex(), hnsw);
+        BM25 bm25 = new BM25((EntityLinking) indexWriter.getEntityLinker().getLinker(), (EntityTable) indexWriter.getEntityTable().getIndex(),
+                (EntityTableLink) indexWriter.getEntityTableLinker().getIndex(), (EmbeddingsIndex<Id>) indexWriter.getEmbeddingsIndex().getIndex());
+        Prefilter bm25Prefilter = new Prefilter((EntityLinking) indexWriter.getEntityLinker().getLinker(), (EntityTable) indexWriter.getEntityTable().getIndex(),
+                (EntityTableLink) indexWriter.getEntityTableLinker().getIndex(), (EmbeddingsIndex<Id>) indexWriter.getEmbeddingsIndex().getIndex(), bm25),
+                hnswPrefilter = new Prefilter((EntityLinking) indexWriter.getEntityLinker().getLinker(), (EntityTable) indexWriter.getEntityTable().getIndex(),
+                        (EntityTableLink) indexWriter.getEntityTableLinker().getIndex(), (EmbeddingsIndex<Id>) indexWriter.getEmbeddingsIndex().getIndex(), hnsw);
         hnsw.setK(this.hnswK);
 
         return switch (this.prefilterTechnique) {
-            case BM25 -> new AnalogousSearch(searchTables, indexWriter.getEntityLinker(), indexWriter.getEntityTable(),
-                    indexWriter.getEntityTableLinker(), indexWriter.getEmbeddingsIndex(), this.topK, 1, entitySimilarity,
+            case BM25 -> new AnalogousSearch(searchTables, (EntityLinking) indexWriter.getEntityLinker().getLinker(),
+                    (EntityTable) indexWriter.getEntityTable().getIndex(), (EntityTableLink) indexWriter.getEntityTableLinker().getIndex(),
+                    (EmbeddingsIndex<Id>) indexWriter.getEmbeddingsIndex().getIndex(), this.topK, 4, entitySimilarity,
                     this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity, this.useMaxSimilarityPerColumn,
-                    this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, bm25Prefilter);
-            case HNSW -> new AnalogousSearch(searchTables, indexWriter.getEntityLinker(), indexWriter.getEntityTable(),
-                    indexWriter.getEntityTableLinker(), indexWriter.getEmbeddingsIndex(), k, 1, entitySimilarity,
+                    this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, typeFrequencies, bm25Prefilter);
+            case HNSW -> new AnalogousSearch(searchTables, (EntityLinking) indexWriter.getEntityLinker().getLinker(),
+                    (EntityTable) indexWriter.getEntityTable().getIndex(), (EntityTableLink) indexWriter.getEntityTableLinker().getIndex(),
+                    (EmbeddingsIndex<Id>) indexWriter.getEmbeddingsIndex().getIndex(), k, 4, entitySimilarity,
                     this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity, this.useMaxSimilarityPerColumn,
-                    this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, hnswPrefilter);
-            case NONE -> new AnalogousSearch(searchTables, indexWriter.getEntityLinker(), indexWriter.getEntityTable(),
-                    indexWriter.getEntityTableLinker(), indexWriter.getEmbeddingsIndex(), k, 1, entitySimilarity,
+                    this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, typeFrequencies, hnswPrefilter);
+            case NONE -> new AnalogousSearch(searchTables, (EntityLinking) indexWriter.getEntityLinker().getLinker(),
+                    (EntityTable) indexWriter.getEntityTable().getIndex(), (EntityTableLink) indexWriter.getEntityTableLinker().getIndex(),
+                    (EmbeddingsIndex<Id>) indexWriter.getEmbeddingsIndex().getIndex(), k, 4, entitySimilarity,
                     this.singleColumnPerQueryEntity, this.weightedJaccardSimilarity, this.adjustedSimilarity, this.useMaxSimilarityPerColumn,
-                    this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN);
+                    this.hungarianAlgorithmSameAlignmentAcrossTuples, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, typeFrequencies);
         };
     }
 
-    private void adapt(Table<String> query, Result oldResult, AnalogousSearch.EntitySimilarity entitySimilarity, int k, ProgressiveIndexWriter indexWriter)
+    private void adapt(Table<String> query, Result oldResult, AnalogousSearch.EntitySimilarity entitySimilarity, int k, ProgressiveIndexWriter indexWriter, Map<Type, Integer> typeFrequency)
     {
         Set<String> corpus = oldResult.getResultSet().stream().map(Pair::getFirst).collect(Collectors.toSet());
-        AnalogousSearch search = initSearch(corpus, indexWriter, entitySimilarity, k);
+        AnalogousSearch search = initSearch(corpus, indexWriter, entitySimilarity, k, typeFrequency);
         search.disablePrefiltering();
 
         Result results = search.search(query);

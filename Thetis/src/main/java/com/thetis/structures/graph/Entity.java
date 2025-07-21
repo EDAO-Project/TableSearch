@@ -14,7 +14,7 @@ public class Entity implements Comparable<Entity>, Serializable
     private String uri;
     private List<Type> types;
     private List<String> predicates;
-    private double idf = 1;
+    private int frequency = 0;
 
     public Entity(String uri)
     {
@@ -26,12 +26,6 @@ public class Entity implements Comparable<Entity>, Serializable
         this.uri = uri;
         this.types = types;
         this.predicates = predicates;
-    }
-
-    public Entity(String uri, double idf, List<Type> types, List<String> predicates)
-    {
-        this(uri, types, predicates);
-        this.idf = idf;
     }
 
     public String getUri()
@@ -49,14 +43,14 @@ public class Entity implements Comparable<Entity>, Serializable
         return this.predicates;
     }
 
-    public double getIDF()
+    public int getFrequency()
     {
-        return this.idf;
+        return this.frequency;
     }
 
-    public void setIDF(double idf)
+    public void setFrequency(int frequency)
     {
-        this.idf = idf;
+        this.frequency = frequency;
     }
 
     @Override

@@ -76,12 +76,13 @@ public class AnalogousSearch extends AbstractSearch
     private final Object lockStats = new Object();
     private Set<String> corpus;
     private Prefilter prefilter;
+    private Map<Type, Integer> entityTypeFrequency;
 
     public AnalogousSearch(Set<String> tableFiles, EntityLinking linker, EntityTable entityTable, EntityTableLink entityTableLink,
                            EmbeddingsIndex<Id> embeddingIdx, int topK, int threads, EntitySimilarity entitySimilarity,
                            boolean singleColumnPerQueryEntity, boolean weightedJaccard, boolean adjustedSimilarity,
                            boolean useMaxSimilarityPerColumn, boolean hungarianAlgorithmSameAlignmentAcrossTuples,
-                           SimilarityMeasure similarityMeasure)
+                           SimilarityMeasure similarityMeasure, Map<Type, Integer> entityTypeFrequency)
     {
         super(linker, entityTable, entityTableLink, embeddingIdx);
         this.topK = topK;
@@ -95,6 +96,7 @@ public class AnalogousSearch extends AbstractSearch
         this.measure = similarityMeasure;
         this.corpus = distinctTables();
         this.prefilter = null;
+        this.entityTypeFrequency = entityTypeFrequency;
         setCorpus(tableFiles);
     }
 
@@ -102,11 +104,11 @@ public class AnalogousSearch extends AbstractSearch
                            EmbeddingsIndex<Id> embeddingIdx, int topK, int threads, EntitySimilarity entitySimilarity,
                            boolean singleColumnPerQueryEntity, boolean weightedJaccard, boolean adjustedSimilarity,
                            boolean useMaxSimilarityPerColumn, boolean hungarianAlgorithmSameAlignmentAcrossTuples,
-                           SimilarityMeasure similarityMeasure, Prefilter prefilter)
+                           SimilarityMeasure similarityMeasure, Map<Type, Integer> entityTypeFrequency, Prefilter prefilter)
     {
         this(tableFiles, linker, entityTable, entityTableLink, embeddingIdx, topK, threads, entitySimilarity, singleColumnPerQueryEntity,
                 weightedJaccard, adjustedSimilarity, useMaxSimilarityPerColumn, hungarianAlgorithmSameAlignmentAcrossTuples,
-                similarityMeasure);
+                similarityMeasure, entityTypeFrequency);
         this.prefilter = prefilter;
     }
 
@@ -488,8 +490,8 @@ public class AnalogousSearch extends AbstractSearch
 
         if (this.entitySimilarityMeasure == EntitySimilarity.JACCARD_TYPES && this.weightedJaccard)   // Run weighted Jaccard Similarity
         {
-            Set<Pair<Type, Double>> weights = entTypes1.stream().map(t -> new Pair<>(t, t.getIdf())).collect(Collectors.toSet());
-            weights.addAll(entTypes2.stream().map(t -> new Pair<>(t, t.getIdf())).collect(Collectors.toSet()));
+            Set<Pair<Type, Double>> weights = entTypes1.stream().map(t -> new Pair<>(t, typeIdf(t))).collect(Collectors.toSet());
+            weights.addAll(entTypes2.stream().map(t -> new Pair<>(t, typeIdf(t))).collect(Collectors.toSet()));
             weights = weights.stream().filter(p -> p.getSecond() >= 0).collect(Collectors.toSet());
             jaccardScore = JaccardSimilarity.make(entTypes1, entTypes2, weights).similarity();
         }
@@ -537,6 +539,16 @@ public class AnalogousSearch extends AbstractSearch
         }
 
         return simScore;
+    }
+
+    private double typeIdf(Type type)
+    {
+        if (this.entityTypeFrequency.containsKey(type))
+        {
+            return Utils.log2((double) getEntityTable().size() / this.entityTypeFrequency.get(type));
+        }
+
+        return 1.0;
     }
 
     /**
@@ -651,6 +663,7 @@ public class AnalogousSearch extends AbstractSearch
     {
         // Compute the weighted vector (i.e. considers IDF scores of query entities) for each query tuple
         Map<Integer, List<Double>> queryRowToWeightVector = new HashMap<>();
+        int corpusSize = this.corpus.size();
 
         for (int queryRow = 0; queryRow < query.rowCount(); queryRow++)
         {
@@ -660,7 +673,8 @@ public class AnalogousSearch extends AbstractSearch
             for (int column = 0; column < rowSize; column++)
             {
                 Id entityId = getLinker().kgUriLookup(query.getRow(queryRow).get(column));
-                curRowIDFScores.add(getEntityTable().find(entityId).getIDF());
+                double idf = Math.log10((double) corpusSize / getEntityTableLink().find(entityId).size()) + 1;
+                curRowIDFScores.add(idf);
             }
 
             queryRowToWeightVector.put(queryRow, Utils.normalizeVector(curRowIDFScores));
@@ -730,19 +744,6 @@ public class AnalogousSearch extends AbstractSearch
     protected long abstractElapsedNanoSeconds()
     {
         return this.elapsed;
-    }
-
-    private Set<String> distinctTables()
-    {
-        Set<String> tables = new HashSet<>();
-        Iterator<Id> entityIter = getLinker().kgUriIds();
-
-        while (entityIter.hasNext())
-        {
-            tables.addAll(getEntityTableLink().find(entityIter.next()));
-        }
-
-        return tables;
     }
 
     public int getEmbeddingComparisons()

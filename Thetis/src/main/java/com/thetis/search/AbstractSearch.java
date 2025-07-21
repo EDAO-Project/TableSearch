@@ -7,6 +7,10 @@ import com.thetis.store.EntityTableLink;
 import com.thetis.structures.Id;
 import com.thetis.structures.table.Table;
 
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
 public abstract class AbstractSearch implements TableSearch
 {
     private EntityLinking linker;
@@ -21,6 +25,19 @@ public abstract class AbstractSearch implements TableSearch
         this.entityTable = entityTable;
         this.entityTableLink = entityTableLink;
         this.embeddingsIndex = embeddingIdx;
+    }
+
+    protected Set<String> distinctTables()
+    {
+        Set<String> tables = new HashSet<>();
+        Iterator<Id> entityIter = getLinker().kgUriIds();
+
+        while (entityIter.hasNext())
+        {
+            tables.addAll(getEntityTableLink().find(entityIter.next()));
+        }
+
+        return tables;
     }
 
     @Override

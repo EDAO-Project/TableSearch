@@ -120,13 +120,11 @@ public class IndexReaderTest
         for (Type t : ent1.getTypes())
         {
             assertTrue(ent1Types.contains(t.getType()));
-            assertTrue(t.getIdf() > 0);
         }
 
         for (Type t : ent2.getTypes())
         {
             assertTrue(ent2Types.contains(t.getType()));
-            assertTrue(t.getIdf() > 0);
         }
     }
 
