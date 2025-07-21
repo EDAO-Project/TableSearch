@@ -6,6 +6,11 @@ import com.thetis.connector.Factory;
 import com.thetis.connector.Neo4jEndpoint;
 import com.thetis.loader.IndexWriter;
 import com.thetis.loader.WikiLinker;
+import com.thetis.store.EmbeddingsIndex;
+import com.thetis.store.EntityLinking;
+import com.thetis.store.EntityTable;
+import com.thetis.store.EntityTableLink;
+import com.thetis.structures.Id;
 import com.thetis.structures.Pair;
 import com.thetis.structures.table.SimpleTable;
 import com.thetis.structures.table.Table;
@@ -18,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -47,10 +53,10 @@ public class AnalogousSearchTest
             indexWriter.performIO();
 
             this.search = new AnalogousSearch(paths.stream().map(Path::toString).collect(Collectors.toSet()),
-                    indexWriter.getEntityLinker(), indexWriter.getEntityTable(), indexWriter.getEntityTableLinker(),
-                    indexWriter.getEmbeddingsIndex(), 5, 1, AnalogousSearch.EntitySimilarity.JACCARD_TYPES,
-                    false, false, true, false,
-                    false, AnalogousSearch.SimilarityMeasure.EUCLIDEAN);
+                    (EntityLinking) indexWriter.getEntityLinker().getLinker(), (EntityTable) indexWriter.getEntityTable().getIndex(),
+                    (EntityTableLink) indexWriter.getEntityTableLinker().getIndex(), (EmbeddingsIndex<Id>) indexWriter.getEmbeddingsIndex().getIndex(),
+                    5, 1, AnalogousSearch.EntitySimilarity.JACCARD_TYPES, false, false,
+                    true, false, false, AnalogousSearch.SimilarityMeasure.EUCLIDEAN, new HashMap<>());
         }
     }
 

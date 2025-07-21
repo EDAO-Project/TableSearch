@@ -1,6 +1,5 @@
 package com.thetis.similarity;
 
-import com.thetis.similarity.JaccardSimilarity;
 import com.thetis.structures.graph.Type;
 import org.junit.Test;
 
@@ -10,12 +9,12 @@ import static org.junit.Assert.*;
 
 public class JaccardSimilarityTest
 {
-    private Set<Type> ts1 = Set.of(new Type("t1", 231.23), new Type("t2", 2.11),
-            new Type("t3", 534.21), new Type("t4", 5.64), new Type("t5", 31.74)),
+    private Set<Type> ts1 = Set.of(new Type("t1"), new Type("t2"),
+            new Type("t3"), new Type("t4"), new Type("t5")),
             ts2 = Set.of(new Type("t1"), new Type("t2"), new Type("t3"), new Type("t4"), new Type("t5")),
-            ts3 = Set.of(new Type("t2"), new Type("t3", 534.21), new Type("t4", 5.64)),
-            ts4 = Set.of(new Type("t6", 3.22), new Type("t7", 2.13), new Type("t8", 9.21),
-                    new Type("t9", 8.44), new Type("t10", 32.21));
+            ts3 = Set.of(new Type("t2"), new Type("t3"), new Type("t4")),
+            ts4 = Set.of(new Type("t6"), new Type("t7"), new Type("t8"),
+                    new Type("t9"), new Type("t10"));
 
     @Test
     public void testFullIntersection()

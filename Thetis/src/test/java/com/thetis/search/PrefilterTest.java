@@ -48,10 +48,10 @@ public class PrefilterTest
                 embeddingsDB, "http://www.wikipedia.org/", "http://dbpedia.org/");
         indexWriter.performIO();
 
-        EntityLinking linker = indexWriter.getEntityLinker();
-        EntityTable entityTable = indexWriter.getEntityTable();
-        EntityTableLink tableLink = indexWriter.getEntityTableLinker();
-        EmbeddingsIndex<Id> embeddingsIdx = indexWriter.getEmbeddingsIndex();
+        EntityLinking linker = (EntityLinking) indexWriter.getEntityLinker().getLinker();
+        EntityTable entityTable = (EntityTable) indexWriter.getEntityTable().getIndex();
+        EntityTableLink tableLink = (EntityTableLink) indexWriter.getEntityTableLinker().getIndex();
+        EmbeddingsIndex<Id> embeddingsIdx = (EmbeddingsIndex<Id>) indexWriter.getEmbeddingsIndex().getIndex();
         this.setPrefilter = new Prefilter(linker, entityTable, tableLink, embeddingsIdx, indexWriter.getHNSW());
 
         String singleUri = linker.mapTo("http://www.wikipedia.org/wiki/WebOS");

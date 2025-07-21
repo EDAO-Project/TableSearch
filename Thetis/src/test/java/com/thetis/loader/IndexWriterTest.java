@@ -57,9 +57,9 @@ public class IndexWriterTest
     @Test
     public void testIndexes()
     {
-        EntityLinking linker = this.writer.getEntityLinker();
-        EntityTable entityTable = this.writer.getEntityTable();
-        EntityTableLink entityTableLink = this.writer.getEntityTableLinker();
+        EntityLinking linker = (EntityLinking) this.writer.getEntityLinker().getLinker();
+        EntityTable entityTable = (EntityTable) this.writer.getEntityTable().getIndex();
+        EntityTableLink entityTableLink = (EntityTableLink) this.writer.getEntityTableLinker().getIndex();
         assertEquals(135, entityTable.size());
         assertEquals(entityTable.size(), entityTableLink.size());
 
@@ -84,7 +84,7 @@ public class IndexWriterTest
     @Test
     public void testLinker()
     {
-        EntityLinking linker = this.writer.getEntityLinker();
+        EntityLinking linker = (EntityLinking) this.writer.getEntityLinker().getLinker();
         assertEquals("http://dbpedia.org/resource/1963_Formula_One_season", linker.mapTo("http://www.wikipedia.org/wiki/1963_Formula_One_season"));
         assertEquals("http://www.wikipedia.org/wiki/1963_Formula_One_season", linker.mapFrom("http://dbpedia.org/resource/1963_Formula_One_season"));
         assertEquals("http://dbpedia.org/resource/Windows_Phone_7", linker.mapTo("http://www.wikipedia.org/wiki/Windows_Phone_7"));
@@ -99,8 +99,8 @@ public class IndexWriterTest
     @Test
     public void testEntityTable()
     {
-        EntityTable entityTable = this.writer.getEntityTable();
-        EntityLinking linker = this.writer.getEntityLinker();
+        EntityTable entityTable = (EntityTable) this.writer.getEntityTable().getIndex();
+        EntityLinking linker = (EntityLinking) this.writer.getEntityLinker().getLinker();
         Entity ent1 = entityTable.find(linker.kgUriLookup("http://dbpedia.org/resource/Boston_Bruins")),
                 ent2 = entityTable.find(linker.kgUriLookup("http://dbpedia.org/resource/NEC_Cup"));
         Set<String> ent1Types = Set.of("http://dbpedia.org/ontology/HockeyTeam", "http://dbpedia.org/ontology/Agent",
@@ -133,8 +133,8 @@ public class IndexWriterTest
     @Test
     public void testEntityTableLink()
     {
-        EntityTableLink entityTableLink = this.writer.getEntityTableLinker();
-        EntityLinking linking = this.writer.getEntityLinker();
+        EntityTableLink entityTableLink = (EntityTableLink) this.writer.getEntityTableLinker().getIndex();
+        EntityLinking linking = (EntityLinking) this.writer.getEntityLinker().getLinker();
 
         assertEquals(1, entityTableLink.find(linking.kgUriLookup("http://dbpedia.org/resource/1963_Formula_One_season")).size());
         assertEquals("table-0072-223.json", entityTableLink.find(linking.kgUriLookup("http://dbpedia.org/resource/1963_Formula_One_season")).get(0));
